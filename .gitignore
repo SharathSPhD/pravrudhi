@@ -45,3 +45,4 @@ paper/*.toc
 
 # --- os ---
 .DS_Store
+paper/*.pdf
