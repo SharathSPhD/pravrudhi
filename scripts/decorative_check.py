@@ -35,7 +35,8 @@ def main() -> int:
         sel = selection_probabilities(scores, {k: 1.0 for k in scores})
         for s in r["ranking"]:
             print(
-                f"  {s['name']:<32} G={s['total']:+.4f} epistemic {s['epistemic']:.4f} pragmatic {s['pragmatic']:.4f} cost {s['cost']:.4f}"
+                f"  {s['name']:<32} G={s['total']:+.4f} epistemic {s['epistemic']:.4f} "
+                f"pragmatic {s['pragmatic']:.4f} cost {s['cost']:.4f}"
             )
         if r["degenerate"]:
             print("REFUSED: every candidate scored identically (efe_rank verdict)", file=sys.stderr)
@@ -47,8 +48,8 @@ def main() -> int:
         ap.error("give --batch or --hypotheses")
     v = decorative_check(scores, sel, cv_min, mi_min)
     print(
-        f"decorative_check: {v.verdict} cv_G={v.cv_G:.4f} mi_bits={v.mi_bits:.4f} thresholds cv>={cv_min} mi>={mi_min}"
-        + (f" reason={v.reason}" if v.reason else "")
+        f"decorative_check: {v.verdict} cv_G={v.cv_G:.4f} mi_bits={v.mi_bits:.4f} "
+        f"thresholds cv>={cv_min} mi>={mi_min}" + (f" reason={v.reason}" if v.reason else "")
     )
     return 0 if v.verdict == "pass" else 2
 

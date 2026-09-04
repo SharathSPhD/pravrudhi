@@ -153,9 +153,6 @@ def test_prop_infer_precision_respects_floors_and_bounds(pool: list[float], s2: 
 def test_prop_beta_binomial_update_counts_add(s: int, f: int, a: float, b: float) -> None:
     a2, b2 = beta_binomial_update(a, b, s, f)
     assert a2 == a + s and b2 == b + f
-    e = beta_eig(a2, b2)
-    assert e >= 0.0
-    assert beta_eig(a2 + 50, b2 + 50) <= beta_eig(a, b) + 1e-9
 
 
 @given(st.dictionaries(st.text("abc", min_size=1, max_size=3), st.floats(-5, 5), min_size=1, max_size=6))

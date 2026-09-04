@@ -28,7 +28,8 @@ def _cv(values: np.ndarray) -> float:
 
 
 def _mi_bits(q: np.ndarray) -> float:
-    """log2(N) − H(Q): bits the selection distribution carries about candidate identity relative to uniform."""
+    """log2(N) − H(Q): bits the selection distribution carries about candidate identity relative to
+    uniform."""
     q = q[q > 0]
     if q.size == 0:
         return 0.0
@@ -60,7 +61,8 @@ def decorative_check(
     return DecorativeVerdict(verdict="pass", cv_G=cv, mi_bits=mi, reason=None)
 
 
-# ---- game-llm efe_rank lineage: hypothesis-diagnosticity scoring, kept so its cycle fixtures remain tests ----
+# ---- game-llm efe_rank lineage: hypothesis-diagnosticity scoring, kept so its cycle fixtures remain tests
+# ----
 
 
 def _clip(p: float) -> float:
@@ -73,7 +75,8 @@ def bernoulli_kl(posterior: float, prior: float) -> float:
 
 
 def rank_hypothesis_candidates(spec: Mapping[str, Any], cost_weight: float | None = None) -> dict[str, Any]:
-    """Port of game-llm efe_rank.score + degenerate verdict. Returns {'degenerate', 'ranking', 'entropy_nats'}."""
+    """Port of game-llm efe_rank.score + degenerate verdict. Returns {'degenerate', 'ranking',
+    'entropy_nats'}."""
     beliefs = {k: float(v) for k, v in spec["beliefs"].items()}
     for hyp, p in beliefs.items():
         if not 0.0 < p < 1.0:

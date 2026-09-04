@@ -28,7 +28,8 @@ class Precision(KernelModel):
 
 
 class PrecisionView(KernelModel):
-    """What infer_precision reads: the live pool's posterior predictive variances and the predictor's reliability."""
+    """What infer_precision reads: the live pool's posterior predictive variances and the predictor's
+    reliability."""
 
     pool_post_var: list[float]
     sigma2_eval: float = Field(gt=0.0)

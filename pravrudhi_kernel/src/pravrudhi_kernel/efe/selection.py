@@ -1,4 +1,5 @@
-"""Softmax with habit prior, Thompson-like sampling and the residency-aware knapsack (§2.3). Pure; RNG injected."""
+"""Softmax with habit prior, Thompson-like sampling and the residency-aware knapsack (§2.3). Pure; RNG
+injected."""
 
 from __future__ import annotations
 

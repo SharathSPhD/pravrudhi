@@ -25,8 +25,10 @@ def pseudo_observation_variance(
 ) -> float:
     """σ²_LLM = max(σ²_eval, σ²_eval · (1−c)/c · 1/ρ_pred).
 
-    c and ρ are clipped so a zero-confidence prediction is inert, not NaN. The floor at one kernel observation is a
-    conservative reading of "āgama until executed": testimony never carries more precision than one measurement
+    c and ρ are clipped so a zero-confidence prediction is inert, not NaN. The floor at one kernel
+    observation is a
+    conservative reading of "āgama until executed": testimony never carries more precision than one
+    measurement
     (deviation recorded in gate_L2; the blueprint formula has no floor).
     """
     c = min(max(conf, EPS), 1.0 - EPS)
@@ -42,7 +44,8 @@ def _normal_update(prior: NormalBelief, value: float, sigma2_obs: float) -> Norm
 
 
 def prior_for(citta: Citta, keys: BeliefKeys, tau0_2: float) -> CandidateBelief:
-    """A new candidate's prior comes from the most specific level that has data: bucket > strategy > surface > τ₀²."""
+    """A new candidate's prior comes from the most specific level that has data: bucket > strategy > surface
+    > τ₀²."""
     for level in (
         citta.buckets.get(keys.bucket_key),
         citta.strategies.get(keys.strategy_key or ""),
@@ -93,7 +96,8 @@ def posterior_update(citta: Citta, keys: BeliefKeys, value: float, sigma2_obs: f
 def posterior_update_prediction(
     citta: Citta, keys: BeliefKeys, delta_hat: float, conf: float, sigma2_eval: float, tau0_2: float
 ) -> Citta:
-    """An LLM prediction is āgama: a pseudo-observation whose variance grows with low confidence and low ρ_pred."""
+    """An LLM prediction is āgama: a pseudo-observation whose variance grows with low confidence and low
+    ρ_pred."""
     rho = citta.rho_pred.get(keys.surface, 0.0)
     return posterior_update(
         citta, keys, delta_hat, pseudo_observation_variance(sigma2_eval, conf, rho), tau0_2
@@ -107,7 +111,8 @@ def beta_binomial_update(alpha: float, beta: float, successes: int, failures: in
 
 
 def beta_eig(alpha: float, beta: float) -> float:
-    """Mutual information (nats) between one Bernoulli outcome and the Beta-distributed rate, by enumeration."""
+    """Mutual information (nats) between one Bernoulli outcome and the Beta-distributed rate, by
+    enumeration."""
     if alpha <= 0 or beta <= 0:
         raise ValueError("alpha, beta positive")
     p1 = alpha / (alpha + beta)
@@ -136,8 +141,8 @@ def _digamma(x: float) -> float:
 def eig(citta: Citta, keys: BeliefKeys, sigma2_eval: float, n_seeds: int, tau0_2: float) -> float:
     """EIG (nats) of one more evaluation with n_seeds seeds: candidate term plus hierarchy terms (§2.1).
 
-    Each term is ½ ln(1 + prior variance at that level / effective noise); the hierarchy terms are what make an
-    under-sampled bucket, strategy or surface worth more than a well-known one.
+    Each term is ½ ln(1 + prior variance at that level / effective noise); the hierarchy terms are what
+    make an under-sampled bucket, strategy or surface worth more than a well-known one.
     """
     if sigma2_eval <= 0 or n_seeds < 1:
         raise ValueError("sigma2_eval positive, n_seeds >= 1")
@@ -177,7 +182,8 @@ def expected_log_pref(
 
 
 def infer_precision(view: PrecisionView) -> Precision:
-    """γ_epi rises with pool posterior-predictive variance, floored at f_epi; γ_prag follows ρ_pred, floored."""
+    """γ_epi rises with pool posterior-predictive variance, floored at f_epi; γ_prag follows ρ_pred,
+    floored."""
     if view.pool_post_var:
         v = sum(view.pool_post_var) / len(view.pool_post_var)
         epi = v / (v + view.sigma2_eval)

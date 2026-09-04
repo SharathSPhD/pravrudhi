@@ -40,10 +40,13 @@ def test_efe_modules_are_pure() -> None:
                 f = node.func
                 if isinstance(f, ast.Name) and f.id in BANNED_CALLS:
                     problems.append(f"{py.name}:{node.lineno} call {f.id}()")
-                if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Attribute):
-                    if (
+                if (
+                    isinstance(f, ast.Attribute)
+                    and isinstance(f.value, ast.Attribute)
+                    and (
                         isinstance(f.value.value, ast.Name)
                         and (f.value.value.id, f.value.attr) in BANNED_ATTRS
-                    ):
-                        problems.append(f"{py.name}:{node.lineno} np.random.* (global RNG)")
+                    )
+                ):
+                    problems.append(f"{py.name}:{node.lineno} np.random.* (global RNG)")
     assert not problems, problems
