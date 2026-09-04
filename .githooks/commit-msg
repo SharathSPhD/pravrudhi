@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Sākṣī rule (CHARTER §6): commit as SharathSPhD <qbz506@york.ac.uk>, no attribution trailers.
+# Strips Co-Authored-By / Claude-Session lines; fails if the author identity differs.
+set -euo pipefail
+MSG="$1"
+WANT_NAME="SharathSPhD"
+WANT_EMAIL="qbz506@york.ac.uk"
+
+name="${GIT_AUTHOR_NAME:-$(git config user.name || true)}"
+email="${GIT_AUTHOR_EMAIL:-$(git config user.email || true)}"
+if [[ "$name" != "$WANT_NAME" || "$email" != "$WANT_EMAIL" ]]; then
+  echo "commit-msg: author must be $WANT_NAME <$WANT_EMAIL>, got '$name <$email>' (run: make init)" >&2
+  exit 1
+fi
+
+tmp="$(mktemp)"
+grep -viE '^(Co-Authored-By|Claude-Session):' "$MSG" > "$tmp" || true
+printf '%s\n' "$(cat "$tmp")" > "$MSG"
+rm -f "$tmp"
+exit 0
