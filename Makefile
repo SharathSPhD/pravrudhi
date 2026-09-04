@@ -28,8 +28,8 @@ ledger-replay:   ## rebuild state.json from the ledger and verify the chain and 
 	$(UV) run pravrudhi replay --verify
 reproduce:
 	@echo "not implemented: L3" >&2; exit 2
-decorative-check:
-	@echo "not implemented: L2" >&2; exit 2
+decorative-check:  ## decorative-controller check on the last select batch (research/last_select.json)
+	$(UV) run python scripts/decorative_check.py --batch research/last_select.json
 glossary-lint:
 	@echo "not implemented: P2" >&2; exit 2
 headline-check:

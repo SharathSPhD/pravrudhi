@@ -24,6 +24,7 @@ class Candidate(KernelModel):
     surface: Surface
     bucket: Bucket
     edit_family: str
+    strategy: str | None = None  # ADR-0005: strategy-level family (e.g. sft_rejection, grpo_verifiable)
     lineage: list[CandidateId]
     diff_ref: Sha256
     cost_est_gpu_h: float = Field(ge=0.0)

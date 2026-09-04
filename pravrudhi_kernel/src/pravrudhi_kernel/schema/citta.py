@@ -23,6 +23,7 @@ class Citta(KernelModel):
 
     version: int = Field(ge=0)
     surfaces: dict[str, NormalBelief]
+    strategies: dict[str, NormalBelief] = Field(default_factory=dict)  # ADR-0005: surface|strategy
     buckets: dict[str, NormalBelief]
     candidates: dict[str, CandidateBelief]
     rho_pred: dict[str, float]
