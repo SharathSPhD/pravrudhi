@@ -1,0 +1,41 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  kernel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.13" }
+      - run: uv sync --all-groups --frozen
+      - run: uv run pytest pravrudhi_kernel/tests -q --cov=pravrudhi_kernel --cov-fail-under=80
+      - run: uv run mypy pravrudhi_kernel/src
+
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.13" }
+      - run: uv sync --all-groups --frozen
+      - run: uv run ruff check pravrudhi_kernel src tests scripts
+      - run: uv run mypy src
+      - run: uv run pytest tests -q
+      - run: uv run python scripts/import_guard.py
+
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.13" }
+      - run: uv sync --all-groups --frozen
+      - run: uv run pytest tests/governance -q
+      - name: no attribution trailers in history
+        run: |
+          if git log --format=%B | grep -qiE '^(Co-Authored-By|Claude-Session):'; then
+            echo "attribution trailer found in history"; exit 1; fi
