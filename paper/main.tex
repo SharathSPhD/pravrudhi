@@ -1,0 +1,35 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,multirow}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{natbib}
+
+\title{Pravrudhi: Recursive Self-Improvement of Language-Model Systems under an Expected-Free-Energy Controller with Typed Evidence}
+\author{Sharath Sathish}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Recursive self-improvement systems for language-model harnesses share one skeleton and one epistemology: a mutable substrate, a proposer, a frozen evaluator, an archive, and the belief that a change is good if a number went up. This paper describes Pravrudhi, an engine that keeps the skeleton and replaces three components: selection by an expected-free-energy controller over a posterior held outside the language model; evidence typed by provenance and replaced only by sublation; and an evaluator kernel that the mutated process cannot reach. Results sections are filled from gate records as each experiment closes; this version reports the design and the measurement protocol.
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/method}
+\input{sections/evaluation}
+\input{sections/results}
+\input{sections/limitations}
+\input{sections/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

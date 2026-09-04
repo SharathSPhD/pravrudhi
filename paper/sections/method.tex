@@ -1,0 +1,32 @@
+% Source: docs/blueprint/02-design/02-efe-controller-spec.md §1–§3, 08-memory-and-context.md §1, 06-evaluation-and-statistics.md §3–§4; no measured numbers.
+\section{Method}
+\label{sec:method}
+
+\subsection{Loop and mutability tiers}
+A night is a budgeted batch of cycles. Each cycle proposes a candidate, deliberates over the pool, executes the selected candidates in disposable sandboxes, observes the kernel's scores, and disposes by a sequential test. Four mutability tiers separate what may change from what may not: the kernel is immutable within an epoch, the ledger is append-only, the harness and adapters are mutable through a broker, and canonical artefacts change only by human promotion. Figure~\ref{fig:loop} shows the phases and the residency windows.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[node distance=1.1cm and 0.9cm, every node/.style={font=\small}, box/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.8cm, align=center}]
+\node[box] (p) {propose};
+\node[box, right=of p] (d) {deliberate};
+\node[box, right=of d] (e) {execute};
+\node[box, right=of e] (o) {observe};
+\node[box, right=of o] (s) {dispose};
+\draw[-Latex] (p) -- (d); \draw[-Latex] (d) -- (e); \draw[-Latex] (e) -- (o); \draw[-Latex] (o) -- (s);
+\draw[-Latex] (s.south) |- ++(0,-0.7) -| (p.south);
+\node[below=0.9cm of d, draw, dashed, minimum width=5.6cm, minimum height=0.6cm] {deliberation window: proposer resident};
+\node[below=0.9cm of o, draw, dashed, minimum width=5.6cm, minimum height=0.6cm] {execution window: trainee and kernel scorer};
+\end{tikzpicture}
+\caption{One night: the five phases, and the two residency windows on a single GPU. The kernel writes every observation; the engine never does.}
+\label{fig:loop}
+\end{figure}
+
+\subsection{Objective}
+For a candidate $a$ with evidence plan $\pi$, the controller scores the expected free energy $G(a,\pi) = -\gamma_{\mathrm{epi}}\,\mathrm{EIG}(a,\pi) - \gamma_{\mathrm{prag}}\,\mathbb{E}[\log p(o \mid C)] + \kappa\, c(a,\pi)$, where EIG is the expected information gain about the effect-size hierarchy, the pragmatic term is the expected log preference under prior preferences $C$ that assign $-\infty$ to any candidate touching the kernel, and $c$ is the cost in GPU-hours scaled by the residency phase. Precisions $\gamma$ are inferred from the ledger with a hard floor on the epistemic weight. The proposer's prediction enters the posterior as a pseudo-observation whose variance is inflated by the inverse of the proposer's calibrated reliability.
+
+\subsection{Typed evidence and sublation}
+Every ledger row carries a provenance tag from the set of kernel-executed measurement, surrogate inference, transfer analogy, and model testimony. A stored claim is replaced only when the replacing evidence has strictly higher precision on a common scale or an arbitration rule applies: specific over general, stronger provenance over weaker, later measurement over earlier inference. Refusals are logged.
+
+\subsection{Kernel isolation}
+The kernel is a separate package with no model client and no network access. Observations are admissible only after the kernel verifies the hashes of the held-out items, the pool manifest, the scorer, the artefact under test, and the model weights inside the execution container. The isolation level that produced an observation, whether a separate process, a container, or a separate operating-system user, is recorded on the row.

@@ -1,0 +1,22 @@
+% Source: docs/blueprint/01-research/01-sota-landscape.md; comparison axes only, no measured numbers.
+\section{Background}
+\label{sec:background}
+
+Four lineages of recursive self-improvement are relevant. Archive-based self-modification of a coding agent evaluates whole-scaffold rewrites on a benchmark and keeps parents by score. Evolutionary program search applies population operators to code under a fixed evaluator. The autoresearch loops edit a single training file under a fixed wall-clock budget and keep a change if a validation metric improves. Self-play weight trainers optimise adapters against verifiable rewards. Table~\ref{tab:related} contrasts them on the axes that the present design changes: where the posterior over effects lives, whether evidence carries provenance, and whether the evaluator is reachable by the mutated process.
+
+\begin{table}[t]
+\centering
+\caption{Recursive self-improvement lineages compared on the three components Pravrudhi changes. ``Reachable'' means the process being mutated can, in principle, write to the evaluator's inputs or outputs.}
+\label{tab:related}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Lineage} & \textbf{Posterior} & \textbf{Typed evidence} & \textbf{Evaluator reachable} \\
+\midrule
+Archive self-modification & none (score archive) & no & yes \\
+Evolutionary program search & none (population) & no & yes \\
+Autoresearch keep-if-better & none & no & yes \\
+Self-play adapter training & implicit in reward & no & partly \\
+Pravrudhi & explicit, hierarchical, external & yes & no \\
+\bottomrule
+\end{tabular}
+\end{table}

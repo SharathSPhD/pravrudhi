@@ -1,0 +1,1 @@
+Paper source. Prose in `sections/`; each file opens with a comment naming the gate or blueprint document its content comes from. `make` builds `main.pdf`; `make check` runs the style checker. Results sections are written only from gate JSON fields.

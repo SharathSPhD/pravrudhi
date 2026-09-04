@@ -1,0 +1,5 @@
+% Source: docs/superpowers/specs/2026-09-04-pravrudhi-engine-design.md §3, §6; 06-evaluation-and-statistics.md §3–§4. Protocol only; numbers arrive with gates L3–L4.
+\section{Evaluation protocol}
+\label{sec:evaluation}
+
+The first target is adapter-only self-improvement of a four-billion-parameter open model on a grade-school arithmetic benchmark with a deterministic answer checker. The train split supplies the proposer's data; the test split is sealed as the held-out pool from which the kernel draws rotations under an exposure cap; a disjoint slice of the train split is the in-loop evaluation set. Candidates are bucketed by edit family so that the hierarchical posterior has between-family variance. Before any candidate is selected, the unmodified model is evaluated across rotations and sampling seeds to measure the evaluation noise floor; this noise floor fixes the sequential boundaries and the surprise threshold. Claims are stated at the tier they passed: smoke, screen, or confirm. A confirm-tier claim requires at least three seeds, a paired design, a bias-corrected bootstrap interval on Hedges' $g$, and family-wise correction at family closure.
