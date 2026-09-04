@@ -1,0 +1,70 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pravrudhi"
+version = "0.1.0"
+description = "Recursive self-improvement engine for language-model systems: run a budgeted night over your own model and harness."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = "Apache-2.0"
+authors = [{ name = "SharathSPhD", email = "qbz506@york.ac.uk" }]
+keywords = ["recursive-self-improvement", "active-inference", "expected-free-energy", "llm", "harness", "lora"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+  "pravrudhi-kernel",
+  "typer>=0.15",
+  "pyyaml>=6.0",
+  "pydantic>=2.11",
+  "numpy>=2.3",
+]
+
+[project.scripts]
+pravrudhi = "pravrudhi.cli.app:main"
+
+[project.urls]
+Repository = "https://github.com/SharathSPhD/pravrudhi"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "hypothesis>=6.130",
+  "ruff>=0.12",
+  "mypy>=1.16",
+  "types-PyYAML>=6.0",
+]
+
+[tool.uv.workspace]
+members = ["pravrudhi_kernel"]
+
+[tool.uv.sources]
+pravrudhi-kernel = { workspace = true }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pravrudhi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "pravrudhi_kernel/tests"]
+addopts = "-p no:cacheprovider"
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+src = ["src", "pravrudhi_kernel/src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+packages = ["pravrudhi_kernel", "pravrudhi"]
+mypy_path = "src:pravrudhi_kernel/src"

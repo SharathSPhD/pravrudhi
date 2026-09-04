@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pravrudhi-kernel"
+version = "0.1.0"
+description = "Pravrudhi sākṣī kernel: schema, hash-chained ledger, statistics, controller mathematics, scorers. No model client, no network."
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+license = "Apache-2.0"
+authors = [{ name = "SharathSPhD", email = "qbz506@york.ac.uk" }]
+dependencies = [
+  "numpy>=2.3",
+  "pydantic>=2.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pravrudhi_kernel"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
