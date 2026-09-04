@@ -1,0 +1,1281 @@
+{
+  "audits": 14,
+  "badges": {
+    "c-0001": "red",
+    "c-0002": "red",
+    "c-0003": "amber",
+    "c-0004": "green",
+    "c-0005": "red",
+    "c-0006": "red",
+    "c-0007": "amber",
+    "c-0008": "green",
+    "c-0009": "grey",
+    "c-0010": "red",
+    "c-0011": "amber",
+    "c-0012": "green",
+    "c-0013": "red",
+    "c-0014": "red",
+    "c-0015": "amber",
+    "c-0016": "green",
+    "c-0017": "red",
+    "c-0018": "grey",
+    "c-0019": "amber",
+    "c-0020": "green",
+    "c-0021": "red",
+    "c-0022": "red",
+    "c-0023": "amber",
+    "c-0024": "green",
+    "c-0025": "red",
+    "c-0026": "red",
+    "c-0027": "grey",
+    "c-0028": "green",
+    "c-0029": "red",
+    "c-0030": "red",
+    "c-0031": "amber",
+    "c-0032": "green",
+    "c-0033": "red",
+    "c-0034": "red",
+    "c-0035": "amber",
+    "c-0036": "grey",
+    "c-0037": "red",
+    "c-0038": "red",
+    "c-0039": "amber",
+    "c-0040": "green",
+    "c-0041": "red",
+    "c-0042": "red",
+    "c-0043": "amber",
+    "c-0044": "green",
+    "c-0045": "grey",
+    "c-0046": "red",
+    "c-0047": "amber",
+    "c-0048": "green"
+  },
+  "blocklist": [],
+  "budgets": {
+    "1": {
+      "runs": 23,
+      "spent_gpu_h": 3.8770000000000007
+    },
+    "2": {
+      "runs": 24,
+      "spent_gpu_h": 5.3577
+    },
+    "3": {
+      "runs": 23,
+      "spent_gpu_h": 4.3427999999999995
+    },
+    "4": {
+      "runs": 20,
+      "spent_gpu_h": 3.0961000000000003
+    }
+  },
+  "candidates": {
+    "c-0001": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.8202,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 2,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02318,
+        0.01297,
+        0.04151
+      ]
+    },
+    "c-0002": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3446,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 12,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.01831,
+        0.00687
+      ]
+    },
+    "c-0003": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2793,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 20,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.02994,
+        0.02313
+      ]
+    },
+    "c-0004": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.28600000000000003,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": true,
+      "proposed_seq": 27,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02014,
+        -0.00407
+      ]
+    },
+    "c-0005": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.5952999999999999,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 35,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00168,
+        -0.00013,
+        0.00263
+      ]
+    },
+    "c-0006": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.1574,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 45,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.01295
+      ]
+    },
+    "c-0007": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3942,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 52,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02961,
+        0.01449,
+        0.00642
+      ]
+    },
+    "c-0008": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.072,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": true,
+      "proposed_seq": 61,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00498
+      ]
+    },
+    "c-0009": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0,
+      "edit_family": "optimiser",
+      "incumbent_hash": null,
+      "last_boundary": null,
+      "n_obs": 0,
+      "promoted": false,
+      "proposed_seq": 68,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": true,
+      "surface": "W3.adapter",
+      "xs": []
+    },
+    "c-0010": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2601,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 71,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.06852,
+        0.01695
+      ]
+    },
+    "c-0011": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.369,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 80,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.02993,
+        0.00944
+      ]
+    },
+    "c-0012": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2989,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": true,
+      "proposed_seq": 87,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        -0.00242,
+        0.01598
+      ]
+    },
+    "c-0013": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.6929000000000001,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 96,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.0118,
+        0.00492,
+        0.01879
+      ]
+    },
+    "c-0014": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.4295,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 106,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.06303,
+        0.05364
+      ]
+    },
+    "c-0015": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.5382,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 114,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.04509,
+        -0.02283
+      ]
+    },
+    "c-0016": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2587,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": true,
+      "proposed_seq": 121,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        -0.0011
+      ]
+    },
+    "c-0017": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.7707999999999999,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 128,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.00907,
+        0.02651,
+        0.00955
+      ]
+    },
+    "c-0018": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0,
+      "edit_family": "optimiser",
+      "incumbent_hash": null,
+      "last_boundary": null,
+      "n_obs": 0,
+      "promoted": false,
+      "proposed_seq": 138,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": true,
+      "surface": "W3.adapter",
+      "xs": []
+    },
+    "c-0019": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3286,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 141,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.04923,
+        0.03429
+      ]
+    },
+    "c-0020": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3785,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": true,
+      "proposed_seq": 149,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00876,
+        0.01344
+      ]
+    },
+    "c-0021": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3626,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 158,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.01339,
+        -0.04867
+      ]
+    },
+    "c-0022": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.715,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 166,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02453,
+        0.01294,
+        0.0467
+      ]
+    },
+    "c-0023": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2335,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 176,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00229
+      ]
+    },
+    "c-0024": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.6494000000000001,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": true,
+      "proposed_seq": 181,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        -0.0273,
+        -0.00951,
+        0.00241
+      ]
+    },
+    "c-0025": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.5093,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 193,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02092,
+        0.01018
+      ]
+    },
+    "c-0026": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.30069999999999997,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 201,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00701,
+        0.00928,
+        -0.01651
+      ]
+    },
+    "c-0027": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0,
+      "edit_family": "optimiser",
+      "incumbent_hash": null,
+      "last_boundary": null,
+      "n_obs": 0,
+      "promoted": false,
+      "proposed_seq": 211,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": true,
+      "surface": "W3.adapter",
+      "xs": []
+    },
+    "c-0028": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.5019,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": true,
+      "proposed_seq": 214,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.00332,
+        0.0016,
+        -0.00118
+      ]
+    },
+    "c-0029": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3967,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": false,
+      "proposed_seq": 224,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.04544,
+        0.0178
+      ]
+    },
+    "c-0030": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2705,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 232,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.04045
+      ]
+    },
+    "c-0031": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.6283,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 240,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.04704,
+        0.01273,
+        0.03828
+      ]
+    },
+    "c-0032": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.4155,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": true,
+      "proposed_seq": 249,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.00083,
+        0.01502
+      ]
+    },
+    "c-0033": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.7351000000000001,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 259,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.00498,
+        -0.00249,
+        0.03567
+      ]
+    },
+    "c-0034": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0856,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 269,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02118
+      ]
+    },
+    "c-0035": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.4992,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 275,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.00953,
+        0.00539,
+        0.02978
+      ]
+    },
+    "c-0036": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0,
+      "edit_family": "optimiser",
+      "incumbent_hash": null,
+      "last_boundary": null,
+      "n_obs": 0,
+      "promoted": false,
+      "proposed_seq": 284,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": true,
+      "surface": "W3.adapter",
+      "xs": []
+    },
+    "c-0037": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2797,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 287,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.01159
+      ]
+    },
+    "c-0038": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0911,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 293,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.00182
+      ]
+    },
+    "c-0039": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.5045,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 299,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.0233,
+        0.06213,
+        0.06561
+      ]
+    },
+    "c-0040": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.2341,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 1,
+      "promoted": true,
+      "proposed_seq": 308,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.02197
+      ]
+    },
+    "c-0041": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.1669,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 316,
+      "pruned": "asiddha",
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.00779
+      ]
+    },
+    "c-0042": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.45170000000000005,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 322,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.00617,
+        0.01299,
+        0.02018
+      ]
+    },
+    "c-0043": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3503,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 3,
+      "promoted": false,
+      "proposed_seq": 333,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        -0.0151,
+        0.01542,
+        0.02551
+      ]
+    },
+    "c-0044": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.3604,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 2,
+      "promoted": true,
+      "proposed_seq": 342,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        -0.00577,
+        -0.01851
+      ]
+    },
+    "c-0045": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0,
+      "edit_family": "optimiser",
+      "incumbent_hash": null,
+      "last_boundary": null,
+      "n_obs": 0,
+      "promoted": false,
+      "proposed_seq": 350,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": true,
+      "surface": "W3.adapter",
+      "xs": []
+    },
+    "c-0046": {
+      "audit_high": true,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.1442,
+      "edit_family": "adapter",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 353,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W2.data",
+      "xs": [
+        0.00432
+      ]
+    },
+    "c-0047": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.0649,
+      "edit_family": "data_mixture",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "confirm",
+      "n_obs": 1,
+      "promoted": false,
+      "proposed_seq": 360,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "H3.prompt",
+      "xs": [
+        0.05447
+      ]
+    },
+    "c-0048": {
+      "audit_high": false,
+      "bucket": {
+        "corpus": "gsm8k-train",
+        "target_model": "Qwen/Qwen3-4B",
+        "task_family": "gsm8k"
+      },
+      "cost_gpu_h": 0.4483,
+      "edit_family": "optimiser",
+      "incumbent_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "last_boundary": "prune",
+      "n_obs": 3,
+      "promoted": true,
+      "proposed_seq": 365,
+      "pruned": null,
+      "rebased": 0,
+      "skipped": false,
+      "surface": "W3.adapter",
+      "xs": [
+        0.00641,
+        -0.03056,
+        0.00029
+      ]
+    }
+  },
+  "epoch": 0,
+  "harness_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "inbox_pending": [
+    "research/inbox/1/c-0004",
+    "research/inbox/1/c-0012",
+    "research/inbox/2/c-0020",
+    "research/inbox/3/c-0028",
+    "research/inbox/4/c-0044"
+  ],
+  "kernel_release": "0.1.0",
+  "ledger_head": "6ead409bf9e24ab5d1ed4d1e13d9d18817245584796a082c53ff57ef1eacb932",
+  "locks": {
+    "frozen_surfaces": [],
+    "paused": true,
+    "reflection_owed": null
+  },
+  "night": 4,
+  "promoted": {
+    "1": [
+      "c-0004",
+      "c-0008",
+      "c-0012"
+    ],
+    "2": [
+      "c-0016",
+      "c-0020",
+      "c-0024"
+    ],
+    "3": [
+      "c-0028",
+      "c-0032"
+    ],
+    "4": [
+      "c-0040",
+      "c-0044",
+      "c-0048"
+    ]
+  },
+  "pruned": {
+    "c-0001": "asiddha",
+    "c-0005": "asiddha",
+    "c-0013": "asiddha",
+    "c-0017": "asiddha",
+    "c-0021": "asiddha",
+    "c-0025": "asiddha",
+    "c-0029": "asiddha",
+    "c-0033": "asiddha",
+    "c-0037": "asiddha",
+    "c-0041": "asiddha"
+  },
+  "reflections": 3,
+  "rho_pred": {
+    "H3.prompt": 0.6739999999999999,
+    "W2.data": 0.538,
+    "W3.adapter": 0.802
+  },
+  "sensors": {
+    "entropy_budget": 6
+  },
+  "seq": 377,
+  "signoffs": [
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/1/c-0008",
+      "seq": 67
+    },
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/2/c-0016",
+      "seq": 127
+    },
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/2/c-0024",
+      "seq": 191
+    },
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/3/c-0032",
+      "seq": 258
+    },
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/4/c-0040",
+      "seq": 314
+    },
+    {
+      "by": "human:sharath",
+      "decision": "approve",
+      "pack": "research/inbox/4/c-0048",
+      "seq": 375
+    }
+  ],
+  "skipped": [
+    "c-0009",
+    "c-0018",
+    "c-0027",
+    "c-0036",
+    "c-0045"
+  ],
+  "state_hash": "0530326b326985adb3be9cb4767f5187cfab25a1d6f265e4b4e2aebedae15408",
+  "sublations": 4,
+  "t_last": "2026-09-04T01:12:58.000Z",
+  "tau": {
+    "H3.prompt": 0.6,
+    "W2.data": 0.6,
+    "W3.adapter": 0.6
+  },
+  "theta_surprise": 3.0
+}

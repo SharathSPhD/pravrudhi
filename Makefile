@@ -24,8 +24,8 @@ contract-check:  ## usage: make contract-check GATE=gates/gate_L0.json
 paper:
 	$(MAKE) -C paper
 
-ledger-replay:
-	@echo "not implemented: L1" >&2; exit 2
+ledger-replay:   ## rebuild state.json from the ledger and verify the chain and byte-equality
+	$(UV) run pravrudhi replay --verify
 reproduce:
 	@echo "not implemented: L3" >&2; exit 2
 decorative-check:
