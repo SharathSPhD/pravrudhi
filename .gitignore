@@ -1,0 +1,47 @@
+# --- local-only development and research documents (operator rule 2026-09-04) ---
+CLAUDE.md
+AGENTS.md
+RULES.md
+HANDOFF.md
+RESTART.md
+docs/blueprint/
+docs/superpowers/
+docs/decisions/
+contracts/
+gates/
+research/
+.triz/
+.pravrudhi/
+.claude/
+.env
+.env.*
+PLAN.md
+.worktrees/
+
+# --- python ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+dist/
+build/
+
+# --- latex ---
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+
+# --- os ---
+.DS_Store
