@@ -25,7 +25,7 @@ class AgentStatus:
 def build_registry(root: Path, *, include_orca: bool = True) -> dict[str, Any]:
     agents: dict[str, Any] = {"claude-code": ClaudeCodeAgent(root), "codex": CodexAgent(root)}
     if include_orca:
-        for agent_id in ("claude", "codex"):
+        for agent_id in ("claude", "codex", "local"):
             a = OrcaAgent(root, agent_id=agent_id)
             agents[a.name] = a
     return agents
@@ -43,10 +43,13 @@ def survey(root: Path, *, include_orca: bool = True) -> list[AgentStatus]:
             else:
                 out.append(AgentStatus(name, True, "ready"))
         elif isinstance(a, OrcaAgent):
-            ok = a.available()
-            out.append(
-                AgentStatus(name, ok, "ready" if ok else "orca-ide runtime not reachable (needs a display server: xvfb)")
-            )
+            if not a.runtime_ready():
+                out.append(AgentStatus(name, False, "orca-ide runtime not reachable (needs a display server: xvfb)"))
+            elif not a.available():
+                need = {"claude": "claude", "codex": "codex", "local": "opencode"}[a.agent_id]
+                out.append(AgentStatus(name, False, f"orca is up but {need} is not on PATH"))
+            else:
+                out.append(AgentStatus(name, True, "ready"))
         else:
             ok = a.available()
             out.append(AgentStatus(name, ok, "ready" if ok else "claude CLI not installed"))

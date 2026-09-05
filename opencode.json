@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "pravrudhi-local": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Pravrudhi local (llama.cpp on this GPU)",
+      "options": { "baseURL": "http://127.0.0.1:8090/v1" },
+      "models": {
+        "glm-4.7-flash": { "name": "GLM-4.7-Flash Q4_K (local)" },
+        "qwen3-30b-a3b": { "name": "Qwen3-30B-A3B Q4_K_M (local)" }
+      }
+    }
+  }
+}

@@ -59,7 +59,7 @@ def test_kernel_edit_by_an_agent_is_a_violation(tmp_path):
 
 def test_adapters_satisfy_the_protocol_and_name_themselves(tmp_path):
     r = _repo(tmp_path)
-    for a in (ClaudeCodeAgent(r), CodexAgent(r), OrcaAgent(r, agent_id="codex")):
+    for a in (ClaudeCodeAgent(r), CodexAgent(r), OrcaAgent(r, agent_id="codex"), OrcaAgent(r, agent_id="local")):
         assert isinstance(a, CodingAgent) and isinstance(a, GitWorktreeMixin)
     assert ClaudeCodeAgent(r).name == "claude-code"
     assert CodexAgent(r).name == "codex"
@@ -68,14 +68,26 @@ def test_adapters_satisfy_the_protocol_and_name_themselves(tmp_path):
 
 def test_orca_refuses_clearly_when_its_runtime_is_absent(tmp_path, monkeypatch):
     a = OrcaAgent(_repo(tmp_path))
-    monkeypatch.setattr(a, "runtime_ready", lambda: False)
+    monkeypatch.setattr(a.ws, "ready", lambda: False)
     with pytest.raises(OrcaUnavailable):
         a.create_workspace("t3")
+
+
+def test_each_agent_kind_has_a_headless_invocation():
+    from pravrudhi.agents.orca_agent import LOCAL_PROVIDER, headless_command
+
+    assert headless_command("claude", "do it")[:3] == ["claude", "-p", "do it"]
+    assert headless_command("codex", "do it")[:2] == ["codex", "exec"]
+    local = headless_command("local", "do it", model="qwen3-30b-a3b")
+    assert local[:4] == ["opencode", "run", "--format", "json"]
+    assert f"{LOCAL_PROVIDER}/qwen3-30b-a3b" in local
+    with pytest.raises(OrcaUnavailable):
+        headless_command("gemini", "do it")
 
 
 def test_survey_reports_a_reason_for_every_agent(tmp_path):
     r = _repo(tmp_path)
     rows = survey(r)
-    assert {r.name for r in rows} >= {"claude-code", "codex", "orca:claude", "orca:codex"}
+    assert {r.name for r in rows} >= {"claude-code", "codex", "orca:claude", "orca:codex", "orca:local"}
     assert all(r.reason for r in rows), "an unavailable agent must say why"
     assert set(build_registry(r, include_orca=False)) == {"claude-code", "codex"}
