@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
+from pravrudhi.api.localguard import TOKEN_HEADER, app_token
 from pravrudhi.api.server import create_app
 from pravrudhi.application.export import export_adapter
 from pravrudhi.application.init import init_project
@@ -99,7 +100,7 @@ def test_export_refuses_when_not_green(tmp_path: Path) -> None:
 
 def test_api_reads_ledger_and_sign_is_a_human_act(tmp_path: Path) -> None:
     root = _promoted_ledger(tmp_path)
-    c = TestClient(create_app(root))
+    c = TestClient(create_app(root), base_url="http://127.0.0.1:8008")
     assert c.get("/health").json()["ok"]
     assert c.get("/status").json()["badges"]["green"] == 1
     assert c.get("/candidates/c-0001").json()["badge"] == "green"
@@ -108,13 +109,22 @@ def test_api_reads_ledger_and_sign_is_a_human_act(tmp_path: Path) -> None:
     inbox = c.get("/inbox").json()
     assert len(inbox) == 1 and inbox[0]["signed"] is False
     pack = inbox[0]["pack"]
-    assert c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}).status_code == 403
+    tok = {TOKEN_HEADER: app_token(root)}
+    # without the engine's local token a state change never reaches the endpoint's own rules
+    assert c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}).status_code == 401
+    assert c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}, headers=tok).status_code == 403
     assert (
-        c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}, headers={"X-Pravrudhi-Operator": "claude"}).status_code
+        c.post(
+            "/inbox/sign",
+            json={"pack": pack, "decision": "approve"},
+            headers={"X-Pravrudhi-Operator": "claude", **tok},
+        ).status_code
         == 403
     )
     r = c.post(
-        "/inbox/sign", json={"pack": pack, "decision": "approve", "note": "read"}, headers={"X-Pravrudhi-Operator": "Sharath"}
+        "/inbox/sign",
+        json={"pack": pack, "decision": "approve", "note": "read"},
+        headers={"X-Pravrudhi-Operator": "Sharath", **tok},
     )
     assert r.status_code == 200 and r.json()["by"] == "Sharath"
     assert c.get("/inbox").json()[0]["signed"] is True
@@ -126,7 +136,7 @@ def test_evidence_endpoint_refuses_traversal_and_serves_only_evidence_files(tmp_
     (root / "docs" / "evidence").mkdir(parents=True, exist_ok=True)
     (root / "docs" / "evidence" / "L3_noise_floor.md").write_text("# ok\n")
     (root / "secret.md").write_text("no\n")
-    c = TestClient(create_app(root))
+    c = TestClient(create_app(root), base_url="http://127.0.0.1:8008")
     assert c.get("/evidence/L3_noise_floor").json()["markdown"] == "# ok\n"
     for bad in ("..%2Fsecret", "../secret", "%2e%2e/secret", "L3_noise_floor/../../secret", "a" * 65, "x.y"):
         assert c.get(f"/evidence/{bad}").status_code == 404, bad

@@ -60,10 +60,12 @@ def test_second_concurrent_run_is_refused_and_stop_works(tmp_path, monkeypatch):
 
 def test_app_serves_api_and_runs_router_on_one_app(tmp_path):
     init_project(tmp_path)
-    client = TestClient(build_app(tmp_path))
+    client = TestClient(build_app(tmp_path), base_url="http://127.0.0.1:8008")
     assert client.get("/health").status_code == 200
     assert client.get("/runs").json() == []
     assert client.get("/models").json() == []
     assert client.get("/runs/nope").status_code == 404
-    bad = client.post("/runs", json={"target": "rocket"})
-    assert bad.status_code == 422
+    from pravrudhi.api.localguard import TOKEN_HEADER, app_token
+
+    bad = client.post("/runs", json={"target": "rocket"}, headers={TOKEN_HEADER: app_token(tmp_path)})
+    assert bad.status_code == 422, "the token gets you in; the schema still judges the request"

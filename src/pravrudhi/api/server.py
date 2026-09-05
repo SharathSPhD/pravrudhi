@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from pravrudhi import KERNEL_VERSION, __version__
 from pravrudhi.agents.registry import survey
+from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.application.doctor import run_doctor
 from pravrudhi.application.evidence import render_h1
 from pravrudhi.application.external import external_rows
@@ -38,11 +38,9 @@ class SignRequest(BaseModel):
 def create_app(root: Path) -> FastAPI:
     root = Path(root)
     app = FastAPI(title="pravrudhi", version=__version__)
-    origins = os.environ.get("PRAVRUDHI_ALLOWED_ORIGINS")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"] if origins is None else [origin.strip() for origin in origins.split(",") if origin.strip()],
-    )
+    # A local engine that can start GPU work must not answer any page the user happens to be visiting: see
+    # api/localguard.py. Cross-origin access is off unless the operator names the origins.
+    install_local_guard(app, root, enforce=os.environ.get("PRAVRUDHI_DISABLE_LOCAL_GUARD") != "1")
     ledger = root / "research" / "ledger.jsonl"
 
     @app.get("/doctor")

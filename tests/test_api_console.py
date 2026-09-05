@@ -19,7 +19,7 @@ def tmp_root(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(tmp_root: Path) -> Iterator[TestClient]:
-    with TestClient(create_app(tmp_root)) as client:
+    with TestClient(create_app(tmp_root), base_url="http://127.0.0.1:8008") as client:
         yield client
 
 
@@ -70,7 +70,9 @@ def test_nights_pair_latest_start_by_night_and_track(client: TestClient, tmp_roo
     ]
 
 
-@pytest.mark.parametrize("origins, expected", [(None, "*"), ("", None),
+# A local engine that can start GPU work must not echo a wildcard: unset means no cross-origin access at all,
+# not "any page may read this". See api/localguard.py and tests/test_localguard.py.
+@pytest.mark.parametrize("origins, expected", [(None, None), ("", None),
     (" https://console.example, https://other.example ", "https://console.example"),
     ("https://other.example", None)])
 def test_cors(tmp_root: Path, monkeypatch: pytest.MonkeyPatch, origins: str | None, expected: str | None) -> None:
@@ -78,7 +80,7 @@ def test_cors(tmp_root: Path, monkeypatch: pytest.MonkeyPatch, origins: str | No
         monkeypatch.delenv("PRAVRUDHI_ALLOWED_ORIGINS", raising=False)
     else:
         monkeypatch.setenv("PRAVRUDHI_ALLOWED_ORIGINS", origins)
-    with TestClient(create_app(tmp_root)) as client:
+    with TestClient(create_app(tmp_root), base_url="http://127.0.0.1:8008") as client:
         response = client.get("/nights", headers={"Origin": "https://console.example"})
     assert response.status_code == 200
     assert response.headers.get("access-control-allow-origin") == expected
