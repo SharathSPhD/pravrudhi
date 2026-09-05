@@ -10,7 +10,7 @@ Nothing on this page states a measurement. Measurements live in the paper under 
 git clone https://github.com/SharathSPhD/pravrudhi.git && cd pravrudhi
 uv sync
 uv run pravrudhi init --root .                       # kernel state dir, config, pre-registrations, prompts, genesis ledger
-make exec-image                                       # execution image (derived from a local NVIDIA PyTorch image)
+make exec-image                                       # execution image (public NVIDIA PyTorch base; override with BASE_IMAGE=)
 uvx --from huggingface_hub hf download Qwen/Qwen3-4B  # trainee
 uvx --from huggingface_hub hf download Qwen/Qwen3-30B-A3B-GGUF --include "Qwen3-30B-A3B-Q4_K_M.gguf"   # proposer
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda
@@ -20,6 +20,12 @@ uv run pravrudhi study noise-floor --root .           # the noise floor of your 
 uv run pravrudhi night --night 1 --root .             # one budgeted night
 uv run pravrudhi inbox --root .                       # what the night wants promoted
 uv run pravrudhi export ./adapter --root .            # the green adapter, with provenance
+
+# optional: more machines and coding agents. Neither is required; one machine and no agents is the default.
+uv run pravrudhi hosts list --root .                  # what this machine can do, measured not declared
+uv run pravrudhi hosts add mac-mini --address 10.0.0.5 --user you   # enrol another machine over ssh
+uv run pravrudhi hosts place train --root .           # which machine takes a training job, and why not the others
+uv run pravrudhi agents --root .                      # which coding agents can run here
 uv run pravrudhi serve --root .                       # HTTP: /status /candidates /observations /inbox /evidence
 
 # harness track (fixed model, mutable scaffold, MBPP+ hidden tests in the sandbox; HumanEval+ as external proof)

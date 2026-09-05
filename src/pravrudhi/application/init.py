@@ -27,6 +27,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 PACKAGED_PREREG = Path(__file__).resolve().parents[1] / "assets" / "prereg"
 PACKAGED_PROMPTS = Path(__file__).resolve().parents[1] / "assets" / "prompts"
+PACKAGED_HARNESS = Path(__file__).resolve().parents[1] / "assets" / "harness"
 
 
 def init_project(root: Path, *, model: str | None = None) -> dict[str, Any]:
@@ -41,9 +42,14 @@ def init_project(root: Path, *, model: str | None = None) -> dict[str, Any]:
         cfg["isolation"] = state.isolation
         cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False))
         created.append(str(cfg_path))
-    for sub in ("research/prereg", "research/inbox", "harness/prompts", "docs/evidence"):
+    for sub in ("research/prereg", "research/inbox", "harness/prompts", "harness/agent", "docs/evidence"):
         (root / sub).mkdir(parents=True, exist_ok=True)
-    for src_dir, dst_dir in ((PACKAGED_PREREG, root / "research" / "prereg"), (PACKAGED_PROMPTS, root / "harness" / "prompts")):
+    for src_dir, dst_dir in (
+        (PACKAGED_PREREG, root / "research" / "prereg"),
+        (PACKAGED_PROMPTS, root / "harness" / "prompts"),
+        # the harness track's starting scaffold: without it a fresh install can run the weight track only
+        (PACKAGED_HARNESS, root / "harness" / "agent"),
+    ):
         if src_dir.exists():
             for p in src_dir.rglob("*"):
                 if p.is_file():

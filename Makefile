@@ -47,5 +47,6 @@ headline-check:  ## numbers in README/paper/evidence must trace to a gate JSON o
 	$(UV) run python scripts/headline_check.py
 kernel-image:
 	@echo "not implemented: L3" >&2; exit 2
+BASE_IMAGE ?= nvcr.io/nvidia/pytorch:25.06-py3
 exec-image:      ## build pravrudhi/exec-5090 from the local NVIDIA 25.06 lineage (ADR-0003)
 	docker build -f docker/exec-5090.Dockerfile -t pravrudhi/exec-5090:$$(git describe --always --dirty) -t pravrudhi/exec-5090:latest .
