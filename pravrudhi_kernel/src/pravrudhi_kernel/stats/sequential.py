@@ -28,6 +28,7 @@ class Variance(KernelModel):
     k_max: int = Field(default=6, ge=1)
     sigma_mode: Literal["fixed", "adaptive"] = "adaptive"
     n0: int = Field(default=3, ge=1)
+    min_n_confirm: int = Field(default=1, ge=1)  # ADR-0018: seeds required before an efficacy crossing may confirm
 
 
 class BoundaryResult(KernelModel):
@@ -84,7 +85,7 @@ def sequential_boundary(xs: list[float], bench: Variance) -> BoundaryResult:
     xbar = sum(xs) / n
     e = e_process(xs, sigma, bench.tau)
     w = conf_seq_halfwidth(n, sigma, bench.tau, bench.alpha_fut)
-    if e >= 1.0 / bench.alpha_eff and xbar > 0:
+    if e >= 1.0 / bench.alpha_eff and xbar > 0 and n >= bench.min_n_confirm:
         return BoundaryResult(decision="confirm", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa=None)
     if xbar + w < bench.delta_min:
         return BoundaryResult(decision="prune", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa="asiddha")

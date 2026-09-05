@@ -58,6 +58,7 @@ class NightContext:
             k_max=int(b["k_max"]),
             sigma_mode="adaptive" if str(b["sigma_mode"]) == "adaptive" else "fixed",
             n0=int(b["n0"]),
+            min_n_confirm=int(b.get("min_n_confirm", 1)),
         )
         self.incumbent_id, self.incumbent_adapter = inherit_incumbent(root, state, str(cfg["model"]), log)
         self.kept_samples: dict[str, list[dict[str, str]]] = {}  # keyed by teacher

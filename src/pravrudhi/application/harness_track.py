@@ -60,6 +60,7 @@ class HarnessContext:
                     "k_max": int(b["k_max"]),
                     "sigma_mode": str(b["sigma_mode"]),
                     "n0": int(b["n0"]),
+                    "min_n_confirm": int(b.get("min_n_confirm", 1)),
                 }
             )
         self.bucket = {"task_family": str(cfg["bench"]), "target_model": str(cfg["model"]), "corpus": "mbppplus"}
