@@ -147,7 +147,7 @@ def verify_token(token: str, *, fetch: HttpFetch = _default_fetch) -> dict[str, 
     `fetch` is injected so JWKS lookups and introspection calls need no network in tests; production code
     never needs to pass it.
     """
-    import jwt as pyjwt  # type: ignore[import-not-found]
+    import jwt as pyjwt
     from jwt import PyJWK
 
     header = pyjwt.get_unverified_header(token)
