@@ -43,9 +43,20 @@ def paired_confirm(root: Path, *, night: int, candidate_id: str | None, seed: in
     state = ensure_kernel_state(root, docker_available=docker_available())
     inc = current_incumbent(root)
     if candidate_id:
-        inc = {"candidate_id": candidate_id, **{k2: v for k2, v in (inc or {}).items() if k2 != "candidate_id"}}
+        adapter_dir = None
+        for ev in iter_events(root / "research" / "ledger.jsonl"):
+            if (
+                ev.kind == "spend"
+                and ev.candidate_id == candidate_id
+                and ev.payload.get("phase") == "train"
+                and ev.payload.get("steps")
+            ):
+                cand = Path(state.jobs_dir) / str(ev.payload["run_id"]) / "out" / "adapter"
+                if (cand / "adapter_config.json").exists():
+                    adapter_dir = cand
+        inc = {"candidate_id": candidate_id, "adapter": str(adapter_dir) if adapter_dir else None, "night": night}
     if inc is None or not inc.get("adapter"):
-        raise FileNotFoundError("no promoted adapter to confirm")
+        raise FileNotFoundError("no adapter to confirm for this candidate")
     adapter = Path(inc["adapter"])
     snap = resolve_model_snapshot(str(cfg["model"]))
     pool_dir = root / ".pravrudhi" / "kernel" / "pools" / str(cfg["bench"])
