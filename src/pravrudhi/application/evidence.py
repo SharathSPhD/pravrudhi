@@ -397,11 +397,25 @@ def render_h1(ledger: Path, nights: tuple[int, ...], track: str = "lora") -> str
     if greedy:
         ordered = sorted(greedy)
         idx = min(len(ordered) - 1, int(0.6 * (len(ordered) - 1)))
+        delta_star = ordered[idx]
         lines += [
             "",
             f"Δ\\* (60th percentile of the greedy arm's gain distribution, CHARTER §2 H1, n={len(ordered)}): "
-            f"{ordered[idx]:+.4f}.",
+            f"{delta_star:+.4f}.",
         ]
+        if delta_star <= 0:
+            # The charter defines the target from the greedy arm's gains, which assumes that distribution has
+            # positive mass. Against an incumbent most candidates cannot beat, it does not, and a non-positive
+            # target would be met by doing nothing at all. Saying so beats printing a number that reads as a goal.
+            lines += [
+                "",
+                "**Δ\\* is not usable on these nights.** It is defined from the greedy arm's gain distribution, and "
+                "that distribution is centred below zero here because most candidates lose to the incumbent. A "
+                "non-positive target is reached by proposing nothing, so regret-to-Δ\\* cannot be computed and no "
+                "claim about reaching it is made. Δ\\* is meaningful while the incumbent is still weak; once it is "
+                "strong the comparison needs a target defined some other way, which is an open pre-registration "
+                "question rather than something to settle in a renderer.",
+            ]
     else:
         lines += ["", "Δ\\* is not computable: the greedy arm has no gain distribution on these nights."]
     lines += [
