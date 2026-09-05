@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from pravrudhi import KERNEL_VERSION, __version__
 from pravrudhi.agents.registry import survey
+from pravrudhi.api.identity import CurrentUserDep, User, auth_mode
 from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.api.schemas import (
     AgentsResponse,
@@ -33,6 +34,7 @@ from pravrudhi.api.schemas import (
     MarkdownResponse,
     MemoryNoteResponse,
     MemoryResponse,
+    MeResponse,
     NightsResponse,
     ObjectiveDetailResponse,
     ObjectiveResponse,
@@ -45,6 +47,8 @@ from pravrudhi.api.schemas import (
     SubagentsResponse,
     TokenResponse,
     ToolsResponse,
+    WorkspaceResponse,
+    WorkspacesResponse,
 )
 from pravrudhi.application.doctor import run_doctor
 from pravrudhi.application.evidence import render_h1
@@ -83,6 +87,10 @@ class RememberRequest(BaseModel):
 
     text: str
     source: str = ""
+
+
+class WorkspaceRequest(BaseModel):
+    slug: str
 
 
 class SignRequest(BaseModel):
@@ -348,6 +356,35 @@ def create_app(root: Path) -> FastAPI:
             daemon=True,
         ).start()
         return {"objective": o.id, "started": n}
+
+    @api.get("/me", response_model=MeResponse)
+    async def me(user: User | None = CurrentUserDep) -> dict[str, Any]:
+        """Who is asking. Says so plainly when identity is disabled rather than inventing an anonymous user."""
+        base = {"mode": str(auth_mode()), "authenticated": user is not None}
+        return base if user is None else {**base, "id": user.id, "email": user.email, "role": user.role}
+
+    @api.get("/workspaces", response_model=WorkspacesResponse)
+    async def workspaces_ep(user: User | None = CurrentUserDep) -> dict[str, Any]:
+        """The caller's workspaces. Each is a separate directory with its own ledger; none shares evidence."""
+        from pravrudhi.application.workspaces import list_workspaces, workspace_dir
+
+        if user is None:
+            return {"owner": "local", "workspaces": [{"slug": "local", "path": str(root)}]}
+        return {"owner": user.id, "workspaces": [
+            {"slug": s, "path": str(workspace_dir(user.id, s))} for s in list_workspaces(user.id)
+        ]}
+
+    @api.post("/workspaces", response_model=WorkspaceResponse)
+    async def create_workspace(req: WorkspaceRequest, user: User | None = CurrentUserDep) -> dict[str, Any]:
+        """Create (idempotently) a workspace for the caller. Refused without an identity: a workspace has an owner."""
+        from pravrudhi.application.workspaces import ensure_workspace
+
+        if user is None:
+            raise HTTPException(400, "a workspace has an owner; identity is disabled or no token was sent")
+        try:
+            return {"slug": req.slug, "path": str(ensure_workspace(user.id, req.slug))}
+        except ValueError as e:
+            raise HTTPException(422, str(e)) from e
 
     @api.get("/recipes")
     def recipes_ep() -> RecipesResponse:

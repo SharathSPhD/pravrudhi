@@ -140,7 +140,7 @@ def test_jwks_es256_verification_via_injected_fetch(monkeypatch: pytest.MonkeyPa
     def fake_fetch(url: str, *, headers: dict[str, str] | None = None) -> httpx.Response:
         calls.append(url)
         assert url == identity._jwks_url()
-        return httpx.Response(200, json=jwks_body)
+        return httpx.Response(200, request=httpx.Request("GET", url), json=jwks_body)
 
     claims = identity.verify_token(token, fetch=fake_fetch)
     assert claims["sub"] == "user-es256"

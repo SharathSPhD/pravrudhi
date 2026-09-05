@@ -528,3 +528,25 @@ class DispatchResponse(BaseModel):
 
     objective: str
     started: int
+
+
+class MeResponse(BaseModel):
+    """Who is asking, as far as this engine can tell. Identity, not evidence and not authorisation."""
+
+    mode: str
+    authenticated: bool
+    id: str | None = None
+    email: str | None = None
+    role: str | None = None
+
+
+class WorkspaceResponse(BaseModel):
+    slug: str
+    path: str
+
+
+class WorkspacesResponse(BaseModel):
+    """The workspaces the caller may use. With identity disabled, only the engine's own checkout."""
+
+    owner: str
+    workspaces: list[WorkspaceResponse]
