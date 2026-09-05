@@ -1,0 +1,36 @@
+"""propose_generic must use the prompt file and grammar it is handed (the harness track passes its own)."""
+from pathlib import Path
+
+from pravrudhi.application import propose as P
+
+
+def test_propose_generic_uses_given_prompt_and_grammar(tmp_path, monkeypatch):
+    prompts = tmp_path / "harness" / "prompts" / "x"
+    prompts.mkdir(parents=True)
+    (prompts / "v9.md").write_text("MARK {model} {grammar} {state_summary} {k} {incumbent_strategy} {rethink_note}")
+    seen = {}
+
+    class Client:
+        def chat(self, messages, **kw):
+            seen["prompt"] = messages[0]["content"]
+
+            class R:
+                text = "[]"
+                prompt_tokens = completion_tokens = 0
+                wall_s = 0.0
+                model = "m"
+
+            return R()
+
+    class W:
+        def append(self, *a, **k):
+            return None
+
+    monkeypatch.setattr(P, "ledger_summary", lambda *a, **k: ("S", "none", 0))
+    out = P.propose_generic(
+        tmp_path, W(), Client(), night=1, k=2, model="M", bucket={}, prompts_dir=prompts.parent, sealed_dir=tmp_path,
+        incumbent_id="c-0000", sigma_seed=0.01, temperature=0.5, max_tokens=10, rethink_m=3, log=lambda *a: None,
+        grammar_doc="GRAMMAR-H", prompt_file="x/v9.md",
+    )
+    assert out == []
+    assert seen["prompt"].startswith("MARK M GRAMMAR-H")

@@ -21,6 +21,6 @@ import json, sys
 rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
 open(sys.argv[2], "w").write("".join(json.dumps({"task_id": r["id"], "solution": r["solution"]}) + "\n" for r in rows))
 PY
-docker run --rm --network none --user "$(id -u):$(id -g)" -v "$OUT/out:/work:rw" -v "$ROOT/.pravrudhi/ext_cache:/cache:ro" -e HOME=/cache -e HF_HOME=/cache \
+docker run --rm --network none --user "$(id -u):$(id -g)" -v "$OUT/out:/work:rw" -v "$ROOT/.pravrudhi/ext_cache:/cache:rw" -e HOME=/cache -e HF_HOME=/cache \
   pravrudhi/ext-scorers:latest bash -c "cd /work && evalplus.evaluate --dataset humaneval --samples evalplus_samples.jsonl --parallel 8 2>&1 | grep -vE 'Warning|warn' | tail -6"
 ls "$OUT/out"/*eval_results.json 2>/dev/null | head -1

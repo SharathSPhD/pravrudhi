@@ -160,11 +160,11 @@ def propose_generic(
         else ""
     )
     prompt = (
-        (prompts_dir / "proposer" / "v1.md")
+        (prompts_dir / prompt_file)
         .read_text()
         .format(
             model=model,
-            grammar=GRAMMAR_DOC,
+            grammar=grammar_doc,
             state_summary=summary + f"\n\nMeasured noise floor: sigma_seed={sigma_seed:.4f} "
             f"(pass-rate units, 100 items). Incumbent: {incumbent_id} (strategy {inc_strategy}).",
             k=k,
