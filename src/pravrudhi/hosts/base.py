@@ -13,8 +13,20 @@ evidence on the wrong machine.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Protocol, runtime_checkable
+
+# A hostname, user or orca host id goes onto an argv as a bare token. A value beginning with "-" would be read as a
+# flag by ssh, which accepts options that execute commands (ProxyCommand among them), so an enrolled address could
+# otherwise smuggle arbitrary execution into every probe. These patterns are deliberately narrow.
+_ADDRESS = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,253}$")
+_USER = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,63}$")
+_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+
+
+class InvalidHostSpec(ValueError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -27,6 +39,20 @@ class HostSpec:
     user: str = ""
     workdir: str = "~/pravrudhi"
     orca_host_id: str = ""
+
+    def __post_init__(self) -> None:
+        if not _ID.match(self.name):
+            raise InvalidHostSpec(f"host name {self.name!r} must start alphanumeric and contain only [A-Za-z0-9._-]")
+        if self.transport not in ("local", "ssh", "orca"):
+            raise InvalidHostSpec(f"unknown transport {self.transport!r}")
+        if self.address and not _ADDRESS.match(self.address):
+            raise InvalidHostSpec(f"address {self.address!r} is not a plain hostname or IP")
+        if self.user and not _USER.match(self.user):
+            raise InvalidHostSpec(f"user {self.user!r} is not a plain user name")
+        if self.orca_host_id and not _ID.match(self.orca_host_id):
+            raise InvalidHostSpec(f"orca host id {self.orca_host_id!r} is not a plain identifier")
+        if self.transport == "ssh" and not self.address:
+            raise InvalidHostSpec("the ssh transport needs an address")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

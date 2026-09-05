@@ -31,7 +31,7 @@ def test_apple_silicon_serves_open_models_but_cannot_train():
 
 
 def test_placement_picks_the_capable_host_and_explains_rejections():
-    fleet = [(HostSpec(name="mac", transport="ssh"), MAC), (HostSpec(name="gpu"), GPU)]
+    fleet = [(HostSpec(name="mac", transport="ssh", address="mac.local"), MAC), (HostSpec(name="gpu"), GPU)]
     chosen, why = place(fleet, Requirement(needs_cuda=True, needs_docker=True, min_vram_gb=8))
     assert chosen is not None and chosen.name == "gpu"
     assert why["mac"] == ["needs cuda, has metal", "needs docker"]
@@ -76,3 +76,24 @@ def test_local_transport_really_runs_and_probe_reaches_this_machine(tmp_path):
     assert transport_for(HostSpec(name="x", transport="orca")).name == "orca"
     cap = probe_host(HostSpec(name="local", transport="local"))
     assert cap.reachable and cap.os in ("Linux", "Darwin") and cap.cpu_count > 0
+
+
+def test_a_host_cannot_smuggle_flags_onto_the_ssh_argv():
+    """An address beginning with '-' would be read by ssh as an option, and ssh options can execute commands."""
+    from pravrudhi.hosts.base import InvalidHostSpec
+
+    for bad in ("-oProxyCommand=touch /tmp/pwned", "-lroot", "host;rm -rf /", "host name", "-"):
+        with pytest.raises(InvalidHostSpec):
+            HostSpec(name="x", transport="ssh", address=bad)
+    for bad_user in ("-oProxyCommand=x", "a b", "-root"):
+        with pytest.raises(InvalidHostSpec):
+            HostSpec(name="x", transport="ssh", address="10.0.0.5", user=bad_user)
+    with pytest.raises(InvalidHostSpec):
+        HostSpec(name="-evil", transport="local")
+    with pytest.raises(InvalidHostSpec):
+        HostSpec(name="x", transport="telnet")
+    with pytest.raises(InvalidHostSpec):
+        HostSpec(name="x", transport="ssh")  # ssh with no address
+    ok = HostSpec(name="mac-mini", transport="ssh", address="192.168.0.5", user="me")
+    assert ok.address == "192.168.0.5"
+    assert HostSpec(name="mac", transport="ssh", address="mac-mini.local", user="me").user == "me"

@@ -49,7 +49,9 @@ class SshTransport:
     def run(self, command: str, timeout_s: int = 300) -> tuple[int, str, str]:
         cmd = [
             "ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=accept-new",
-            "-o", f"ConnectTimeout={min(20, timeout_s)}", self.target,
+            "-o", f"ConnectTimeout={min(20, timeout_s)}",
+            # the target is validated on HostSpec construction, and "--" stops option parsing regardless
+            "--", self.target,
             # a login shell, so PATH matches what a person would see: version managers put agent CLIs there and a
             # non-login shell would report a host as lacking tools it has
             f"bash -lc {shlex.quote(command)}",
