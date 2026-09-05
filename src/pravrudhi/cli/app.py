@@ -217,6 +217,11 @@ def evidence_cmd(
         nights = tuple(int(x) for x in name.removeprefix("summary").split("-") if x)
         text = render_nights_summary(root / "research" / "ledger.jsonl", nights)
         dest = root / "docs" / "evidence" / f"P1_summary_{'_'.join(str(n) for n in nights)}.json"
+    elif name == "external":
+        from pravrudhi.application.external import render_external
+
+        text = render_external(root / "research" / "ledger.jsonl")
+        dest = root / "docs" / "evidence" / "P1_external.md"
     elif name.startswith("night"):
         text = render_first_night(root / "research" / "ledger.jsonl", int(name.removeprefix("night") or "1"))
         dest = root / "docs" / "evidence" / f"L4_{name}.md"
@@ -357,3 +362,23 @@ def harness_night_cmd(
 
 def main() -> None:
     app()
+
+
+@app.command("ext-record")
+def ext_record_cmd(
+    path: Path = typer.Argument(..., help="lm-eval results.json or EvalPlus *_eval_results.json"),
+    tool: str = typer.Option(..., "--tool", help="lm-eval | evalplus"),
+    track: str = typer.Option(..., "--track", help="M (model) | H (harness)"),
+    condition: str = typer.Option(..., "--condition", help="base | adapter:c-0045 | harness:c-0012"),
+    model: str = typer.Option(..., "--model"),
+    night: int = typer.Option(0, "--night"),
+    dataset: str = typer.Option("", "--dataset", help="EvalPlus dataset: humaneval | mbpp"),
+    seed: int | None = typer.Option(None, "--seed"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """Admit an external scorer's result file into the ledger by hash (tier: external)."""
+    from pravrudhi.application.external import record_external
+
+    row = record_external(root, path.resolve(), tool=tool, track=track, condition=condition, model=model,
+                          night=night, dataset=dataset, seed=seed)
+    typer.echo(json.dumps({k: row[k] for k in ("seq", "track", "condition", "metrics", "sha256")}))

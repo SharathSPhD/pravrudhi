@@ -19,6 +19,7 @@ def test_propose_generic_uses_given_prompt_and_grammar(tmp_path, monkeypatch):
                 prompt_tokens = completion_tokens = 0
                 wall_s = 0.0
                 model = "m"
+                finish_reason = "stop"
 
             return R()
 
@@ -34,3 +35,9 @@ def test_propose_generic_uses_given_prompt_and_grammar(tmp_path, monkeypatch):
     )
     assert out == []
     assert seen["prompt"].startswith("MARK M GRAMMAR-H")
+
+
+def test_extract_salvages_truncated_array():
+    text = '<think>x</think>\n[\n{"a": 1, "s": "q]"},\n{"a": 2},\n{"a": 3, "s": "unfinished'
+    assert P._extract_json_array(text) == [{"a": 1, "s": "q]"}, {"a": 2}]
+    assert P._extract_json_array('[{"a": 1}]') == [{"a": 1}]

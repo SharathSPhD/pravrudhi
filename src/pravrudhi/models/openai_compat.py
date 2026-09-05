@@ -18,6 +18,7 @@ class ChatResult(BaseModel):
     prompt_tokens: int | None
     completion_tokens: int | None
     wall_s: float
+    finish_reason: str | None = None
 
 
 class ChatClient:
@@ -70,6 +71,7 @@ class ChatClient:
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             wall_s=time.monotonic() - t0,
+            finish_reason=data["choices"][0].get("finish_reason"),
         )
 
     def healthy(self) -> bool:

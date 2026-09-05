@@ -42,13 +42,33 @@ def _fill(template: str, **fields: str) -> str:
 
 def _extract_json_array(text: str) -> list[dict[str, Any]]:
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.S)
-    start, end = text.find("["), text.rfind("]")
-    if start < 0 or end < 0:
+    start = text.find("[")
+    if start < 0:
         raise ValueError("no JSON array in proposer output")
-    arr = json.loads(text[start : end + 1])
-    if not isinstance(arr, list):
-        raise ValueError("proposer output is not a list")
-    return [x for x in arr if isinstance(x, dict)]
+    end = text.rfind("]")
+    if end > start:
+        try:
+            arr = json.loads(text[start : end + 1])
+            if not isinstance(arr, list):
+                raise ValueError("proposer output is not a list")
+            return [x for x in arr if isinstance(x, dict)]
+        except json.JSONDecodeError:
+            pass
+    # Truncated or malformed array: salvage the complete top-level objects in order (the audit row records it).
+    dec, pos, out = json.JSONDecoder(), start + 1, []
+    while True:
+        nxt = text.find("{", pos)
+        if nxt < 0:
+            break
+        try:
+            obj, pos = dec.raw_decode(text, nxt)
+        except json.JSONDecodeError:
+            break
+        if isinstance(obj, dict):
+            out.append(obj)
+    if not out:
+        raise ValueError("no JSON array in proposer output")
+    return out
 
 
 def ledger_summary(ledger: Path, incumbent_id: str) -> tuple[str, str | None, int]:
@@ -184,6 +204,7 @@ def propose_generic(
             "completion_tokens": res.completion_tokens,
             "wall_s": res.wall_s,
             "model": res.model,
+            "finish_reason": res.finish_reason,
         },
         epoch=0,
         night=night,
