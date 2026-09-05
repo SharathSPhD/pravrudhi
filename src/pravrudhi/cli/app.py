@@ -90,7 +90,7 @@ def gate_sign(path: Path, by: str = BY_OPT, note: str = NOTE_OPT) -> None:
 def replay_cmd(
     ledger: Path | None = LEDGER_OPT, state: Path | None = STATE_OPT, verify: bool = VERIFY_OPT, root: Path = ROOT_OPT
 ) -> None:
-    """anusaṁdhāna: rebuild state.json from the ledger alone."""
+    """Rebuild state.json from the ledger alone, and verify the chain with --verify."""
     ledger = ledger or root / "research" / "ledger.jsonl"
     state = state or root / "research" / "state.json"
     code, lines = replay_command(ledger, state, check=verify)
