@@ -226,6 +226,10 @@ def evidence_cmd(
 
         text = render_external(root / "research" / "ledger.jsonl")
         dest = root / "docs" / "evidence" / "P1_external.md"
+    elif name.startswith("hnight"):
+        n = int(name.removeprefix("hnight") or "1")
+        text = render_first_night(root / "research" / "ledger.jsonl", n, track="harness")
+        dest = root / "docs" / "evidence" / f"P1_harness_night{n}.md"
     elif name.startswith("night"):
         text = render_first_night(root / "research" / "ledger.jsonl", int(name.removeprefix("night") or "1"))
         dest = root / "docs" / "evidence" / f"L4_{name}.md"

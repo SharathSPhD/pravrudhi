@@ -13,24 +13,30 @@ from pravrudhi_kernel.ledger.verify import iter_events
 from pravrudhi_kernel.stats import wilson_ci
 
 
-def lora_events(ledger: Path):
-    """Ledger events that belong to the LoRA track: rows inside a harness night block (night_start with
-    track=harness up to its night_end) and rows on the H3.prompt surface are excluded, so night numbers of the two
-    tracks do not collide in the rendered documents."""
+def track_events(ledger: Path, track: str = "lora"):
+    """Ledger events of one track. A harness night block runs from a night_start with track=harness to its night_end;
+    rows on the H3.prompt surface and audit rows tagged track H/harness belong to the harness track, rows on
+    W3.adapter to the LoRA track, and untagged rows to the block they sit in (LoRA outside any harness block)."""
     in_harness = False
     for ev in iter_events(ledger):
         p = ev.payload
         if ev.kind == "audit" and p.get("kind") == "night_start":
             in_harness = p.get("track") == "harness"
-        if ev.surface == "H3.prompt" or p.get("track") in ("H", "harness"):
-            continue
-        if in_harness:
-            if ev.kind == "audit" and p.get("kind") == "night_end":
-                in_harness = False
-            if ev.surface != "W3.adapter":  # LoRA-track rows interleaved with a harness night still count
-                continue
-        yield ev
+        tagged_h = ev.surface == "H3.prompt" or p.get("track") in ("H", "harness")
+        if ev.surface == "W3.adapter":
+            row_track = "lora"
+        elif tagged_h or in_harness:
+            row_track = "harness"
+        else:
+            row_track = "lora"
+        if in_harness and ev.kind == "audit" and p.get("kind") == "night_end":
+            in_harness = False
+        if row_track == track:
+            yield ev
 
+
+def lora_events(ledger: Path):
+    return track_events(ledger, "lora")
 
 
 def _variance_for(prereg: Path, model: str | None, bench: str | None) -> Path | None:
@@ -119,14 +125,14 @@ def render_noise_floor(ledger: Path, variance: Path | None, study: int = 0) -> s
     return "\n".join(lines) + "\n"
 
 
-def render_first_night(ledger: Path, night: int) -> str:
-    """Per-candidate account of one night, from the ledger alone."""
+def render_first_night(ledger: Path, night: int, track: str = "lora") -> str:
+    """Per-candidate account of one night of one track, from the ledger alone."""
     from collections import Counter
 
     cands: dict[str, dict[str, Any]] = {}
     audits: list[dict[str, Any]] = []
     spent = 0.0
-    for ev in lora_events(ledger):
+    for ev in track_events(ledger, track):
         if ev.night != night:
             continue
         p, cid = ev.payload, ev.candidate_id
@@ -193,11 +199,18 @@ def render_first_night(ledger: Path, night: int) -> str:
                         },
                     }
                 )
-    lines = [
-        f"# L4 first night (night {night}) — rendered from research/ledger.jsonl",
-        "",
+    title = f"L4 first night (night {night})" if track == "lora" else f"Harness track night {night}"
+    label = (
         "**Label: model-measured, screen tier, one loop seed, paired on the same rotation and sampling seed; "
-        "isolation container.**",
+        "isolation container.**"
+        if track == "lora"
+        else "**Label: harness-measured (fixed model, mutable scaffold), screen tier, paired on the same MBPP+ rotation "
+        "and sampling seed; hidden tests executed in the sandbox; isolation container.**"
+    )
+    lines = [
+        f"# {title} — rendered from research/ledger.jsonl",
+        "",
+        label,
         "",
         "| candidate | strategy | family | selected | paired deltas | boundary | canary | outcome | hetvābhāsa | Brier |",
         "|---|---|---|---|---|---|---|---|---|---|",
