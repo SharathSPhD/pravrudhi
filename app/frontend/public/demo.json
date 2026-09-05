@@ -1,0 +1,878 @@
+{
+  "engine": {
+    "candidates": 141,
+    "version": "0.1.0"
+  },
+  "external": [
+    {
+      "condition": "base",
+      "file": "/home/ss/projects/pravrudhi/research/ext/qwen3-0.6b-base/results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "gsm8k": {
+          "exact_match,flexible-extract": 0.40636846095526913,
+          "exact_match,strict-match": 0.4086429112964367,
+          "exact_match_stderr,flexible-extract": 0.013528846685413237,
+          "exact_match_stderr,strict-match": 0.013540639733342434
+        }
+      },
+      "model": "Qwen/Qwen3-0.6B",
+      "model_args": "pretrained=/models/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/,dtype=bfloat16,trust_remote_code=False",
+      "n_samples": {
+        "gsm8k": 1319
+      },
+      "n_shot": {
+        "gsm8k": 5
+      },
+      "night": 4,
+      "seed": null,
+      "seq": 717,
+      "severity": "info",
+      "sha256": "f5ec2ebf2ae4ec048f55d09238c45a3020b0fc10b2f478a38c6904daae36c6e6",
+      "tier": "external",
+      "tool": "lm-eval",
+      "tool_version": "0.4.9",
+      "track": "M",
+      "transformers_version": "4.57.6"
+    },
+    {
+      "condition": "adapter:c-0045",
+      "file": "/home/ss/projects/pravrudhi/research/ext/qwen3-0.6b-c0045/results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "gsm8k": {
+          "exact_match,flexible-extract": 0.49128127369219105,
+          "exact_match,strict-match": 0.489764973464746,
+          "exact_match_stderr,flexible-extract": 0.013770390697002104,
+          "exact_match_stderr,strict-match": 0.013769598923012391
+        }
+      },
+      "model": "Qwen/Qwen3-0.6B",
+      "model_args": "pretrained=/models/hub/models--Qwen--Qwen3-0.6B/snapshots/c1899de289a04d12100db370d81485cdf75e47ca/,dtype=bfloat16,trust_remote_code=False,peft=/adapter",
+      "n_samples": {
+        "gsm8k": 1319
+      },
+      "n_shot": {
+        "gsm8k": 5
+      },
+      "night": 4,
+      "seed": null,
+      "seq": 718,
+      "severity": "info",
+      "sha256": "dd9805e97e36f919a29796fc31ac2f0dd4586bb89c9fbcca3c4949d44749a589",
+      "tier": "external",
+      "tool": "lm-eval",
+      "tool_version": "0.4.9",
+      "track": "M",
+      "transformers_version": "4.57.6"
+    },
+    {
+      "condition": "base",
+      "dataset": "humaneval",
+      "file": "/home/ss/projects/pravrudhi/research/ext/humaneval-before/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.6341463414634146,
+          "pass@1_plus": 0.5914634146341463
+        },
+        "humaneval_counts": {
+          "base_pass": 104,
+          "n": 164,
+          "plus_pass": 97
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 1,
+      "seed": 0,
+      "seq": 719,
+      "severity": "info",
+      "sha256": "78e9c2b0dba677f6f347ea93e5ea87ad05e170d2190e6a285ffe4664558c2d50",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "harness:c-0060",
+      "dataset": "humaneval",
+      "file": "/home/ss/projects/pravrudhi/research/ext/humaneval-after/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.08536585365853659,
+          "pass@1_plus": 0.08536585365853659
+        },
+        "humaneval_counts": {
+          "base_pass": 14,
+          "n": 164,
+          "plus_pass": 14
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 1,
+      "seed": 0,
+      "seq": 900,
+      "severity": "info",
+      "sha256": "e8c2b06f7b245d7b7eed308e5f3ed5ead6528030c7cc13fb07123f638e1f6c1d",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "base-replicate",
+      "dataset": "humaneval",
+      "file": "/home/ss/projects/pravrudhi/research/ext/humaneval-after/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.6219512195121951,
+          "pass@1_plus": 0.5853658536585366
+        },
+        "humaneval_counts": {
+          "base_pass": 102,
+          "n": 164,
+          "plus_pass": 96
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 2,
+      "seed": 0,
+      "seq": 1068,
+      "severity": "info",
+      "sha256": "be642ec6506c0ee8505902f4675e165c483e9e611b473cec28f8a1dcfa2a39d6",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    }
+  ],
+  "featured_run": {
+    "events": [
+      {
+        "candidate": "c-0038",
+        "family": "grpo",
+        "strategy": "grpo_verifiable",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0039",
+        "family": "data_mixture",
+        "strategy": "sft_rejection",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0040",
+        "family": "grpo",
+        "strategy": "grpo_verifiable",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0041",
+        "family": "adapter",
+        "strategy": "sft_rejection",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0042",
+        "family": "grpo",
+        "strategy": "grpo_verifiable",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0043",
+        "family": "template",
+        "strategy": "sft_rejection",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0044",
+        "family": "grpo",
+        "strategy": "grpo_verifiable",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0045",
+        "family": "data_mixture",
+        "strategy": "sft_rejection",
+        "type": "proposed_one"
+      },
+      {
+        "candidate": "c-0042",
+        "candidate_score": 0.64,
+        "decision": "continue",
+        "delta": 0.025,
+        "incumbent": 0.615,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0044",
+        "candidate_score": 0.64,
+        "decision": "prune",
+        "delta": -0.025,
+        "incumbent": 0.665,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0044",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0040",
+        "candidate_score": 0.58,
+        "decision": "prune",
+        "delta": -0.025,
+        "incumbent": 0.605,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0040",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0038",
+        "candidate_score": 0.61,
+        "decision": "prune",
+        "delta": -0.02,
+        "incumbent": 0.63,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0038",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0045",
+        "candidate_score": 0.68,
+        "decision": "confirm",
+        "delta": 0.09,
+        "incumbent": 0.59,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0045",
+        "type": "promoted"
+      },
+      {
+        "candidate": "c-0039",
+        "candidate_score": 0.67,
+        "decision": "continue",
+        "delta": -0.005,
+        "incumbent": 0.675,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0041",
+        "candidate_score": 0.705,
+        "decision": "continue",
+        "delta": 0.01,
+        "incumbent": 0.695,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0043",
+        "candidate_score": 0.62,
+        "decision": "continue",
+        "delta": 0.0,
+        "incumbent": 0.62,
+        "n": 1,
+        "seed": 0,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0042",
+        "candidate_score": 0.615,
+        "decision": "prune",
+        "delta": -0.045,
+        "incumbent": 0.66,
+        "n": 2,
+        "seed": 1,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0042",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0039",
+        "candidate_score": 0.69,
+        "decision": "prune",
+        "delta": -0.02,
+        "incumbent": 0.71,
+        "n": 2,
+        "seed": 1,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0039",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0041",
+        "candidate_score": 0.71,
+        "decision": "prune",
+        "delta": -0.015,
+        "incumbent": 0.725,
+        "n": 2,
+        "seed": 1,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0041",
+        "type": "pruned"
+      },
+      {
+        "candidate": "c-0043",
+        "candidate_score": 0.595,
+        "decision": "prune",
+        "delta": -0.065,
+        "incumbent": 0.66,
+        "n": 2,
+        "seed": 1,
+        "type": "paired"
+      },
+      {
+        "candidate": "c-0043",
+        "type": "pruned"
+      },
+      {
+        "night": 4,
+        "status": "closed",
+        "type": "closed"
+      }
+    ],
+    "id": "n4-lora",
+    "night": 4,
+    "track": "lora"
+  },
+  "models": [
+    {
+      "artefact": "/home/ss/projects/pravrudhi/.pravrudhi/kernel/jobs/n4-train-c-0045-95769407/out/adapter",
+      "external_after": {
+        "gsm8k": {
+          "exact_match,flexible-extract": 0.49128127369219105,
+          "exact_match,strict-match": 0.489764973464746,
+          "exact_match_stderr,flexible-extract": 0.013770390697002104,
+          "exact_match_stderr,strict-match": 0.013769598923012391
+        }
+      },
+      "external_before": {
+        "gsm8k": {
+          "exact_match,flexible-extract": 0.40636846095526913,
+          "exact_match,strict-match": 0.4086429112964367,
+          "exact_match_stderr,flexible-extract": 0.013528846685413237,
+          "exact_match_stderr,strict-match": 0.013540639733342434
+        }
+      },
+      "id": "c-0045",
+      "night": 4,
+      "recipe": {
+        "eval_template": "gsm8k_v3_boxed",
+        "execution_family": "data_mixture",
+        "grpo": {
+          "beta_kl": 0.0,
+          "group_size": 4,
+          "lr": 5e-06,
+          "max_completion_tokens": 128,
+          "prompts_per_step": 1,
+          "steps": 20
+        },
+        "lora": {
+          "alpha": 16,
+          "dropout": 0.1,
+          "r": 8,
+          "target_modules": "attention"
+        },
+        "rationale": "Tests higher n_kept and diverse correct filtering with a stronger teacher, inspired by c-0031.",
+        "sft": {
+          "batch_size": 8,
+          "epochs": 3,
+          "filter": "diverse_correct",
+          "lr": 5e-05,
+          "max_seq_len": 1024,
+          "n_kept": 1024,
+          "teacher": "Qwen/Qwen3-4B",
+          "warmup_ratio": 0.05
+        },
+        "strategy": "sft_rejection"
+      },
+      "track": "model"
+    },
+    {
+      "artefact": "research/inbox/harness-night3/c-0078",
+      "external_after": null,
+      "external_before": {
+        "humaneval": {
+          "pass@1_base": 0.6341463414634146,
+          "pass@1_plus": 0.5914634146341463
+        },
+        "humaneval_counts": {
+          "base_pass": 104,
+          "n": 164,
+          "plus_pass": 97
+        }
+      },
+      "id": "c-0078",
+      "night": 3,
+      "recipe": {
+        "execution_family": "retries",
+        "feedback_template": "Your previous solution failed these checks:\n{feedback}\nFix the code and return the full corrected function in one ```python block.",
+        "max_new_tokens": 512,
+        "n_samples": 1,
+        "rationale": "Improves upon the incumbent by allowing 2 retries to fix visible test failures.",
+        "retries": 2,
+        "strategy": "retry_policy",
+        "system_prompt": "You are an expert Python programmer. Write correct, efficient code and return only a single Python code block. If your first attempt fails, fix it based on the feedback.",
+        "temperature": 0.3,
+        "template": "{question}\n\nImplement the function described above. Return only the code in one ```python block.",
+        "thinking": false,
+        "use_visible_tests": true
+      },
+      "track": "harness"
+    }
+  ],
+  "nights": [
+    {
+      "candidates": 15,
+      "night": 1,
+      "promoted": [],
+      "pruned": 4,
+      "selection_policy": null,
+      "spent_gpu_h": 0.92,
+      "track": "lora"
+    },
+    {
+      "candidates": 4,
+      "night": 2,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "lora"
+    },
+    {
+      "candidates": 0,
+      "night": 3,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "lora"
+    },
+    {
+      "candidates": 8,
+      "night": 4,
+      "promoted": [
+        "c-0045"
+      ],
+      "pruned": 7,
+      "selection_policy": null,
+      "spent_gpu_h": 0.681,
+      "track": "lora"
+    },
+    {
+      "candidates": 0,
+      "night": 1,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 0,
+      "night": 1,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 0,
+      "night": 1,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 0,
+      "night": 5,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.0,
+      "track": "lora"
+    },
+    {
+      "candidates": 9,
+      "night": 6,
+      "promoted": [],
+      "pruned": 9,
+      "selection_policy": null,
+      "spent_gpu_h": 0.647,
+      "track": "lora"
+    },
+    {
+      "candidates": 5,
+      "night": 2,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": null,
+      "spent_gpu_h": 0.075,
+      "track": "harness"
+    },
+    {
+      "candidates": 13,
+      "night": 3,
+      "promoted": [
+        "c-0078"
+      ],
+      "pruned": 3,
+      "selection_policy": "greedy",
+      "spent_gpu_h": 0.317,
+      "track": "harness"
+    },
+    {
+      "candidates": 5,
+      "night": 4,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": "efe",
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 6,
+      "night": 5,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": "greedy",
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 5,
+      "night": 6,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": "efe",
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 8,
+      "night": 7,
+      "promoted": [],
+      "pruned": 8,
+      "selection_policy": "efe",
+      "spent_gpu_h": 0.637,
+      "track": "lora"
+    },
+    {
+      "candidates": 8,
+      "night": 8,
+      "promoted": [],
+      "pruned": 8,
+      "selection_policy": "greedy",
+      "spent_gpu_h": 0.685,
+      "track": "lora"
+    },
+    {
+      "candidates": 8,
+      "night": 9,
+      "promoted": [],
+      "pruned": 8,
+      "selection_policy": "efe",
+      "spent_gpu_h": 0.726,
+      "track": "lora"
+    },
+    {
+      "candidates": 8,
+      "night": 10,
+      "promoted": [],
+      "pruned": 8,
+      "selection_policy": "greedy",
+      "spent_gpu_h": 0.559,
+      "track": "lora"
+    }
+  ],
+  "recorded": true,
+  "runs": [
+    {
+      "candidates": 8,
+      "id": "n10-lora",
+      "night": 10,
+      "policy": "greedy",
+      "promoted": [],
+      "pruned": 8,
+      "spent_gpu_h": 0.559,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 8,
+      "id": "n9-lora",
+      "night": 9,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 8,
+      "spent_gpu_h": 0.726,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 8,
+      "id": "n8-lora",
+      "night": 8,
+      "policy": "greedy",
+      "promoted": [],
+      "pruned": 8,
+      "spent_gpu_h": 0.685,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 8,
+      "id": "n7-lora",
+      "night": 7,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 8,
+      "spent_gpu_h": 0.637,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 5,
+      "id": "n6-harness",
+      "night": 6,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 0,
+      "spent_gpu_h": 0.0,
+      "status": "finished",
+      "target": "harness"
+    },
+    {
+      "candidates": 6,
+      "id": "n5-harness",
+      "night": 5,
+      "policy": "greedy",
+      "promoted": [],
+      "pruned": 0,
+      "spent_gpu_h": 0.0,
+      "status": "finished",
+      "target": "harness"
+    },
+    {
+      "candidates": 5,
+      "id": "n4-harness",
+      "night": 4,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 0,
+      "spent_gpu_h": 0.0,
+      "status": "finished",
+      "target": "harness"
+    },
+    {
+      "candidates": 13,
+      "id": "n3-harness",
+      "night": 3,
+      "policy": "greedy",
+      "promoted": [
+        "c-0078"
+      ],
+      "pruned": 3,
+      "spent_gpu_h": 0.317,
+      "status": "finished",
+      "target": "harness"
+    }
+  ],
+  "status": {
+    "badges": {
+      "amber": 13,
+      "green": 2,
+      "grey": 22,
+      "red": 104
+    },
+    "candidates": 141,
+    "chain_ok": true,
+    "events": 1838,
+    "inbox_pending": [
+      "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
+      "research/inbox/harness-night3/c-0078"
+    ],
+    "initialised": true,
+    "ledger_head": "c2359f7b8f476483660561efab72094357cb427a2da4d8a57e1caaf4498c895b",
+    "locks": {
+      "frozen_surfaces": [],
+      "paused": false,
+      "reflection_owed": null
+    },
+    "nights": {
+      "1": {
+        "incumbent": "c-0000",
+        "outcomes": {},
+        "spent_gpu_h": 0.0
+      },
+      "2": {
+        "incumbent": "c-0000",
+        "outcomes": {
+          "c-0060": "skipped:bad_recipe",
+          "c-0070": "skipped:pool_exhausted",
+          "c-0073": "skipped:pool_exhausted",
+          "c-0074": "skipped:pool_exhausted",
+          "c-0077": "skipped:pool_exhausted"
+        },
+        "spent_gpu_h": 0.07492478734335034
+      },
+      "3": {
+        "incumbent": "c-0078",
+        "outcomes": {
+          "c-0059": "skipped:bad_recipe",
+          "c-0060": "skipped:bad_recipe",
+          "c-0071": "continue",
+          "c-0072": "continue",
+          "c-0075": "continue",
+          "c-0076": "pruned",
+          "c-0078": "promoted",
+          "c-0079": "skipped:pool_exhausted",
+          "c-0080": "continue",
+          "c-0081": "pruned",
+          "c-0082": "skipped:pool_exhausted",
+          "c-0083": "skipped:pool_exhausted",
+          "c-0084": "pruned"
+        },
+        "spent_gpu_h": 0.31671295833780383
+      },
+      "4": {
+        "incumbent": "c-0000",
+        "outcomes": {
+          "c-0060": "skipped:bad_recipe",
+          "c-0085": "skipped:pool_exhausted",
+          "c-0086": "skipped:pool_exhausted",
+          "c-0089": "skipped:pool_exhausted",
+          "c-0090": "skipped:pool_exhausted"
+        },
+        "spent_gpu_h": 0.0
+      },
+      "5": {
+        "incumbent": "c-0000",
+        "outcomes": {
+          "c-0059": "skipped:bad_recipe",
+          "c-0060": "skipped:bad_recipe",
+          "c-0093": "skipped:pool_exhausted",
+          "c-0094": "skipped:pool_exhausted",
+          "c-0097": "skipped:pool_exhausted",
+          "c-0098": "skipped:pool_exhausted"
+        },
+        "spent_gpu_h": 0.0
+      },
+      "6": {
+        "incumbent": "c-0000",
+        "outcomes": {
+          "c-0060": "skipped:bad_recipe",
+          "c-0102": "skipped:pool_exhausted",
+          "c-0104": "skipped:pool_exhausted",
+          "c-0105": "skipped:pool_exhausted",
+          "c-0108": "skipped:pool_exhausted"
+        },
+        "spent_gpu_h": 0.0
+      },
+      "7": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0109": "pruned",
+          "c-0110": "pruned",
+          "c-0111": "pruned",
+          "c-0112": "pruned",
+          "c-0113": "pruned",
+          "c-0114": "pruned",
+          "c-0115": "pruned",
+          "c-0116": "pruned"
+        },
+        "spent_gpu_h": 0.6373348432855629
+      },
+      "8": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0117": "pruned",
+          "c-0118": "pruned",
+          "c-0119": "pruned",
+          "c-0120": "pruned",
+          "c-0121": "pruned",
+          "c-0122": "pruned",
+          "c-0123": "pruned",
+          "c-0124": "pruned"
+        },
+        "spent_gpu_h": 0.6845706364525378
+      },
+      "9": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0125": "pruned",
+          "c-0126": "pruned",
+          "c-0127": "pruned",
+          "c-0128": "pruned",
+          "c-0129": "pruned",
+          "c-0130": "pruned",
+          "c-0131": "pruned",
+          "c-0132": "pruned"
+        },
+        "spent_gpu_h": 0.726053122741028
+      },
+      "10": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0133": "pruned",
+          "c-0134": "pruned",
+          "c-0135": "pruned",
+          "c-0136": "pruned",
+          "c-0137": "pruned",
+          "c-0138": "pruned",
+          "c-0139": "pruned",
+          "c-0140": "pruned"
+        },
+        "spent_gpu_h": 0.5588597927651264
+      }
+    },
+    "promoted": {
+      "3": [
+        "c-0078"
+      ],
+      "4": [
+        "c-0045"
+      ]
+    },
+    "pruned": 82,
+    "state_hash": "3b1f7d294956dd97db27c5544904768d78bb5d30e2fe83108220bb9ac089c919"
+  }
+}

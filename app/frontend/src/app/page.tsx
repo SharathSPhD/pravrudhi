@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Play } from "lucide-react";
-import { ApiError, startRun, status, type StatusResponse } from "@/lib/api";
+import { ApiError, IS_DEMO, startRun, status, type StatusResponse } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { BadgeDot } from "@/components/BadgeDot";
+import { Headline } from "@/components/Headline";
+import { RecordedRun } from "@/components/RecordedRun";
 
 const BENCHMARKS = ["gsm8k", "mbppplus"] as const;
 const PROPOSERS = ["Qwen3-30B-A3B", "GLM-4.7-Flash"] as const;
@@ -20,7 +22,38 @@ function labelClass() {
   return "mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-dim)]";
 }
 
+function DemoImprove() {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Improve"
+        subtitle="What this does, shown on a run that actually happened."
+      />
+      <Headline />
+      <RecordedRun />
+      <section className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+        <h2 className="text-sm font-medium">Run this on your own model</h2>
+        <p className="mt-1.5 max-w-2xl text-sm text-[var(--color-muted)]">
+          Install the engine and it opens this same interface on your machine, where the form is live and the runs
+          are yours. Your model, your GPU, your results — nothing leaves your computer.
+        </p>
+        <a
+          href="/install"
+          className="mt-4 inline-flex items-center gap-2 rounded-md bg-emerald-500/90 px-4 py-2 text-sm font-medium text-black hover:bg-emerald-400"
+        >
+          Get it running
+        </a>
+      </section>
+    </div>
+  );
+}
+
 export default function ImprovePage() {
+  if (IS_DEMO) return <DemoImprove />;
+  return <LiveImprove />;
+}
+
+function LiveImprove() {
   const [target, setTarget] = useState<"model" | "harness">("model");
   const [model, setModel] = useState("");
   const [bench, setBench] = useState<(typeof BENCHMARKS)[number]>(BENCHMARKS[0]);

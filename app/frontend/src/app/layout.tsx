@@ -4,6 +4,7 @@ import { ConnectionBanner } from "@/components/ConnectionBanner";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  icons: { icon: "/icon.svg" },
   title: "Pravrudhi",
   description: "Improve your model or your agent harness, on your hardware, while you watch.",
 };

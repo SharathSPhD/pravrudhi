@@ -1,13 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
-import { API_BASE, health } from "@/lib/api";
+import { AlertTriangle, PlayCircle } from "lucide-react";
+import { API_BASE, IS_DEMO, health } from "@/lib/api";
 
+/**
+ * What the top of the page says about where its data comes from.
+ *
+ * On the public site the answer is fixed and honest: this is a recording of real runs, because a browser will not
+ * let a public page reach an engine on the visitor's machine. That is stated once, calmly, with the way to get a
+ * live one — not as an error, because nothing has gone wrong.
+ */
 export function ConnectionBanner() {
   const [reachable, setReachable] = useState(true);
 
   useEffect(() => {
+    if (IS_DEMO) return;
     let cancelled = false;
 
     async function check() {
@@ -26,6 +34,21 @@ export function ConnectionBanner() {
       clearInterval(id);
     };
   }, []);
+
+  if (IS_DEMO) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 border-b border-emerald-500/30 bg-emerald-500/10 px-5 py-2 text-sm text-emerald-300">
+        <PlayCircle size={14} />
+        <span>
+          Recorded demo — real runs from an RTX&nbsp;5090. To improve your own model,{" "}
+          <a className="underline underline-offset-2 hover:text-emerald-200" href="/install">
+            install the engine
+          </a>{" "}
+          and open it locally.
+        </span>
+      </div>
+    );
+  }
 
   if (reachable) return null;
 

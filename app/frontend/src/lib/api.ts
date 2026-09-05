@@ -6,6 +6,11 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, "") || "http://localhost:8008";
 
+// The public build never calls an engine: a browser blocks a public page from reaching localhost, so attempting it
+// only produces console errors and a broken first impression. In that build every read is served from a recorded
+// snapshot instead. See lib/demo.ts.
+export const IS_DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -187,34 +192,45 @@ export interface RunHandle {
 }
 
 export async function health(): Promise<HealthResponse> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    return { ok: true, version: d.engine.version, kernel: d.engine.version, ledger: true };
+  }
   return getJSON<HealthResponse>("/health");
 }
 
 export async function status(): Promise<StatusResponse> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).status;
   return getJSON<StatusResponse>("/status");
 }
 
 export async function candidates(): Promise<Candidate[]> {
+  if (IS_DEMO) return [];
   return getJSON<Candidate[]>("/candidates");
 }
 
 export async function nights(): Promise<NightSummary[]> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).nights;
   return getJSON<NightSummary[]>("/nights");
 }
 
 export async function hosts(): Promise<HostsResponse> {
+  if (IS_DEMO) return (await import("./demo")).demoHosts();
   return getJSON<HostsResponse>("/hosts");
 }
 
 export async function agents(): Promise<AgentStatus[]> {
+  if (IS_DEMO) return (await import("./demo")).demoAgents();
   return getJSON<AgentStatus[]>("/agents");
 }
 
 export async function external(): Promise<ExternalRow[]> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).external;
   return getJSON<ExternalRow[]>("/external");
 }
 
 export async function startRun(req: RunRequest): Promise<RunHandle> {
+  if (IS_DEMO) throw new ApiError(501, "/runs");
   return postJSON<RunHandle>("/runs", req);
 }
 
@@ -226,7 +242,9 @@ export async function stopRun(runId: string): Promise<RunHandle> {
 // built in parallel never contend for this file.
 
 export interface RunEvent {
-  type: "paired" | "promoted" | "proposed" | "round" | "closed" | "log" | "end";
+  // "proposed_one" and "pruned" appear in a recorded run, which is replayed from the engine's own record
+  // rather than from the live log, so it carries per-candidate detail the live stream summarises.
+  type: "paired" | "promoted" | "proposed" | "proposed_one" | "pruned" | "round" | "closed" | "log" | "end";
   t?: number;
   candidate?: string;
   seed?: number;
@@ -244,6 +262,8 @@ export interface RunEvent {
   status?: string;
   exit_code?: number;
   text?: string;
+  strategy?: string | null;
+  family?: string | null;
 }
 
 export interface RunDetail extends RunHandle {
@@ -261,6 +281,7 @@ export interface PromotedModel {
 }
 
 export async function runs(): Promise<RunHandle[]> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).runs;
   return getJSON<RunHandle[]>("/runs");
 }
 
@@ -269,6 +290,7 @@ export async function run(runId: string): Promise<RunDetail> {
 }
 
 export async function models(): Promise<PromotedModel[]> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).models;
   return getJSON<PromotedModel[]>("/models");
 }
 
