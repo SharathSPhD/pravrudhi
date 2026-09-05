@@ -39,8 +39,8 @@ from pravrudhi.application.delegate import TaskSpec, Verdict, dispatch, overlapp
 # in one day consumed seven million input tokens, nearly all of it on work that did not need that model. Naming a
 # model explicitly at every tier is the fix, and the top model is now reserved for the tier that says critical.
 ROUTES: dict[str, tuple[str, str | None]] = {
-    "mechanical": ("codex", "gpt-6-astra-mini"),
-    "standard": ("codex", "gpt-6-mini"),
+    "mechanical": ("claude-code", "sonnet"),
+    "standard": ("claude-code", "sonnet"),
     "design": ("claude-code", "sonnet"),
     "critical": ("codex", "gpt-6-astra"),
 }

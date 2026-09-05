@@ -87,6 +87,15 @@ def validate_in(workspace: Path, command: str, timeout_s: int = 1800) -> tuple[b
         return False, f"validation timed out after {timeout_s}s"
 
 
+def _tree_state(root: Path) -> set[str]:
+    """Uncommitted paths in a checkout, so a change made there during a dispatch can be told from one made before."""
+    try:
+        p = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    return {ln[3:] for ln in p.stdout.splitlines() if ln.strip()}
+
+
 def dispatch(agent: Any, task: TaskSpec, *, log: Any = print) -> Verdict:
     """Run one task with one agent and judge the result. The worktree is left in place when accepted, so the
     change can be inspected and merged deliberately; a rejected worktree is also kept, because a rejected diff is
@@ -94,13 +103,24 @@ def dispatch(agent: Any, task: TaskSpec, *, log: Any = print) -> Verdict:
     brief = (
         f"{task.prompt}\n\nYou may create or modify ONLY these paths: {', '.join(task.allowed_paths)}.\n"
         "Do not modify any other file. Do not touch pravrudhi_kernel/, research/, gates/ or .pravrudhi/.\n"
+        "Write every file relative to your current working directory, which is your own worktree; never write to "
+        "an absolute path in the main checkout, even when the task quotes one to tell you what to read.\n"
         f"Your work is accepted only if `{task.validate}` passes."
     )
     ws = agent.create_workspace(task.task_id)
+    root = Path(getattr(agent, "root", ws))
+    before = _tree_state(root) if root != ws else set()
     log(f"{task.task_id}: {agent.name} working in {ws}")
     run = agent.run(brief, ws, timeout_s=task.timeout_s)
     diff = agent.collect_changes(ws)
     reasons: list[str] = []
+    escaped = sorted(_tree_state(root) - before) if root != ws else []
+    if escaped:
+        # Two agents once wrote their whole deliverable into the main checkout instead of their worktree, because
+        # the task quoted absolute paths under it. Their worktrees were empty, so they were recorded as having
+        # produced nothing, and the files were swept into the next commit unreviewed. The worktree diff cannot see
+        # this; only the main tree can.
+        reasons.append(f"wrote outside its worktree, into the main checkout: {', '.join(escaped[:8])}")
     if not run.ok:
         reasons.append(f"agent exited non-zero: {run.stderr_tail[:200] or 'no detail'}")
     if diff.empty:

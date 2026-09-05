@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pravrudhi.application import swarm
+from pravrudhi.application import routing, swarm
 from pravrudhi.application.delegate import TaskSpec
 from pravrudhi.application.intent import Capability, IntentPlanProposal, IntentStepProposal
 from pravrudhi.application.objectives import Objective
@@ -179,8 +179,18 @@ def dispatch_plan(
 def preview(objective: Objective, plan: IntentPlanProposal, root: Path) -> list[dict[str, Any]]:
     """What `dispatch_plan` would dispatch, without dispatching it -- what the UI shows before a user commits."""
     out: list[dict[str, Any]] = []
+    table = None
+    try:  # the router's choice, from measured outcomes, so the preview matches what dispatch would do
+        table, rows = routing.load_table(), routing.outcomes(root)
+    except (OSError, routing.RoutingError):
+        rows = []
     for task in tasks_from_plan(objective, plan, root=root):
-        agent, model = task.route()
+        agent: str
+        model: str | None
+        if table is not None:
+            agent, model = routing.choose(table, rows, task.tier).route.pair()
+        else:
+            agent, model = task.route()
         _, step_id = task.spec.task_id.split(":", 1)
         out.append({
             "objective": objective.id,

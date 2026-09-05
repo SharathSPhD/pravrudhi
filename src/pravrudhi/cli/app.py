@@ -436,6 +436,38 @@ def objective_progress(objective_id: str, root: Path = ROOT_OPT) -> None:
             typer.echo(f"    target   {p.target_delta:+.4f}  met={p.met}")
 
 
+@objective_app.command("loom")
+def objective_loom(objective_id: str, root: Path = ROOT_OPT) -> None:
+    """The objective's plan as Loom source: readable, editable, and not yet run."""
+    from pravrudhi.application.intent import compile_intent
+    from pravrudhi.application.loom import lower
+    from pravrudhi.application.recipes import installed, library
+
+    obj = _objective_or_exit(root, objective_id)
+    typer.echo(lower(compile_intent(obj, tuple(library()), installed_skills=frozenset(installed()))))
+
+
+@objective_app.command("subagents")
+def objective_subagents(
+    objective_id: str, run: bool = typer.Option(False, "--run", help="dispatch; otherwise preview"), root: Path = ROOT_OPT
+) -> None:
+    """Fan the objective's plan out to subagents, one scoped task per step. Their output is a proposal."""
+    from pravrudhi.agents.registry import build_agent
+    from pravrudhi.application.intent import compile_intent
+    from pravrudhi.application.recipes import installed, library
+    from pravrudhi.application.subagents import dispatch_plan, preview
+
+    obj = _objective_or_exit(root, objective_id)
+    plan = compile_intent(obj, tuple(library()), installed_skills=frozenset(installed()))
+    if not run:
+        for t in preview(obj, plan, root):
+            typer.echo(f"{t['step']:22s} {t['tier']:10s} {t['agent']}/{t['model'] or 'default'}")
+        typer.echo("(preview; add --run to dispatch)")
+        return
+    for r in dispatch_plan(obj, plan, root=root, build_agent=lambda n, m: build_agent(root, n, m), log=typer.echo):
+        typer.echo(f"{'ACCEPT' if r.accepted else 'REJECT'} {r.step} [{r.route}] {r.wall_s:.0f}s")
+
+
 @app.command("routing")
 def routing_cmd(root: Path = ROOT_OPT, as_json: bool = typer.Option(False, "--json")) -> None:
     """Which agent and model each difficulty tier would use now, and why, from measured outcomes."""

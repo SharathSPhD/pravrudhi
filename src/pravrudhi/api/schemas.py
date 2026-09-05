@@ -479,3 +479,52 @@ class MemoryResponse(BaseModel):
     preferences: list[PreferenceResponse]
     notes: list[MemoryNoteResponse]
     threads: list[str]
+
+
+class LoomResponse(BaseModel):
+    """An objective's plan rendered as Loom source. A proposal: nothing in it has run."""
+
+    objective: str
+    source: str
+    steps: list[str]
+
+
+class SubagentPreviewResponse(BaseModel):
+    """One task the engine would dispatch for a plan step, before anything is dispatched."""
+
+    objective: str
+    step: str
+    task_id: str
+    tier: str
+    agent: str
+    model: str | None
+    model_config = ConfigDict(populate_by_name=True)
+    allowed_paths: list[str]
+    validate_cmd: str = Field(alias="validate")  # `validate` is reserved on BaseModel
+    why: str
+
+
+class SubagentRunResponse(BaseModel):
+    """What one dispatched subagent did. A record of the swarm's work, not evidence."""
+
+    objective: str
+    step: str
+    task_id: str
+    route: str
+    accepted: bool
+    wall_s: float
+    files: list[str]
+    reasons: list[str]
+    at: str
+
+
+class SubagentsResponse(BaseModel):
+    preview: list[SubagentPreviewResponse]
+    runs: list[SubagentRunResponse]
+
+
+class DispatchResponse(BaseModel):
+    """Acknowledgement that a plan's tasks were handed to the swarm in the background."""
+
+    objective: str
+    started: int
