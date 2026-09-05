@@ -12,11 +12,33 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, Header, HTTPException
+from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
 from pravrudhi import KERNEL_VERSION, __version__
 from pravrudhi.agents.registry import survey
 from pravrudhi.api.localguard import install as install_local_guard
+from pravrudhi.api.schemas import (
+    AgentsResponse,
+    CandidateDetailResponse,
+    CandidatesResponse,
+    DoctorResponse,
+    EvidenceResponse,
+    ExternalResultsResponse,
+    FleetResponse,
+    HealthResponse,
+    InboxListingResponse,
+    MarkdownResponse,
+    NightsResponse,
+    ObjectiveDetailResponse,
+    ObjectiveResponse,
+    ObjectivesResponse,
+    ObservationsResponse,
+    RecipesResponse,
+    SignResponse,
+    StatusResponse,
+    TokenResponse,
+)
 from pravrudhi.application.doctor import run_doctor
 from pravrudhi.application.evidence import render_h1
 from pravrudhi.application.external import external_rows
@@ -66,26 +88,34 @@ def create_app(root: Path) -> FastAPI:
     # A local engine that can start GPU work must not answer any page the user happens to be visiting: see
     # api/localguard.py. Cross-origin access is off unless the operator names the origins.
     install_local_guard(app, root, enforce=os.environ.get("PRAVRUDHI_DISABLE_LOCAL_GUARD") != "1")
+    # The guard returns a JSONResponse directly; declaring its resource leaves token handling intact.
+    for route in app.routes:
+        if isinstance(route, APIRoute) and route.path == "/api/app-token":
+            app.router.routes.remove(route)
+            app.add_api_route(route.path, route.endpoint, methods=["GET"], response_model=TokenResponse)
+            break
     ledger = root / "research" / "ledger.jsonl"
 
     @api.get("/doctor")
-    def doctor() -> dict[str, Any]:
-        return run_doctor(root)
+    def doctor() -> DoctorResponse:
+        return DoctorResponse.model_validate(run_doctor(root))
 
     @api.get("/hosts")
-    def hosts() -> dict[str, Any]:
-        return fleet_report(root)
+    def hosts() -> FleetResponse:
+        return FleetResponse.model_validate(fleet_report(root))
 
     @api.get("/agents")
-    def agents() -> list[dict[str, Any]]:
-        return [{"name": agent.name, "available": agent.available, "reason": agent.reason} for agent in survey(root)]
+    def agents() -> AgentsResponse:
+        return AgentsResponse.model_validate(
+            [{"name": agent.name, "available": agent.available, "reason": agent.reason} for agent in survey(root)]
+        )
 
-    @api.get("/external")
-    def external() -> list[dict[str, Any]]:
-        return external_rows(ledger)
+    @api.get("/external", response_model_exclude_unset=True)
+    def external() -> ExternalResultsResponse:
+        return ExternalResultsResponse.model_validate(external_rows(ledger))
 
     @api.get("/nights")
-    def nights_ep() -> list[dict[str, Any]]:
+    def nights_ep() -> NightsResponse:
         starts: dict[tuple[int, str], dict[str, Any]] = {}
         rows: list[dict[str, Any]] = []
         for event in iter_events(ledger):
@@ -98,74 +128,86 @@ def create_app(root: Path) -> FastAPI:
                 starts[key] = payload
             elif payload.get("kind") == "night_end":
                 start = starts.get(key, {})
-                rows.append({
-                    "night": event.night,
-                    "track": track,
-                    "selection_policy": start.get("selection_policy"),
-                    "spent_gpu_h": payload.get("spent_gpu_h"),
-                    "outcomes": payload.get("outcomes"),
-                    "incumbent": payload.get("incumbent"),
-                })
-        return rows
+                rows.append(
+                    {
+                        "night": event.night,
+                        "track": track,
+                        "selection_policy": start.get("selection_policy"),
+                        "spent_gpu_h": payload.get("spent_gpu_h"),
+                        "outcomes": payload.get("outcomes"),
+                        "incumbent": payload.get("incumbent"),
+                    }
+                )
+        return NightsResponse.model_validate(rows)
 
     @api.get("/h1/{track}/{nights}")
-    def h1(track: str, nights: str) -> dict[str, str]:
+    def h1(track: str, nights: str) -> MarkdownResponse:
         if not re.fullmatch(r"[0-9]+(?:-[0-9]+)*", nights):
             raise HTTPException(400, "nights must be dash-separated non-negative integers")
         try:
             parsed_nights = tuple(int(night) for night in nights.split("-"))
         except ValueError as exc:
             raise HTTPException(400, "invalid night number") from exc
-        return {"markdown": render_h1(ledger, parsed_nights, track)}
+        return MarkdownResponse.model_validate({"markdown": render_h1(ledger, parsed_nights, track)})
 
     @api.get("/health")
-    def health() -> dict[str, Any]:
-        return {"ok": True, "version": __version__, "kernel": KERNEL_VERSION, "ledger": ledger.exists()}
+    def health() -> HealthResponse:
+        return HealthResponse.model_validate(
+            {"ok": True, "version": __version__, "kernel": KERNEL_VERSION, "ledger": ledger.exists()}
+        )
 
     @api.get("/status")
-    def status_ep() -> dict[str, Any]:
-        return status(root)
+    def status_ep() -> StatusResponse:
+        return StatusResponse.model_validate(status(root))
 
     @api.get("/candidates")
-    def candidates() -> list[dict[str, Any]]:
+    def candidates() -> CandidatesResponse:
         st = replay(ledger)
-        return [{"id": cid, "badge": st.badges[cid], **c.model_dump()} for cid, c in st.candidates.items()]
+        return CandidatesResponse.model_validate(
+            [{"id": cid, "badge": st.badges[cid], **c.model_dump()} for cid, c in st.candidates.items()]
+        )
 
     @api.get("/candidates/{cid}")
-    def candidate(cid: str) -> dict[str, Any]:
+    def candidate(cid: str) -> CandidateDetailResponse:
         st = replay(ledger)
         if cid not in st.candidates:
             raise HTTPException(404, "unknown candidate")
         events = [ev.model_dump() for ev in iter_events(ledger) if ev.candidate_id == cid]
-        return {"id": cid, "badge": st.badges[cid], "view": st.candidates[cid].model_dump(), "events": events}
+        return CandidateDetailResponse.model_validate(
+            {"id": cid, "badge": st.badges[cid], "view": st.candidates[cid].model_dump(), "events": events}
+        )
 
     @api.get("/observations")
-    def observations(limit: int = 200) -> list[dict[str, Any]]:
+    def observations(limit: int = 200) -> ObservationsResponse:
         rows = [ev.model_dump() for ev in iter_events(ledger) if ev.kind == "observe"]
-        return rows[-limit:]
+        return ObservationsResponse.model_validate(rows[-limit:])
 
     @api.get("/objectives")
-    def objectives_ep() -> dict[str, Any]:
+    def objectives_ep() -> ObjectivesResponse:
         """Every objective in this workspace with its standing. A file that will not load is reported, not hidden."""
         from pravrudhi.application.objectives import load_all, problems, summary
 
-        return {
-            "objectives": [summary(root, o) for o in load_all(root)],
-            "problems": [{"file": f, "reason": r} for f, r in problems(root)],
-        }
+        return ObjectivesResponse.model_validate(
+            {
+                "objectives": [summary(root, o) for o in load_all(root)],
+                "problems": [{"file": f, "reason": r} for f, r in problems(root)],
+            }
+        )
 
     @api.get("/objectives/{oid}")
-    def objective_ep(oid: str) -> dict[str, Any]:
+    def objective_ep(oid: str) -> ObjectiveDetailResponse:
         from pravrudhi.application.objectives import load_all, summary
         from pravrudhi.application.recipes import resolve
 
         for o in load_all(root):
             if o.id == oid:
-                return {**summary(root, o), "recipe_detail": resolve(o.recipes)}
+                return ObjectiveDetailResponse.model_validate(
+                    {**summary(root, o), "recipe_detail": resolve(o.recipes)}
+                )
         raise HTTPException(404, "no such objective")
 
     @api.post("/objectives")
-    def create_objective(req: ObjectiveRequest) -> dict[str, Any]:
+    def create_objective(req: ObjectiveRequest) -> ObjectiveResponse:
         """Record an objective. Refused if it could not be measured, because an unmeasurable goal is a wish."""
         from pravrudhi.application.objectives import ObjectiveError, parse, summary, write
 
@@ -180,7 +222,12 @@ def create_app(root: Path) -> FastAPI:
                     "target_delta": req.target_delta,
                     "notes": req.notes,
                     "benchmarks": [
-                        {"id": b.id or b.metric.split()[0], "tool": b.tool, "metric": b.metric, "direction": b.direction}
+                        {
+                            "id": b.id or b.metric.split()[0],
+                            "tool": b.tool,
+                            "metric": b.metric,
+                            "direction": b.direction,
+                        }
                         for b in req.benchmarks
                     ],
                 }
@@ -188,32 +235,32 @@ def create_app(root: Path) -> FastAPI:
         except ObjectiveError as e:
             raise HTTPException(422, str(e)) from e
         write(root, obj)
-        return summary(root, obj)
+        return ObjectiveResponse.model_validate(summary(root, obj))
 
     @api.get("/recipes")
-    def recipes_ep() -> dict[str, Any]:
+    def recipes_ep() -> RecipesResponse:
         """The recipe catalogue, each entry marked available or not on this machine. Not evidence: naming a recipe
         does not claim it has been run."""
         from pravrudhi.application.recipes import availability
 
-        return {"recipes": availability()}
+        return RecipesResponse.model_validate({"recipes": availability()})
 
     @api.get("/inbox")
-    def inbox() -> list[dict[str, Any]]:
-        return inbox_listing(root)
+    def inbox() -> InboxListingResponse:
+        return InboxListingResponse.model_validate(inbox_listing(root))
 
     @api.get("/evidence/{name}")
-    def evidence(name: str) -> dict[str, str]:
+    def evidence(name: str) -> EvidenceResponse:
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", name):
             raise HTTPException(404, "no such evidence document")
         base = (root / "docs" / "evidence").resolve()
         p = (base / f"{name}.md").resolve()
         if p.parent != base or not p.is_file():
             raise HTTPException(404, "no such evidence document")
-        return {"name": name, "markdown": p.read_text()}
+        return EvidenceResponse.model_validate({"name": name, "markdown": p.read_text()})
 
     @api.post("/inbox/sign")
-    def sign(req: SignRequest, x_pravrudhi_operator: str | None = Header(default=None)) -> dict[str, Any]:
+    def sign(req: SignRequest, x_pravrudhi_operator: str | None = Header(default=None)) -> SignResponse:
         who = (x_pravrudhi_operator or os.environ.get("PRAVRUDHI_OPERATOR") or "").strip()
         if not who or who.lower() in AGENT_IDENTITIES:
             raise HTTPException(403, "sign-off is a human act: set X-Pravrudhi-Operator to the operator's name")
@@ -238,7 +285,9 @@ def create_app(root: Path) -> FastAPI:
             epoch=0,
             night=replay(ledger).night,
         )
-        return {"seq": ev.seq, "this_hash": ev.this_hash, "decision": req.decision, "by": who}
+        return SignResponse.model_validate(
+            {"seq": ev.seq, "this_hash": ev.this_hash, "decision": req.decision, "by": who}
+        )
 
     app.include_router(api)
     return app
