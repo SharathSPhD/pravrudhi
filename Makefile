@@ -37,6 +37,7 @@ reproduce:       ## regenerate docs/evidence from the ledger; diff must be empty
 	$(UV) run pravrudhi evidence summary4 --check
 	$(UV) run pravrudhi evidence night5 --check
 	$(UV) run pravrudhi evidence summary4-5 --check
+	$(UV) run pravrudhi evidence hnight1 --check
 	$(UV) run pravrudhi evidence external --check
 decorative-check:  ## decorative-controller check on the last select batch (research/last_select.json)
 	$(UV) run python scripts/decorative_check.py --batch research/last_select.json

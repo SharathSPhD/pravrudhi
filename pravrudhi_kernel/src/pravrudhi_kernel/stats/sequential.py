@@ -55,7 +55,10 @@ def e_process(xs: list[float], sigma: float, tau: float) -> float:
     if n == 0:
         return 1.0
     s2, t2, S = sigma * sigma, tau * tau, sum(xs)
-    return math.sqrt(s2 / (s2 + n * t2)) * math.exp(t2 * S * S / (2 * s2 * (s2 + n * t2)))
+    log_e = 0.5 * math.log(s2 / (s2 + n * t2)) + t2 * S * S / (2 * s2 * (s2 + n * t2))
+    # ADR-0017: a draw many sigma from zero overflows exp(); every decision threshold is below 1e3, so the e-value is
+    # capped at exp(700) (about 1e304) with the comparison unchanged
+    return math.exp(min(log_e, 700.0))
 
 
 def conf_seq_halfwidth(n: int, sigma: float, tau: float, alpha: float) -> float:

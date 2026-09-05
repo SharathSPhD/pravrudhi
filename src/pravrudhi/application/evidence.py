@@ -26,8 +26,8 @@ def track_events(ledger: Path, track: str = "lora"):
         p = ev.payload
         if ev.kind == "observe" and ev.seq in withdrawn:
             continue  # ADR-0015: withdrawn by a sublate row; the row stays in the chain, not in the evidence
-        if ev.kind == "audit" and p.get("kind") == "night_start":
-            in_harness = p.get("track") == "harness"
+        if ev.kind == "audit" and p.get("kind") in ("night_start", "study_start"):
+            in_harness = p.get("track") == "harness"  # a new block closes an unterminated one (ADR-0017)
         tagged_h = ev.surface == "H3.prompt" or p.get("track") in ("H", "harness") or ev.candidate_id in harness_cids
         if ev.surface == "W3.adapter" and not tagged_h:
             row_track = "lora"
