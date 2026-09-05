@@ -12,6 +12,7 @@ import sys
 import time
 from pathlib import Path
 
+from checks import visible_tests as checks_visible_tests
 from common import load_model, model_dir_hash, read_jsonl, sha256_file, write_jsonl
 
 CODE_RE = re.compile(r"```(?:python)?\n(.*?)```", re.S)
@@ -23,8 +24,11 @@ def extract_code(text: str) -> str:
 
 
 def visible_tests(question: str) -> list[str]:
-    """EvalPlus MBPP+ prompts carry one example assert; harness may also ask the model to write its own checks."""
-    return [line.strip() for line in question.splitlines() if line.strip().startswith("assert ")]
+    """The checks a harness may select on: the explicit `assert ` lines an MBPP+ prompt carries, and the checks
+    derived from the `>>>` doctest examples a HumanEval prompt carries. Reading only `assert ` lines meant every
+    selection strategy -- retry, best-of-n, feedback -- was a silent no-op on HumanEval, where the examples are
+    doctests; see docker/jobs/checks.py."""
+    return checks_visible_tests(question)
 
 
 def _run(code: str, tests: list[str], q: mp.Queue) -> None:  # type: ignore[type-arg]
