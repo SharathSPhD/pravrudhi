@@ -23,6 +23,7 @@ f="$(find "$OUT" -name 'results_*.json' | sort | tail -1)"; [[ -n "$f" ]] && cp 
 import json, sys
 r = json.load(open(sys.argv[1]))["results"]
 for t, m in r.items():
-    keys = [k for k in m if k.endswith(",none") and not k.endswith("_stderr,none")]
-    print("EXT", t, {k.split(",")[0]: round(m[k], 4) for k in keys}, {k.split(",")[0]: round(m[k], 4) for k in m if k.endswith("_stderr,none")})
+    vals = {k: round(v, 4) for k, v in m.items() if isinstance(v, float) and "stderr" not in k}
+    errs = {k: round(v, 4) for k, v in m.items() if isinstance(v, float) and "stderr" in k}
+    print("EXT", t, vals, errs)
 PY
