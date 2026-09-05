@@ -21,6 +21,12 @@ uv run pravrudhi night --night 1 --root .             # one budgeted night
 uv run pravrudhi inbox --root .                       # what the night wants promoted
 uv run pravrudhi export ./adapter --root .            # the green adapter, with provenance
 uv run pravrudhi serve --root .                       # HTTP: /status /candidates /observations /inbox /evidence
+
+# harness track (fixed model, mutable scaffold, MBPP+ hidden tests in the sandbox; HumanEval+ as external proof)
+uv run pravrudhi pool seal-mbppplus --root .
+uv run pravrudhi study harness-noise-floor --root .
+uv run pravrudhi harness-night --night 1 --root .
+scripts/ext_humaneval.sh Qwen/Qwen3-1.7B harness/agent/harness.json ./research/ext/humaneval-after
 ```
 
 `pravrudhi replay --verify` rebuilds the state view from the ledger and verifies the hash chain; `make reproduce` regenerates every evidence document from the ledger and fails on any difference.
