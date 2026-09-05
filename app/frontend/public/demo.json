@@ -155,6 +155,126 @@
       "tool": "evalplus",
       "tool_version": "0.3.1",
       "track": "H"
+    },
+    {
+      "condition": "base",
+      "dataset": "humaneval",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/hn/base/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.6341463414634146,
+          "pass@1_plus": 0.5975609756097561
+        },
+        "humaneval_counts": {
+          "base_pass": 104,
+          "n": 164,
+          "plus_pass": 98
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1838,
+      "severity": "info",
+      "sha256": "b16b6500dd11fc980cb3a5ef5d3c69c60011faee8a6242a3d858fad1a721db2f",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "harness:bestof4",
+      "dataset": "humaneval",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/hn/bestof4/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.676829268292683,
+          "pass@1_plus": 0.6402439024390244
+        },
+        "humaneval_counts": {
+          "base_pass": 111,
+          "n": 164,
+          "plus_pass": 105
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1839,
+      "severity": "info",
+      "sha256": "11e35b253519d788b1c164b47a1adcefa013479276d378ae88b440572fa1eb84",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "harness:retry3",
+      "dataset": "humaneval",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/hn/retry3/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.7073170731707317,
+          "pass@1_plus": 0.6402439024390244
+        },
+        "humaneval_counts": {
+          "base_pass": 116,
+          "n": 164,
+          "plus_pass": 105
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1840,
+      "severity": "info",
+      "sha256": "1f4f64dd7cad7d1b91cc4aca2a33f4687824bda419641aeffa9198cc85f16698",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "harness:combo",
+      "dataset": "humaneval",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/hn/combo/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "humaneval": {
+          "pass@1_base": 0.6829268292682927,
+          "pass@1_plus": 0.6463414634146342
+        },
+        "humaneval_counts": {
+          "base_pass": 112,
+          "n": 164,
+          "plus_pass": 106
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "humaneval": 164
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1841,
+      "severity": "info",
+      "sha256": "f66723b2fa7f3ed97d8d6c83ed477a34e66fbd09fbae430d4a779ede7c7925d1",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
     }
   ],
   "featured_run": {
@@ -428,12 +548,12 @@
       "external_before": {
         "humaneval": {
           "pass@1_base": 0.6341463414634146,
-          "pass@1_plus": 0.5914634146341463
+          "pass@1_plus": 0.5975609756097561
         },
         "humaneval_counts": {
           "base_pass": 104,
           "n": 164,
-          "plus_pass": 97
+          "plus_pass": 98
         }
       },
       "id": "c-0078",
@@ -644,28 +764,28 @@
             "baseline": {
               "model": "Qwen/Qwen3-1.7B",
               "n": 164,
-              "night": 1,
-              "seq": 719,
-              "sha256": "78e9c2b0dba677f6f347ea93e5ea87ad05e170d2190e6a285ffe4664558c2d50",
-              "stderr": 0.07439738782909844,
-              "value": 0.5914634146341463
+              "night": 3,
+              "seq": 1838,
+              "sha256": "b16b6500dd11fc980cb3a5ef5d3c69c60011faee8a6242a3d858fad1a721db2f",
+              "stderr": 0.07422394769242413,
+              "value": 0.5975609756097561
             },
             "benchmark": "humaneval+ pass@1",
-            "delta": -0.5060975609756098,
-            "delta_hi": -0.3373540055349692,
-            "delta_lo": -0.6748411164162503,
+            "delta": 0.04878048780487809,
+            "delta_hi": 0.2520193953021498,
+            "delta_lo": -0.15445841969239357,
             "latest": {
               "model": "Qwen/Qwen3-1.7B",
               "n": 164,
-              "night": 1,
-              "seq": 900,
-              "sha256": "e8c2b06f7b245d7b7eed308e5f3ed5ead6528030c7cc13fb07123f638e1f6c1d",
-              "stderr": 0.04332603583401614,
-              "value": 0.08536585365853659
+              "night": 3,
+              "seq": 1841,
+              "sha256": "f66723b2fa7f3ed97d8d6c83ed477a34e66fbd09fbae430d4a779ede7c7925d1",
+              "stderr": 0.07240932421331425,
+              "value": 0.6463414634146342
             },
             "met": null,
             "reason": "",
-            "significant": true,
+            "significant": false,
             "state": "measured",
             "target_delta": null
           }
@@ -1615,13 +1735,13 @@
     },
     "candidates": 141,
     "chain_ok": true,
-    "events": 1838,
+    "events": 1842,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "c2359f7b8f476483660561efab72094357cb427a2da4d8a57e1caaf4498c895b",
+    "ledger_head": "d1ae39a26414dfee22a5fc4362013173ddd19998d7eb59aed696d3fd03ff2783",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -1763,6 +1883,6 @@
       ]
     },
     "pruned": 82,
-    "state_hash": "3b1f7d294956dd97db27c5544904768d78bb5d30e2fe83108220bb9ac089c919"
+    "state_hash": "caf543870408f7acc46a8efa50f0c0fc21bcc33f1a8c056e16797d9ccd47bbb2"
   }
 }
