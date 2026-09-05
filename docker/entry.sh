@@ -3,6 +3,6 @@
 set -euo pipefail
 job="${1:-generate}"
 case "$job" in
-  generate|sample|train_sft|train_grpo|anchor_nll) shift; exec python "/opt/pravrudhi/jobs/${job}.py" "$@" ;;
+  generate|sample|train_sft|train_grpo|anchor_nll|agent_code|score_code) shift; exec python "/opt/pravrudhi/jobs/${job}.py" "$@" ;;
   *) exec python /opt/pravrudhi/jobs/generate.py "$@" ;;
 esac

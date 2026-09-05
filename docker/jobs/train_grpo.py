@@ -41,7 +41,9 @@ def main() -> int:
     ap.add_argument("--recipe", default="/in/recipe.json")
     ap.add_argument("--out", default="/out")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--fp32", action="store_true", help="fp32 master weights (fallback when bf16 LoRA-GRPO produces NaN gradients)")
+    ap.add_argument(
+        "--fp32", action="store_true", help="fp32 master weights (fallback when bf16 LoRA-GRPO produces NaN gradients)"
+    )
     a = ap.parse_args()
     import torch
     from datasets import Dataset

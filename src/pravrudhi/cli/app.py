@@ -23,6 +23,7 @@ BUDGET_OPT = typer.Option(None, "--budget", help="GPU-hours; default from resear
 K_OPT = typer.Option(None, "--k")
 TRAIN_PARQUET_OPT = typer.Option(Path(".pravrudhi/data/gsm8k-train.parquet"), "--train-parquet")
 GGUF_OPT = typer.Option(None, "--gguf")
+CACHE_OPT = typer.Option(Path(".pravrudhi/ext_cache"), "--cache")
 LEDGER_OPT = typer.Option(None, "--ledger", help="default <root>/research/ledger.jsonl")
 STATE_OPT = typer.Option(None, "--state", help="default <root>/research/state.json")
 VERIFY_OPT = typer.Option(
@@ -112,6 +113,15 @@ def pool_seal(
     from pravrudhi.application.pool_admin import seal_gsm8k
 
     m = seal_gsm8k(root, parquet, bench, offset=offset, count=count)
+    typer.echo(f"sealed {m['bench']}: {m['n_items']} items, pool_version {m['pool_version'][:16]}")
+
+
+@pool_app.command("seal-mbppplus")
+def pool_seal_mbpp(root: Path = ROOT_OPT, cache: Path = CACHE_OPT) -> None:
+    """Seal EvalPlus MBPP+ as a kernel pool (hidden tests executed only inside the sandbox)."""
+    from pravrudhi.application.pool_admin import seal_mbpp_plus
+
+    m = seal_mbpp_plus(root, cache)
     typer.echo(f"sealed {m['bench']}: {m['n_items']} items, pool_version {m['pool_version'][:16]}")
 
 

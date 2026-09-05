@@ -2,5 +2,7 @@
 # run without it. lm-eval 0.4.x needs transformers 4.x, so this image carries its own transformers; it only scores.
 FROM pravrudhi/exec-5090:latest
 RUN pip install --no-cache-dir "transformers<5" "lm-eval[hf]==0.4.9" "evalplus>=0.3.1" 2>&1 | tail -2
+COPY docker/jobs /opt/pravrudhi/jobs
+COPY docker/entry.sh /opt/pravrudhi/entry.sh
 ENTRYPOINT []
 CMD ["bash"]
