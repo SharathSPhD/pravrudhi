@@ -57,7 +57,7 @@ testpaths = ["tests", "pravrudhi_kernel/tests"]
 addopts = "-p no:cacheprovider"
 
 [tool.ruff]
-line-length = 110
+line-length = 130
 target-version = "py313"
 src = ["src", "pravrudhi_kernel/src"]
 

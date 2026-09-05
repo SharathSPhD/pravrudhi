@@ -82,13 +82,9 @@ def sequential_boundary(xs: list[float], bench: Variance) -> BoundaryResult:
     e = e_process(xs, sigma, bench.tau)
     w = conf_seq_halfwidth(n, sigma, bench.tau, bench.alpha_fut)
     if e >= 1.0 / bench.alpha_eff and xbar > 0:
-        return BoundaryResult(
-            decision="confirm", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa=None
-        )
+        return BoundaryResult(decision="confirm", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa=None)
     if xbar + w < bench.delta_min:
-        return BoundaryResult(
-            decision="prune", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa="asiddha"
-        )
+        return BoundaryResult(decision="prune", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa="asiddha")
     if n >= bench.k_max:
         return BoundaryResult(
             decision="prune",
@@ -99,6 +95,4 @@ def sequential_boundary(xs: list[float], bench: Variance) -> BoundaryResult:
             sigma_used=sigma,
             hetvabhasa="savyabhicara",
         )
-    return BoundaryResult(
-        decision="continue", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa=None
-    )
+    return BoundaryResult(decision="continue", n=n, xbar=xbar, e_value=e, halfwidth=w, sigma_used=sigma, hetvabhasa=None)

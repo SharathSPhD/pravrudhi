@@ -21,9 +21,7 @@ class NonInferiority(KernelModel):
     n: int
 
 
-def non_inferiority(
-    d: np.ndarray, margin: float, *, alpha: float = 0.05, n_boot: int = 10_000, seed: int = 42
-) -> NonInferiority:
+def non_inferiority(d: np.ndarray, margin: float, *, alpha: float = 0.05, n_boot: int = 10_000, seed: int = 42) -> NonInferiority:
     """d = candidate − incumbent per item.
 
     H0: Δ ≤ −margin is rejected iff the (1−2α) BCa lower bound exceeds −margin.

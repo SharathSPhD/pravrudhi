@@ -49,15 +49,11 @@ def decorative_check(
     if len(ids) < 2:
         return DecorativeVerdict(verdict="fail", cv_G=cv, mi_bits=mi, reason="fewer than two candidates")
     if len({round(float(x), 9) for x in g if math.isfinite(x)}) == 1:
-        return DecorativeVerdict(
-            verdict="fail", cv_G=cv, mi_bits=mi, reason="every candidate scored identically"
-        )
+        return DecorativeVerdict(verdict="fail", cv_G=cv, mi_bits=mi, reason="every candidate scored identically")
     if cv < cv_min:
         return DecorativeVerdict(verdict="fail", cv_G=cv, mi_bits=mi, reason=f"cv_G {cv:.4g} < {cv_min}")
     if mi < mi_min_bits:
-        return DecorativeVerdict(
-            verdict="fail", cv_G=cv, mi_bits=mi, reason=f"mi_bits {mi:.4g} < {mi_min_bits}"
-        )
+        return DecorativeVerdict(verdict="fail", cv_G=cv, mi_bits=mi, reason=f"mi_bits {mi:.4g} < {mi_min_bits}")
     return DecorativeVerdict(verdict="pass", cv_G=cv, mi_bits=mi, reason=None)
 
 

@@ -15,9 +15,7 @@ from pravrudhi_kernel.schema.common import (
 Rfc3339Ms = Annotated[str, StringConstraints(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$")]
 Actor = Annotated[
     str,
-    StringConstraints(
-        pattern=r"^(kernel|broker|controller|proposer|executor|auditor|human:[A-Za-z0-9_.-]+)$"
-    ),
+    StringConstraints(pattern=r"^(kernel|broker|controller|proposer|executor|auditor|human:[A-Za-z0-9_.-]+)$"),
 ]
 
 PROVENANCE_REQUIRED: frozenset[str] = frozenset({"propose", "predict", "observe", "sensor", "sublate"})

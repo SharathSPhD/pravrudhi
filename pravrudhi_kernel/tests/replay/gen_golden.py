@@ -26,9 +26,7 @@ def make_clock(start: int) -> Callable[[], str]:
 def build(path: Path, seed: int) -> None:
     rng = np.random.default_rng(seed)
     w = LedgerWriter.open(path, "0.1.0", clock=make_clock(seed * 1000), glossary_hash="0" * 64)
-    w.append(
-        "audit", "kernel", {"kind": "theta_surprise", "value": 3.0, "severity": "info"}, epoch=0, night=0
-    )
+    w.append("audit", "kernel", {"kind": "theta_surprise", "value": 3.0, "severity": "info"}, epoch=0, night=0)
     bucket = {"task_family": "gsm8k", "target_model": "Qwen/Qwen3-4B", "corpus": "gsm8k-train"}
     surfaces = ["W3.adapter", "W2.data", "H3.prompt"]
     families = ["optimiser", "adapter", "data_mixture"]

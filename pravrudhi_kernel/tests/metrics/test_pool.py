@@ -58,9 +58,7 @@ def test_rotation_is_deterministic_secret_dependent_and_capped(pool: Path) -> No
             break
         record_exposure(pool, r)
         record_exposure(pool, r)
-    assert (
-        exhausted_at is not None
-    )  # 40 items x cap 2 = 80 slots; 20 slots per night -> exhausted by night ~7
+    assert exhausted_at is not None  # 40 items x cap 2 = 80 slots; 20 slots per night -> exhausted by night ~7
 
 
 def test_stable_sample_and_overlap(pool: Path) -> None:

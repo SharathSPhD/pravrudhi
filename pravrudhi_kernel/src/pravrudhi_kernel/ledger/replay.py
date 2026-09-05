@@ -173,11 +173,7 @@ def _apply(st: State, ev: LedgerEvent) -> None:
                 c.audit_high = True
             if p.get("kind") == "paused_by_operator":
                 st.locks.paused = True
-            if (
-                p.get("kind") == "surface_frozen"
-                and ev.surface
-                and ev.surface not in st.locks.frozen_surfaces
-            ):
+            if p.get("kind") == "surface_frozen" and ev.surface and ev.surface not in st.locks.frozen_surfaces:
                 st.locks.frozen_surfaces.append(ev.surface)
             if p.get("kind") == "theta_surprise" and p.get("value") is not None:
                 st.theta_surprise = _f(p.get("value"))

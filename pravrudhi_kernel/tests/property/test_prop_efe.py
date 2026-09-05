@@ -33,17 +33,13 @@ H = "0" * 64
 BUCKET = {"task_family": "t", "target_model": "m", "corpus": "c"}
 KEYS = BeliefKeys(surface="W3.adapter", strategy="sft", bucket="t|m|c|optimiser", candidate_id="c-0001")
 EMPTY = Citta(version=0, surfaces={}, strategies={}, buckets={}, candidates={}, rho_pred={})
-PLAN = EvidencePlan(
-    seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0
-)
+PLAN = EvidencePlan(seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0)
 PREFS = Preferences(beta=1.0, lambda_=2.0, eta=1.0)
 pos = st.floats(1e-4, 10.0, allow_nan=False, allow_infinity=False)
 val = st.floats(-1.0, 1.0, allow_nan=False, allow_infinity=False)
 
 
-def _cand(
-    cid: str = "c-0001", cost: float = 0.2, surface: str = "W3.adapter", need: str = "executor"
-) -> Candidate:
+def _cand(cid: str = "c-0001", cost: float = 0.2, surface: str = "W3.adapter", need: str = "executor") -> Candidate:
     return Candidate(
         id=cid,
         surface=surface,
@@ -77,9 +73,7 @@ def test_prop_posterior_update_variance_non_increasing_and_hierarchy_moves_less(
 
 
 @given(pos, st.floats(0.0, 1.0), st.floats(0.0, 1.0))
-def test_prop_pseudo_observation_variance_grows_with_low_confidence_and_low_rho(
-    s2: float, conf: float, rho: float
-) -> None:
+def test_prop_pseudo_observation_variance_grows_with_low_confidence_and_low_rho(s2: float, conf: float, rho: float) -> None:
     v = pseudo_observation_variance(s2, conf, rho)
     assert v > 0 and math.isfinite(v)
     assert pseudo_observation_variance(s2, min(conf + 0.1, 1.0), rho) <= v + 1e-9
@@ -87,9 +81,7 @@ def test_prop_pseudo_observation_variance_grows_with_low_confidence_and_low_rho(
 
 
 @given(val, st.floats(0.01, 0.99), pos)
-def test_prop_posterior_update_prediction_never_outweighs_a_kernel_observation(
-    delta_hat: float, conf: float, s2: float
-) -> None:
+def test_prop_posterior_update_prediction_never_outweighs_a_kernel_observation(delta_hat: float, conf: float, s2: float) -> None:
     c = EMPTY.model_copy(update={"rho_pred": {"W3.adapter": 0.5}})
     a = posterior_update_prediction(c, KEYS, delta_hat, conf, s2, 0.01)
     b = posterior_update(c, KEYS, delta_hat, s2, 0.01)
@@ -97,12 +89,8 @@ def test_prop_posterior_update_prediction_never_outweighs_a_kernel_observation(
 
 
 @given(pos, pos, st.integers(1, 6), pos)
-def test_prop_eig_nonnegative_and_vanishes_as_posterior_tightens(
-    s2_post: float, s2_eval: float, n: int, tau0_2: float
-) -> None:
-    wide = EMPTY.model_copy(
-        update={"candidates": {"c-0001": CandidateBelief(mu=0.0, sigma2=s2_post, n_obs=1)}}
-    )
+def test_prop_eig_nonnegative_and_vanishes_as_posterior_tightens(s2_post: float, s2_eval: float, n: int, tau0_2: float) -> None:
+    wide = EMPTY.model_copy(update={"candidates": {"c-0001": CandidateBelief(mu=0.0, sigma2=s2_post, n_obs=1)}})
     nb = NormalBelief(mu=0.0, tau2=1e-12, n=9)
     tight_all = EMPTY.model_copy(
         update={
@@ -130,9 +118,7 @@ def test_prop_efe_monotone_in_cost_and_infinite_for_t0(c1: float, c2: float) -> 
 @given(val, pos)
 def test_prop_expected_log_pref_penalises_downside_more_than_it_rewards_upside(mu: float, s2: float) -> None:
     up = EMPTY.model_copy(update={"candidates": {"c-0001": CandidateBelief(mu=abs(mu), sigma2=s2, n_obs=1)}})
-    down = EMPTY.model_copy(
-        update={"candidates": {"c-0001": CandidateBelief(mu=-abs(mu), sigma2=s2, n_obs=1)}}
-    )
+    down = EMPTY.model_copy(update={"candidates": {"c-0001": CandidateBelief(mu=-abs(mu), sigma2=s2, n_obs=1)}})
     a, b = (
         expected_log_pref(up, _cand(), PREFS, KEYS, 0.01),
         expected_log_pref(down, _cand(), PREFS, KEYS, 0.01),
@@ -143,9 +129,7 @@ def test_prop_expected_log_pref_penalises_downside_more_than_it_rewards_upside(m
 
 @given(st.lists(pos, max_size=6), pos, st.floats(0.0, 1.0))
 def test_prop_infer_precision_respects_floors_and_bounds(pool: list[float], s2: float, rho: float) -> None:
-    p = infer_precision(
-        PrecisionView(pool_post_var=pool, sigma2_eval=s2, rho_pred=rho, f_epi=0.15, rho_floor=0.05)
-    )
+    p = infer_precision(PrecisionView(pool_post_var=pool, sigma2_eval=s2, rho_pred=rho, f_epi=0.15, rho_floor=0.05))
     assert 0.15 <= p.epi <= 1.0 and 0.05 <= p.prag <= 1.0
 
 
@@ -192,9 +176,7 @@ def test_prop_knapsack_batch_respects_budget_and_residency(n: int, budget: float
 
 
 @given(st.integers(2, 12), st.floats(1.0, 3.0))
-def test_prop_decorative_check_fails_on_constant_scores_passes_on_planted_spread(
-    n: int, spread: float
-) -> None:
+def test_prop_decorative_check_fails_on_constant_scores_passes_on_planted_spread(n: int, spread: float) -> None:
     ids = [f"c-{i:04d}" for i in range(n)]
     const = dict.fromkeys(ids, 1.234)
     Q_uniform = {i: 1.0 / n for i in ids}
@@ -237,9 +219,7 @@ def test_prop_prior_for_uses_most_specific_level_with_data(mu: float, tau2: floa
     assert prior_for(EMPTY, KEYS, tau0_2) == CandidateBelief(mu=0.0, sigma2=tau0_2, n_obs=0)
     with_surface = EMPTY.model_copy(update={"surfaces": {"W3.adapter": NormalBelief(mu=mu, tau2=tau2, n=2)}})
     assert prior_for(with_surface, KEYS, tau0_2).mu == mu
-    with_bucket = with_surface.model_copy(
-        update={"buckets": {KEYS.bucket_key: NormalBelief(mu=mu + 1, tau2=tau2, n=1)}}
-    )
+    with_bucket = with_surface.model_copy(update={"buckets": {KEYS.bucket_key: NormalBelief(mu=mu + 1, tau2=tau2, n=1)}})
     assert prior_for(with_bucket, KEYS, tau0_2).mu == mu + 1
 
 
@@ -252,9 +232,7 @@ def test_prop_knapsack_batch_keeps_one_exclusive_job_and_rejects_bad_budget() ->
     rng = np.random.default_rng(1)
     big = {f"c-{i:04d}": _cand(f"c-{i:04d}", cost=5.0) for i in range(3)}
     Q = {k: 1 / 3 for k in big}
-    b = knapsack_batch(
-        Q, big, dict.fromkeys(big, 0.0), 10.0, Shares(planted=0.0, sensors=0.0, f_epi=0.15), rng
-    )
+    b = knapsack_batch(Q, big, dict.fromkeys(big, 0.0), 10.0, Shares(planted=0.0, sensors=0.0, f_epi=0.15), rng)
     assert len(b.exclusive) == 1 and b.spent_gpu_h == 5.0
     try:
         knapsack_batch(Q, big, {}, 0.0, Shares(planted=0.0, sensors=0.0, f_epi=0.15), rng)
@@ -278,6 +256,4 @@ def test_prop_rank_hypothesis_candidates_rejects_bad_input() -> None:
     with pytest.raises(ValueError):
         rank_hypothesis_candidates({"beliefs": {"h": 1.0}, "candidates": []})
     with pytest.raises(ValueError):
-        rank_hypothesis_candidates(
-            {"beliefs": {"h": 0.5}, "candidates": [{"name": "a", "diagnosticity": {"zz": [0.5, 0.5]}}]}
-        )
+        rank_hypothesis_candidates({"beliefs": {"h": 0.5}, "candidates": [{"name": "a", "diagnosticity": {"zz": [0.5, 0.5]}}]})

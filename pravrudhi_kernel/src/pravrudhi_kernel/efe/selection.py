@@ -14,11 +14,7 @@ from pravrudhi_kernel.schema import Candidate, Citta
 
 def habit_prior(citta: Citta, keys: BeliefKeys, tau0_2: float) -> float:
     """E(a) ∝ posterior probability that the bucket's mean effect is positive; never zero, never one."""
-    lvl = (
-        citta.buckets.get(keys.bucket_key)
-        or citta.strategies.get(keys.strategy_key or "")
-        or citta.surfaces.get(keys.surface)
-    )
+    lvl = citta.buckets.get(keys.bucket_key) or citta.strategies.get(keys.strategy_key or "") or citta.surfaces.get(keys.surface)
     mu, tau2 = (lvl.mu, lvl.tau2) if lvl is not None else (0.0, tau0_2)
     p = 0.5 * (1.0 + math.erf(mu / math.sqrt(2.0 * tau2)))
     return min(max(p, 1e-6), 1.0 - 1e-6)

@@ -49,9 +49,7 @@ def test_append_chains_and_verifies(ledger: tuple[LedgerWriter, Path]) -> None:
         bucket={"task_family": "a", "target_model": "b", "corpus": "c"},
         provenance="agama",
     )
-    ev2 = w.append(
-        "spend", "executor", {"gpu_h": 0.1, "run_id": "r1"}, epoch=0, night=1, cycle=1, candidate_id="c-0001"
-    )
+    ev2 = w.append("spend", "executor", {"gpu_h": 0.1, "run_id": "r1"}, epoch=0, night=1, cycle=1, candidate_id="c-0001")
     assert ev.seq == 1 and ev2.seq == 2 and ev2.prev_hash == ev.this_hash
     r = verify(p)
     assert r.ok and r.n == 3 and r.head_hash == ev2.this_hash
@@ -63,9 +61,7 @@ def test_refused_event_leaves_file_untouched(ledger: tuple[LedgerWriter, Path]) 
     with pytest.raises(ValueError):
         w.append("observe", "kernel", {}, epoch=0, night=1)  # observe requires provenance
     with pytest.raises(ValueError):
-        w.append(
-            "observe", "executor", {}, epoch=0, night=1, provenance="pratyaksha"
-        )  # only the kernel writes observe
+        w.append("observe", "executor", {}, epoch=0, night=1, provenance="pratyaksha")  # only the kernel writes observe
     assert p.read_bytes() == before
 
 

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import typer
@@ -17,6 +18,11 @@ VERSION_OPT = typer.Option(False, "--version")
 EVIDENCE_OPT = typer.Option(..., "--evidence")
 BY_OPT = typer.Option(..., "--by")
 NOTE_OPT = typer.Option("", "--note")
+NIGHT_OPT = typer.Option(1, "--night")
+BUDGET_OPT = typer.Option(None, "--budget", help="GPU-hours; default from research/prereg/lora_night.yaml")
+K_OPT = typer.Option(None, "--k")
+TRAIN_PARQUET_OPT = typer.Option(Path(".pravrudhi/data/gsm8k-train.parquet"), "--train-parquet")
+GGUF_OPT = typer.Option(None, "--gguf")
 LEDGER_OPT = typer.Option(Path("research/ledger.jsonl"), "--ledger")
 STATE_OPT = typer.Option(Path("research/state.json"), "--state")
 VERIFY_OPT = typer.Option(
@@ -176,17 +182,20 @@ def study_noise_floor(
 def evidence_cmd(
     name: str = typer.Argument("noise_floor"),
     root: Path = ROOT_OPT,
-    check: bool = typer.Option(
-        False, "--check", help="Compare with the committed document; exit 1 on any difference."
-    ),
+    check: bool = typer.Option(False, "--check", help="Compare with the committed document; exit 1 on any difference."),
 ) -> None:
     """Render docs/evidence/<name>.md from the ledger alone (make reproduce)."""
-    from pravrudhi.application.evidence import render_noise_floor
+    from pravrudhi.application.evidence import render_first_night, render_noise_floor
 
-    text = render_noise_floor(
-        root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json"
-    )
-    dest = root / "docs" / "evidence" / f"L3_{name}.md"
+    if name == "noise_floor":
+        text = render_noise_floor(root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json")
+        dest = root / "docs" / "evidence" / "L3_noise_floor.md"
+    elif name.startswith("night"):
+        text = render_first_night(root / "research" / "ledger.jsonl", int(name.removeprefix("night") or "1"))
+        dest = root / "docs" / "evidence" / f"L4_{name}.md"
+    else:
+        typer.echo(f"unknown evidence document {name}", err=True)
+        raise typer.Exit(code=2)
     if check:
         if not dest.exists() or dest.read_text() != text:
             typer.echo(f"DIFFERS: {dest}", err=True)
@@ -196,6 +205,54 @@ def evidence_cmd(
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(text)
     typer.echo(f"wrote {dest}")
+
+
+@app.command("night")
+def night_cmd(
+    night: int = NIGHT_OPT,
+    budget: float | None = BUDGET_OPT,
+    k: int | None = K_OPT,
+    root: Path = ROOT_OPT,
+    train_parquet: Path = TRAIN_PARQUET_OPT,
+    gguf: Path | None = GGUF_OPT,
+) -> None:
+    """Run one budgeted night: propose -> deliberate -> execute -> dispose. Every observation is kernel-scored."""
+    from pravrudhi.application.night import run_night
+    from pravrudhi.application.spine import resolve_model_snapshot
+
+    if gguf is None:
+        import yaml
+
+        cfg = yaml.safe_load((root / "research" / "prereg" / "lora_night.yaml").read_text())
+        gguf = resolve_model_snapshot("Qwen/Qwen3-30B-A3B-GGUF") / str(cfg["proposer"]["gguf"])
+    out = run_night(root, night=night, budget_gpu_h=budget, k=k, train_parquet=train_parquet, gguf=gguf, log=typer.echo)
+    typer.echo(json.dumps(out, indent=2))
+
+
+@app.command("inbox")
+def inbox_cmd(root: Path = ROOT_OPT) -> None:
+    """List promotion packs awaiting the operator (badge from replay; nothing here is hand-set)."""
+    from pravrudhi.application.night import inbox_listing
+
+    rows = inbox_listing(root)
+    if not rows:
+        typer.echo("inbox empty")
+    for r in rows:
+        typer.echo(f"{r['night']} {r['candidate']} badge={r['badge']} signed={r['signed']} {r['pack']}")
+
+
+@study_app.command("paired-confirm")
+def study_paired_confirm(
+    night: int = typer.Option(1, "--night"),
+    candidate: str | None = typer.Option(None, "--candidate"),
+    seed: int = typer.Option(7, "--seed"),
+    k: int = typer.Option(100, "--k"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """Incumbent adapter vs baseline on a fresh rotation, per-item paired; Hedges g with BCa CI and a permutation p."""
+    from pravrudhi.application.confirm_eval import paired_confirm
+
+    paired_confirm(root, night=night, candidate_id=candidate, seed=seed, k=k, log=typer.echo)
 
 
 def main() -> None:

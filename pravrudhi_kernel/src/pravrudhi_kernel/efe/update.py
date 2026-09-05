@@ -20,9 +20,7 @@ def _Phi(z: float) -> float:
     return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
 
 
-def pseudo_observation_variance(
-    sigma2_eval: float, conf: float, rho_pred: float, rho_floor: float = 0.05
-) -> float:
+def pseudo_observation_variance(sigma2_eval: float, conf: float, rho_pred: float, rho_floor: float = 0.05) -> float:
     """σ²_LLM = max(σ²_eval, σ²_eval · (1−c)/c · 1/ρ_pred).
 
     c and ρ are clipped so a zero-confidence prediction is inert, not NaN. The floor at one kernel
@@ -99,9 +97,7 @@ def posterior_update_prediction(
     """An LLM prediction is āgama: a pseudo-observation whose variance grows with low confidence and low
     ρ_pred."""
     rho = citta.rho_pred.get(keys.surface, 0.0)
-    return posterior_update(
-        citta, keys, delta_hat, pseudo_observation_variance(sigma2_eval, conf, rho), tau0_2
-    )
+    return posterior_update(citta, keys, delta_hat, pseudo_observation_variance(sigma2_eval, conf, rho), tau0_2)
 
 
 def beta_binomial_update(alpha: float, beta: float, successes: int, failures: int) -> tuple[float, float]:
@@ -130,12 +126,7 @@ def _digamma(x: float) -> float:
         r -= 1.0 / x
         x += 1.0
     f = 1.0 / (x * x)
-    return (
-        r
-        + math.log(x)
-        - 0.5 / x
-        - f * (1.0 / 12 - f * (1.0 / 120 - f * (1.0 / 252 - f * (1.0 / 240 - f / 132))))
-    )
+    return r + math.log(x) - 0.5 / x - f * (1.0 / 12 - f * (1.0 / 120 - f * (1.0 / 252 - f * (1.0 / 240 - f / 132))))
 
 
 def eig(citta: Citta, keys: BeliefKeys, sigma2_eval: float, n_seeds: int, tau0_2: float) -> float:
@@ -219,11 +210,7 @@ def efe(
         candidate_id=cand.id,
     )
     e = eig(citta, k, sigma2_eval, len(plan.seeds), tau0_2)
-    pr = expected_log_pref(
-        citta, cand, prefs, k, tau0_2, p_canary_fail=p_canary_fail, audit_severity=audit_severity
-    )
+    pr = expected_log_pref(citta, cand, prefs, k, tau0_2, p_canary_fail=p_canary_fail, audit_severity=audit_severity)
     cost_term = kappa * cand.cost_est_gpu_h / budget
     g = math.inf if pr == -math.inf else -gamma.epi * e - gamma.prag * pr + cost_term
-    return EFETerms(
-        candidate_id=cand.id, G=g, EIG=e, pragmatic=pr, cost_term=cost_term, gamma=gamma, kappa=kappa
-    )
+    return EFETerms(candidate_id=cand.id, G=g, EIG=e, pragmatic=pr, cost_term=cost_term, gamma=gamma, kappa=kappa)

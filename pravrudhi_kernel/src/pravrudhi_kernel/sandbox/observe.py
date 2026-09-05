@@ -56,9 +56,7 @@ class KernelHashes(KernelModel):
     model: str
 
 
-def kernel_hashes(
-    items_file: Path, manifest_path: Path, scorer_source: Path, harness_dir: Path, model_dir: Path
-) -> KernelHashes:
+def kernel_hashes(items_file: Path, manifest_path: Path, scorer_source: Path, harness_dir: Path, model_dir: Path) -> KernelHashes:
     return KernelHashes(
         items=sha256_file(items_file),
         manifest=sha256_file(manifest_path),

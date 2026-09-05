@@ -50,13 +50,9 @@ def test_three_candidate_pool_matches_analytic_softmax() -> None:
         },
         rho_pred={},
     )
-    prefs = Preferences(
-        beta=40.0, lambda_=80.0, eta=5.0
-    )  # research/prereg/controller.yaml preferences (provisional)
+    prefs = Preferences(beta=40.0, lambda_=80.0, eta=5.0)  # research/prereg/controller.yaml preferences (provisional)
     gamma = Precision(epi=0.5, prag=1.0)
-    plan = EvidencePlan(
-        seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0
-    )
+    plan = EvidencePlan(seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0)
     cands = {
         c.id: c
         for c in (
@@ -67,9 +63,7 @@ def test_three_candidate_pool_matches_analytic_softmax() -> None:
     }
     sigma2_eval, tau0_2, kappa, budget = 0.0004, 0.01, 1.0, 8.0
 
-    terms = {
-        cid: efe(citta, c, plan, prefs, gamma, kappa, budget, sigma2_eval, tau0_2) for cid, c in cands.items()
-    }
+    terms = {cid: efe(citta, c, plan, prefs, gamma, kappa, budget, sigma2_eval, tau0_2) for cid, c in cands.items()}
     Q = selection_probabilities({k: t.G for k, t in terms.items()}, {k: 1.0 for k in terms})
 
     # analytic recomputation, independent of the module's internals
@@ -86,9 +80,7 @@ def test_three_candidate_pool_matches_analytic_softmax() -> None:
 
     G_hand = {}
     for cid, b in citta.candidates.items():
-        G_hand[cid] = (
-            -gamma.epi * eig_hand(b.sigma2) - gamma.prag * pref_hand(b.mu, b.sigma2) + kappa * 0.2 / budget
-        )
+        G_hand[cid] = -gamma.epi * eig_hand(b.sigma2) - gamma.prag * pref_hand(b.mu, b.sigma2) + kappa * 0.2 / budget
     z = np.array([-G_hand[c] for c in cands])
     q_hand = np.exp(z - z.max())
     q_hand /= q_hand.sum()
@@ -97,9 +89,7 @@ def test_three_candidate_pool_matches_analytic_softmax() -> None:
         assert abs(Q[cid] - qh) < 1e-6
     # the scores condition on the action: the decorative check passes and the known-bad candidate is last
     assert decorative_check({k: t.G for k, t in terms.items()}, Q, 0.05, 0.05).verdict == "pass"
-    assert Q["c-0001"] == max(
-        Q.values()
-    )  # the known-good candidate is preferred under the prereg preferences
+    assert Q["c-0001"] == max(Q.values())  # the known-good candidate is preferred under the prereg preferences
     batch = knapsack_batch(
         Q,
         cands,
@@ -114,9 +104,7 @@ def test_three_candidate_pool_matches_analytic_softmax() -> None:
 def test_t0_touching_candidate_has_zero_probability() -> None:
     citta = Citta(version=0, surfaces={}, strategies={}, buckets={}, candidates={}, rho_pred={})
     prefs = Preferences(beta=1.0, lambda_=2.0, eta=1.0)
-    plan = EvidencePlan(
-        seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0
-    )
+    plan = EvidencePlan(seeds=[1], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0)
     good, bad = _cand("c-0001", 0.1, "f"), _cand("c-0002", 0.1, "f", surface="T0.kernel")
     tg = efe(citta, good, plan, prefs, Precision(epi=0.5, prag=1.0), 1.0, 8.0, 0.0004, 0.01)
     tb = efe(citta, bad, plan, prefs, Precision(epi=0.5, prag=1.0), 1.0, 8.0, 0.0004, 0.01)

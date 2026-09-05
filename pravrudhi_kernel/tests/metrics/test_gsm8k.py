@@ -44,7 +44,5 @@ def test_score_item_and_missing_completions_are_misses() -> None:
     assert score_item("Final answer: 18", "1,8") == 1  # gold normalises commas too
     assert score_item("Final answer: 18", "19") == 0
     assert score_item("Final answer: 18.0", "18") == 1
-    scores = score_completions(
-        {"a": "Final answer: 1", "b": "Final answer: 5"}, {"a": "1", "b": "2", "c": "3"}
-    )
+    scores = score_completions({"a": "Final answer: 1", "b": "Final answer: 5"}, {"a": "1", "b": "2", "c": "3"})
     assert scores == {"a": 1, "b": 0, "c": 0}

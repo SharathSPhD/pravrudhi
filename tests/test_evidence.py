@@ -40,9 +40,5 @@ def test_render_noise_floor_is_deterministic_and_reads_only_the_ledger(tmp_path:
         )
     a = render_noise_floor(ledger, None)
     b = render_noise_floor(ledger, None)
-    assert (
-        a == b
-        and "| 2 | rot1 | 0 | 0.5000 | 4 |" in a
-        and "Runs: 2; items scored: 8; pooled pass rate 0.6250" in a
-    )
+    assert a == b and "| 2 | rot1 | 0 | 0.5000 | 4 |" in a and "Runs: 2; items scored: 8; pooled pass rate 0.6250" in a
     assert "Wilson 95%" in a and "k=4" in a

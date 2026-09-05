@@ -24,6 +24,4 @@ def test_replay_writes_then_verifies_then_detects_tamper(tmp_path: Path) -> None
     lines[1] = json.dumps(row)
     ledger.write_text("\n".join(lines) + "\n")
     r = runner.invoke(app, ["replay", "--ledger", str(ledger), "--state", str(state), "--verify"])
-    assert r.exit_code == 1 and "BROKEN at seq 1" in (
-        r.output + str(r.stderr if hasattr(r, "stderr") else "")
-    )
+    assert r.exit_code == 1 and "BROKEN at seq 1" in (r.output + str(r.stderr if hasattr(r, "stderr") else ""))

@@ -32,9 +32,7 @@ def preflight(
     rot = draw_rotation(bench_pool, 0, "c-0000", read_secret(state), k=n_items, exposure_cap=10**6)
     job_dir = Path(state.jobs_dir) / f"preflight-{int(time.time())}"
     write_job_inputs(job_dir, bench_pool, rot, template)
-    res, meta = run_eval_job(
-        state, job_dir, snap, None, seed=0, temperature=0.0, max_new_tokens=256, batch_size=batch_size
-    )
+    res, meta = run_eval_job(state, job_dir, snap, None, seed=0, temperature=0.0, max_new_tokens=256, batch_size=batch_size)
     if res.exit_code != 0 or meta is None:
         raise RuntimeError(f"preflight job failed (exit {res.exit_code}): {res.stderr_tail[-1500:]}")
     smi = subprocess.run(
@@ -68,8 +66,7 @@ def preflight(
         "isolation": state.isolation,
         "job_dir": str(job_dir),
         "note": (
-            "batched decode throughput at the stated batch size; single-stream tok/s is lower. "
-            "Every field measured on this card."
+            "batched decode throughput at the stated batch size; single-stream tok/s is lower. Every field measured on this card."
         ),
     }
     dest = root / "research" / "prereg" / "measured_stack.json"

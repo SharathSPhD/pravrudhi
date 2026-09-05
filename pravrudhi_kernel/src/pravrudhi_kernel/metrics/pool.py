@@ -37,9 +37,7 @@ def _sha(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 
-def seal_pool(
-    pool_dir: Path, bench: str, rows: Iterable[Mapping[str, Any]], source: Mapping[str, Any]
-) -> dict[str, Any]:
+def seal_pool(pool_dir: Path, bench: str, rows: Iterable[Mapping[str, Any]], source: Mapping[str, Any]) -> dict[str, Any]:
     """Write the pool once. Returns the manifest. Refuses to overwrite an existing manifest."""
     pool_dir = Path(pool_dir)
     manifest_path = pool_dir / "manifest.json"
@@ -90,17 +88,13 @@ def stable_sample(eligible: list[str], k: int, seed: bytes) -> list[str]:
     return sorted(keyed[:k])
 
 
-def draw_rotation(
-    pool_dir: Path, night: int, candidate_id: str, secret: bytes, *, k: int, exposure_cap: int
-) -> Rotation:
+def draw_rotation(pool_dir: Path, night: int, candidate_id: str, secret: bytes, *, k: int, exposure_cap: int) -> Rotation:
     m = load_manifest(pool_dir)
     exposure: dict[str, list[str]] = json.loads((Path(pool_dir) / "exposure.json").read_text())
     seed = hmac.new(secret, f"{m['bench']}|{night}|{candidate_id}".encode(), hashlib.sha256).digest()
     eligible = [i for i in m["item_hashes"] if len(exposure.get(i, [])) < exposure_cap]
     if len(eligible) < k:
-        raise PoolExhausted(
-            f"{m['bench']}: {len(eligible)} eligible < draw {k}; refresh the pool at an epoch boundary"
-        )
+        raise PoolExhausted(f"{m['bench']}: {len(eligible)} eligible < draw {k}; refresh the pool at an epoch boundary")
     items = stable_sample(eligible, k, seed)
     rid = _sha("|".join(items).encode())[:16]
     return Rotation(

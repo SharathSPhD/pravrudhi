@@ -13,8 +13,5 @@ def test_kernel_runs_on_python_313() -> None:
 
 
 def test_kernel_import_pulls_in_neither_torch_nor_engine() -> None:
-    code = (
-        "import sys, pravrudhi_kernel.schema; "
-        "assert 'torch' not in sys.modules; assert 'pravrudhi' not in sys.modules"
-    )
+    code = "import sys, pravrudhi_kernel.schema; assert 'torch' not in sys.modules; assert 'pravrudhi' not in sys.modules"
     subprocess.run([sys.executable, "-c", code], check=True)

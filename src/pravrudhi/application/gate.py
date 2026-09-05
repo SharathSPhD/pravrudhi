@@ -30,9 +30,7 @@ def _dump(report: GateReport, path: Path) -> Path:
     return path
 
 
-def emit_gate(
-    card_id: str, *, contracts_dir: Path, gates_dir: Path, evidence_file: Path, kernel_release: str
-) -> Path:
+def emit_gate(card_id: str, *, contracts_dir: Path, gates_dir: Path, evidence_file: Path, kernel_release: str) -> Path:
     find_card(card_id, contracts_dir)
     raw: dict[str, Any] = yaml.safe_load(evidence_file.read_text()) or {}
     kind = "phase" if card_id.startswith("P") else "hypothesis" if card_id.startswith("H") else "loop"
@@ -72,9 +70,7 @@ def sign_gate(path: Path, *, by: str, note: str) -> Path:
     if by.strip().lower() in AGENT_IDENTITIES:
         raise PermissionError("sign-off is a human act; refused for agent identity")
     report = GateReport.model_validate_json(path.read_text())
-    signoff_layer = report.closure.signoff.model_copy(
-        update={"verdict": "pass", "evidence": [f"signed_by={by}"]}
-    )
+    signoff_layer = report.closure.signoff.model_copy(update={"verdict": "pass", "evidence": [f"signed_by={by}"]})
     signed = report.model_copy(
         update={
             "signoff": Signoff(by=by, at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z"), note=note),

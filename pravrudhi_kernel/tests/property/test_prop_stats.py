@@ -122,9 +122,7 @@ def test_prop_label_shuffle_null_p_in_unit_interval(n: int, seed: int) -> None:
     rng = np.random.default_rng(seed)
     X = rng.normal(size=(n, 2))
     y = (X[:, 0] > 0).astype(int)
-    r = label_shuffle_null(
-        lambda A, b: float(np.mean((A[:, 0] > 0).astype(int) == b)), X, y, n_shuffle=30, random_state=seed
-    )
+    r = label_shuffle_null(lambda A, b: float(np.mean((A[:, 0] > 0).astype(int) == b)), X, y, n_shuffle=30, random_state=seed)
     assert 0.0 < r["p_value"] <= 1.0 and r["true_score"] == 1.0
 
 

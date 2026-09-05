@@ -41,17 +41,11 @@ def verify(path: Path) -> VerifyResult:
             try:
                 ev = LedgerEvent.model_validate_json(raw)
             except ValueError as e:
-                return VerifyResult(
-                    ok=False, n=n, first_bad_seq=n, reason=f"schema: {e}", head_hash=None, t_last=None
-                )
+                return VerifyResult(ok=False, n=n, first_bad_seq=n, reason=f"schema: {e}", head_hash=None, t_last=None)
             if ev.seq != n:
-                return VerifyResult(
-                    ok=False, n=n, first_bad_seq=n, reason="seq not contiguous", head_hash=None, t_last=None
-                )
+                return VerifyResult(ok=False, n=n, first_bad_seq=n, reason="seq not contiguous", head_hash=None, t_last=None)
             if n == 0:
-                expected_prev = hashlib.sha256(
-                    ("pravrudhi-genesis|" + ev.kernel_release).encode()
-                ).hexdigest()
+                expected_prev = hashlib.sha256(("pravrudhi-genesis|" + ev.kernel_release).encode()).hexdigest()
                 if ev.prev_hash != expected_prev:
                     return VerifyResult(
                         ok=False,
@@ -62,15 +56,11 @@ def verify(path: Path) -> VerifyResult:
                         t_last=None,
                     )
             elif ev.prev_hash != prev_hash:
-                return VerifyResult(
-                    ok=False, n=n, first_bad_seq=n, reason="prev_hash mismatch", head_hash=None, t_last=None
-                )
+                return VerifyResult(ok=False, n=n, first_bad_seq=n, reason="prev_hash mismatch", head_hash=None, t_last=None)
             body = json.loads(ev.model_dump_json(exclude={"this_hash"}))
             expect = hashlib.sha256((ev.prev_hash + "\n" + canonicalize(body)).encode()).hexdigest()
             if ev.this_hash != expect:
-                return VerifyResult(
-                    ok=False, n=n, first_bad_seq=n, reason="this_hash mismatch", head_hash=None, t_last=None
-                )
+                return VerifyResult(ok=False, n=n, first_bad_seq=n, reason="this_hash mismatch", head_hash=None, t_last=None)
             if ev.t < prev_t:
                 return VerifyResult(
                     ok=False,
@@ -82,7 +72,5 @@ def verify(path: Path) -> VerifyResult:
                 )
             prev_hash, prev_t, n = ev.this_hash, ev.t, n + 1
     if n == 0:
-        return VerifyResult(
-            ok=False, n=0, first_bad_seq=None, reason="empty ledger", head_hash=None, t_last=None
-        )
+        return VerifyResult(ok=False, n=0, first_bad_seq=None, reason="empty ledger", head_hash=None, t_last=None)
     return VerifyResult(ok=True, n=n, first_bad_seq=None, reason=None, head_hash=prev_hash, t_last=prev_t)

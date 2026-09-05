@@ -23,10 +23,7 @@ def test_kernel_state_dir_is_private(tmp_path: Path) -> None:
     assert st.isolation == "process"
     assert (tmp_path / ".pravrudhi" / "kernel" / "secret").stat().st_mode & 0o777 == 0o600
     st2 = ensure_kernel_state(tmp_path, docker_available=True)
-    assert (
-        st2.isolation == "container"
-        and Path(st2.secret_path).read_bytes() == Path(st.secret_path).read_bytes()
-    )
+    assert st2.isolation == "container" and Path(st2.secret_path).read_bytes() == Path(st.secret_path).read_bytes()
 
 
 @needs_docker
@@ -56,9 +53,7 @@ def test_run_job_enforces_read_only_mount_and_no_network(tmp_path: Path) -> None
 
 @needs_docker
 def test_run_job_timeout(tmp_path: Path) -> None:
-    r = run_job(
-        JobSpec(image="alpine:latest", command=["sleep", "5"], output_dir=str(tmp_path / "o"), timeout_s=1)
-    )
+    r = run_job(JobSpec(image="alpine:latest", command=["sleep", "5"], output_dir=str(tmp_path / "o"), timeout_s=1))
     assert r.timed_out and r.exit_code == 124
 
 
@@ -122,12 +117,7 @@ def _admit(w: LedgerWriter, exp, meta) -> tuple:
 def test_admit_observation_writes_spend_and_observe(tmp_path: Path) -> None:
     w, d, root = _setup(tmp_path)
     spend, obs = _admit(w, d["expected"], d["meta"])
-    assert (
-        spend.kind == "spend"
-        and obs.kind == "observe"
-        and obs.actor == "kernel"
-        and obs.provenance == "pratyaksha"
-    )
+    assert spend.kind == "spend" and obs.kind == "observe" and obs.actor == "kernel" and obs.provenance == "pratyaksha"
     assert obs.payload["observed"]["value"] == 0.5 and obs.payload["hashes"]["model"] == d["expected"].model
     assert verify(root / "ledger.jsonl").ok
 

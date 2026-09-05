@@ -27,9 +27,7 @@ def _cases(rng: np.random.Generator) -> list[dict]:
             cases.append({"cls": f"normal_n{n}", "x": x.tolist(), "y": y.tolist()})
     cases.append({"cls": "all_equal", "x": [1.0] * 6, "y": [1.0] * 6})
     cases.append({"cls": "zero_var_x", "x": [2.0] * 5, "y": rng.normal(0, 1, 5).tolist()})
-    cases.append(
-        {"cls": "huge", "x": (rng.normal(0, 1, 8) * 1e9).tolist(), "y": (rng.normal(0, 1, 8) * 1e9).tolist()}
-    )
+    cases.append({"cls": "huge", "x": (rng.normal(0, 1, 8) * 1e9).tolist(), "y": (rng.normal(0, 1, 8) * 1e9).tolist()})
     cases.append(
         {
             "cls": "tiny",
@@ -38,9 +36,7 @@ def _cases(rng: np.random.Generator) -> list[dict]:
         }
     )
     cases.append({"cls": "n1", "x": [0.5], "y": [0.2]})
-    cases.append(
-        {"cls": "negative", "x": rng.normal(-3, 0.1, 7).tolist(), "y": rng.normal(3, 0.1, 7).tolist()}
-    )
+    cases.append({"cls": "negative", "x": rng.normal(-3, 0.1, 7).tolist(), "y": rng.normal(3, 0.1, 7).tolist()})
     cases.append({"cls": "nan", "x": [0.1, float("nan"), 0.3], "y": [0.2, 0.2, 0.2]})
     return cases
 
@@ -93,9 +89,7 @@ def main() -> None:
                 }
             )
         fx["hedges_g"].append({**c, "out": core.hedges_g(x, y)})
-        fx["boot_ci_g"].append(
-            {**c, "n_boot": 300, "seed": 11, "out": list(core.boot_ci_g(x, y, 300, 0.05, 11))}
-        )
+        fx["boot_ci_g"].append({**c, "n_boot": 300, "seed": 11, "out": list(core.boot_ci_g(x, y, 300, 0.05, 11))})
         fx["screen"].append(
             {
                 **c,

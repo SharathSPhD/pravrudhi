@@ -60,9 +60,7 @@ def main() -> int:
     t_load = time.monotonic()
     tok = AutoTokenizer.from_pretrained(model_dir, padding_side="left")
     dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}[a.dtype]
-    model = AutoModelForCausalLM.from_pretrained(
-        model_dir, dtype=dtype, device_map="cuda", attn_implementation="sdpa"
-    )
+    model = AutoModelForCausalLM.from_pretrained(model_dir, dtype=dtype, device_map="cuda", attn_implementation="sdpa")
     adapter_hash = None
     if a.adapter_dir:
         from peft import PeftModel
@@ -76,9 +74,7 @@ def main() -> int:
     prompts = []
     for it in items:
         msgs = [{"role": "user", "content": template.replace("{question}", it["question"])}]
-        prompts.append(
-            tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
-        )
+        prompts.append(tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False))
     out_rows = []
     n_tok = 0
     t_gen = time.monotonic()
@@ -135,9 +131,7 @@ def main() -> int:
         "transformers": __import__("transformers").__version__,
     }
     (out_dir / "job_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")
-    print(
-        json.dumps({k: meta[k] for k in ("n_items", "tokens_generated", "tok_s", "peak_gib_torch", "wall_s")})
-    )
+    print(json.dumps({k: meta[k] for k in ("n_items", "tokens_generated", "tok_s", "peak_gib_torch", "wall_s")}))
     return 0
 
 

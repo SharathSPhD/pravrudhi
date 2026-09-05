@@ -30,11 +30,7 @@ def test_efe_modules_are_pure() -> None:
                 for a in node.names:
                     if a.name.split(".")[0] in BANNED_MODULES:
                         problems.append(f"{py.name}:{node.lineno} import {a.name}")
-            if (
-                isinstance(node, ast.ImportFrom)
-                and node.module
-                and node.module.split(".")[0] in BANNED_MODULES
-            ):
+            if isinstance(node, ast.ImportFrom) and node.module and node.module.split(".")[0] in BANNED_MODULES:
                 problems.append(f"{py.name}:{node.lineno} from {node.module}")
             if isinstance(node, ast.Call):
                 f = node.func
@@ -43,10 +39,7 @@ def test_efe_modules_are_pure() -> None:
                 if (
                     isinstance(f, ast.Attribute)
                     and isinstance(f.value, ast.Attribute)
-                    and (
-                        isinstance(f.value.value, ast.Name)
-                        and (f.value.value.id, f.value.attr) in BANNED_ATTRS
-                    )
+                    and (isinstance(f.value.value, ast.Name) and (f.value.value.id, f.value.attr) in BANNED_ATTRS)
                 ):
                     problems.append(f"{py.name}:{node.lineno} np.random.* (global RNG)")
     assert not problems, problems

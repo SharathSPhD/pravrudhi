@@ -5,9 +5,7 @@ from pathlib import Path
 HOOK = Path(__file__).resolve().parents[2] / ".githooks" / "commit-msg"
 
 
-def _run(
-    msg: str, tmp_path: Path, *, name: str = "SharathSPhD", email: str = "qbz506@york.ac.uk"
-) -> tuple[int, str]:
+def _run(msg: str, tmp_path: Path, *, name: str = "SharathSPhD", email: str = "qbz506@york.ac.uk") -> tuple[int, str]:
     f = tmp_path / "MSG"
     f.write_text(msg)
     env = os.environ | {"GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email}
@@ -16,9 +14,7 @@ def _run(
 
 
 def test_strips_co_authored_by_and_claude_session(tmp_path: Path) -> None:
-    rc, out = _run(
-        "feat: x\n\nbody\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: abc\n", tmp_path
-    )
+    rc, out = _run("feat: x\n\nbody\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nClaude-Session: abc\n", tmp_path)
     assert rc == 0
     assert "Co-Authored-By" not in out and "Claude-Session" not in out
     assert out.strip() == "feat: x\n\nbody".strip()

@@ -39,10 +39,7 @@ class JobResult(KernelModel):
 
 
 def docker_available() -> bool:
-    return (
-        shutil.which("docker") is not None
-        and subprocess.run(["docker", "info"], capture_output=True).returncode == 0
-    )
+    return shutil.which("docker") is not None and subprocess.run(["docker", "info"], capture_output=True).returncode == 0
 
 
 def _smi_poll(stop: threading.Event, peak: list[float]) -> None:

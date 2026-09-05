@@ -9,9 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 
-def permutation_p(
-    x: np.ndarray, y: np.ndarray, n_resamples: int = 10_000, seed: int = 42, paired: bool = True
-) -> float:
+def permutation_p(x: np.ndarray, y: np.ndarray, n_resamples: int = 10_000, seed: int = 42, paired: bool = True) -> float:
     """Two-sided paired (sign-flip) or unpaired (shuffle) permutation p-value for mean difference."""
     rng = np.random.default_rng(seed)
     x, y = np.asarray(x, float), np.asarray(y, float)
@@ -42,9 +40,7 @@ def hedges_g(x: np.ndarray, y: np.ndarray) -> float:
     return float(J * d)
 
 
-def boot_ci_g(
-    x: np.ndarray, y: np.ndarray, n_boot: int = 2000, alpha: float = 0.05, seed: int = 42
-) -> tuple[float, float]:
+def boot_ci_g(x: np.ndarray, y: np.ndarray, n_boot: int = 2000, alpha: float = 0.05, seed: int = 42) -> tuple[float, float]:
     """Percentile bootstrap CI for Hedges' g (numpy-only; BCa upgrade tracked in journal)."""
     rng = np.random.default_rng(seed)
     x, y = np.asarray(x, float), np.asarray(y, float)
@@ -71,9 +67,7 @@ def screen(x: np.ndarray, y: np.ndarray, cfg: dict[str, float] | None = None) ->
     cfg = cfg or {}
     return {
         "tier": "screen",
-        "p_perm": permutation_p(
-            x, y, int(cfg.get("permutation_resamples", 10_000)), int(cfg.get("seed", 42))
-        ),
+        "p_perm": permutation_p(x, y, int(cfg.get("permutation_resamples", 10_000)), int(cfg.get("seed", 42))),
         "hedges_g": hedges_g(x, y),
         "g_ci95": boot_ci_g(x, y, seed=int(cfg.get("seed", 42))),
         "n": (len(x), len(y)),

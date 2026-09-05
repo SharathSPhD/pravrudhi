@@ -21,9 +21,7 @@ def replay_command(ledger: Path, state: Path, *, check: bool = False) -> tuple[i
     st = replay(ledger)
     if check and state.exists():
         if state.read_text() != state_bytes(st):
-            return 1, [
-                f"state.json DIFFERS from replay (ledger head {st.ledger_head}, state_hash {st.state_hash})"
-            ]
+            return 1, [f"state.json DIFFERS from replay (ledger head {st.ledger_head}, state_hash {st.state_hash})"]
         return 0, [f"chain ok ({st.seq + 1} events); state.json matches replay; state_hash {st.state_hash}"]
     write_state(st, state)
     return 0, [f"wrote {state} ({st.seq + 1} events, head {st.ledger_head}, state_hash {st.state_hash})"]

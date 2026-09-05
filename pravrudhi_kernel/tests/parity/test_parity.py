@@ -41,13 +41,9 @@ def test_hedges_g_parity(row: dict[str, Any]) -> None:
     assert _close(hedges_g(np.asarray(row["x"]), np.asarray(row["y"])), row["out"])
 
 
-@pytest.mark.parametrize(
-    "row", _load("permutation_p"), ids=lambda r: f"{r['cls']}-{'p' if r['paired'] else 'u'}"
-)
+@pytest.mark.parametrize("row", _load("permutation_p"), ids=lambda r: f"{r['cls']}-{'p' if r['paired'] else 'u'}")
 def test_permutation_p_parity(row: dict[str, Any]) -> None:
-    got = permutation_p(
-        np.asarray(row["x"]), np.asarray(row["y"]), row["n_resamples"], row["seed"], row["paired"]
-    )
+    got = permutation_p(np.asarray(row["x"]), np.asarray(row["y"]), row["n_resamples"], row["seed"], row["paired"])
     # same seed, same numpy generator, same algorithm: exact agreement; tolerance 1e-9, not Monte-Carlo
     assert _close(got, row["out"])
 
@@ -99,22 +95,14 @@ def test_parity_table_prints() -> None:
 
     add(
         "hedges_g",
-        [
-            (r["cls"], abs(hedges_g(np.asarray(r["x"]), np.asarray(r["y"])) - r["out"]))
-            for r in _load("hedges_g")
-        ],
+        [(r["cls"], abs(hedges_g(np.asarray(r["x"]), np.asarray(r["y"])) - r["out"])) for r in _load("hedges_g")],
     )
     add(
         "permutation_p",
         [
             (
                 r["cls"],
-                abs(
-                    permutation_p(
-                        np.asarray(r["x"]), np.asarray(r["y"]), r["n_resamples"], r["seed"], r["paired"]
-                    )
-                    - r["out"]
-                ),
+                abs(permutation_p(np.asarray(r["x"]), np.asarray(r["y"]), r["n_resamples"], r["seed"], r["paired"]) - r["out"]),
             )
             for r in _load("permutation_p")
         ],

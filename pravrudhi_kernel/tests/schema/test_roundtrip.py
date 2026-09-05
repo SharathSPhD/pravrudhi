@@ -51,9 +51,7 @@ ROUNDTRIP_CASES = [
         run_hash=H,
         isolation="container",
     ),
-    EvidencePlan(
-        seeds=[11, 23, 37], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0
-    ),
+    EvidencePlan(seeds=[11, 23, 37], heldout_rotation_id=None, sensors_to_read=[], stage="smoke", sequential_stage=0),
     Preferences(beta=1.0, lambda_=0.5, eta=0.1),
     Citta(version=1, surfaces={}, buckets={}, candidates={}, rho_pred={}),
     LedgerEvent(

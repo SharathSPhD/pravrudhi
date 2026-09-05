@@ -14,14 +14,7 @@ from pravrudhi_kernel.sandbox import JobResult, JobSpec, KernelState, kernel_has
 from pravrudhi_kernel.sandbox.observe import KernelHashes
 
 IMAGE = "pravrudhi/exec-5090:latest"
-SCORER_SOURCE = (
-    Path(__file__).resolve().parents[3]
-    / "pravrudhi_kernel"
-    / "src"
-    / "pravrudhi_kernel"
-    / "metrics"
-    / "gsm8k.py"
-)
+SCORER_SOURCE = Path(__file__).resolve().parents[3] / "pravrudhi_kernel" / "src" / "pravrudhi_kernel" / "metrics" / "gsm8k.py"
 
 
 def resolve_model_snapshot(repo_id: str, hf_home: Path | None = None) -> Path:
@@ -35,9 +28,7 @@ def resolve_model_snapshot(repo_id: str, hf_home: Path | None = None) -> Path:
 
 
 def image_digest(image: str = IMAGE) -> str:
-    out = subprocess.run(
-        ["docker", "images", "--no-trunc", "--format", "{{.ID}}", image], capture_output=True, text=True
-    )
+    out = subprocess.run(["docker", "images", "--no-trunc", "--format", "{{.ID}}", image], capture_output=True, text=True)
     return out.stdout.strip().splitlines()[0] if out.stdout.strip() else "unknown"
 
 
@@ -121,6 +112,4 @@ def score_job(job_dir: Path, pool_dir: Path, rot: Rotation) -> tuple[dict[str, i
 
 
 def expected_hashes(job_dir: Path, pool_dir: Path, harness_dir: Path, model_snapshot: Path) -> KernelHashes:
-    return kernel_hashes(
-        job_dir / "in" / "items.jsonl", pool_dir / "manifest.json", SCORER_SOURCE, harness_dir, model_snapshot
-    )
+    return kernel_hashes(job_dir / "in" / "items.jsonl", pool_dir / "manifest.json", SCORER_SOURCE, harness_dir, model_snapshot)

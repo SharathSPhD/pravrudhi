@@ -183,10 +183,7 @@ def noise_floor(
                     "wall_s": res.wall_s,
                 }
             )
-            log(
-                f"rotation {r} ({rot.rotation_id}) seed {s}: pass_rate={v:.4f} n={k} "
-                f"seq={obs.seq} wall={res.wall_s:.0f}s"
-            )
+            log(f"rotation {r} ({rot.rotation_id}) seed {s}: pass_rate={v:.4f} n={k} seq={obs.seq} wall={res.wall_s:.0f}s")
     all_v = [v for vs in values.values() for v in vs]
     within = [_sd(vs) for vs in values.values() if len(vs) >= 2]
     rot_means = [sum(vs) / len(vs) for vs in values.values()]
@@ -228,8 +225,7 @@ def noise_floor(
             "severity": "info",
             "study": "noise_floor",
             "summary": {
-                kk: var[kk]
-                for kk in ("n_runs", "mean_pass_rate", "wilson_95", "sigma_seed", "sigma_rot", "sigma_total")
+                kk: var[kk] for kk in ("n_runs", "mean_pass_rate", "wilson_95", "sigma_seed", "sigma_rot", "sigma_total")
             },
             "variance_file_sha256": __import__("hashlib").sha256(dest.read_bytes()).hexdigest(),
         },

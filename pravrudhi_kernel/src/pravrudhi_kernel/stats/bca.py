@@ -100,9 +100,7 @@ def bca_ci(
     return lo, hi
 
 
-def boot_ci_bca_mean(
-    d: np.ndarray, *, n_boot: int = 10_000, alpha: float = 0.05, seed: int = 42
-) -> tuple[float, float]:
+def boot_ci_bca_mean(d: np.ndarray, *, n_boot: int = 10_000, alpha: float = 0.05, seed: int = 42) -> tuple[float, float]:
     return bca_ci(np.asarray(d, float), lambda v: float(np.mean(v)), n_boot=n_boot, alpha=alpha, seed=seed)
 
 
