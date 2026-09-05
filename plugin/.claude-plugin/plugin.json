@@ -1,0 +1,7 @@
+{
+  "name": "pravrudhi",
+  "version": "0.1.0",
+  "description": "Run a recursive self-improvement night over your own model and harness, review the inbox, and export the improved artefact. Every number comes from the kernel's ledger.",
+  "author": {"name": "SharathSPhD"},
+  "skills": ["./skills"]
+}

@@ -16,7 +16,6 @@ from pravrudhi.application.spine import resolve_model_snapshot
 from pravrudhi.models.llama_server import LlamaServer
 from pravrudhi.targets import LoraRecipe
 from pravrudhi_kernel.ledger import LedgerWriter
-from pravrudhi_kernel.metrics import PoolExhausted
 from pravrudhi_kernel.sandbox import ensure_kernel_state
 from pravrudhi_kernel.sandbox.observe import model_dir_hash, sha256_tree
 from pravrudhi_kernel.sandbox.runner import docker_available
@@ -110,7 +109,6 @@ def run_night(
     #        `continue` is live again in the next round and receives its next seed (adapter re-used, not retrained)
     outcomes: dict[str, str] = {}
     max_rounds = int(cfg.get("max_rounds", 4))
-    exhausted = False
     for rnd in range(max_rounds):
         remaining = budget - ctx.spent_gpu_h
         if remaining <= 0.05:
@@ -172,29 +170,7 @@ def run_night(
             if adapter is None:
                 outcomes[cid] = "failed:train"
                 continue
-            try:
-                outcomes[cid] = evaluate_and_dispose(ctx, w, cid, rec, adapter)
-            except PoolExhausted as e:
-                w.append(
-                    "audit",
-                    "kernel",
-                    {
-                        "kind": "pool_exhausted",
-                        "severity": "high",
-                        "detail": str(e),
-                        "note": "refresh or re-cap the pool is an operator act (ADR-0007 request)",
-                    },
-                    epoch=0,
-                    night=night,
-                    candidate_id=cid,
-                    surface="W3.adapter",
-                )
-                outcomes[cid] = "skipped:pool_exhausted"
-                log(f"pool exhausted: {e}; closing the night")
-                exhausted = True
-                break
-        if exhausted:
-            break
+            outcomes[cid] = evaluate_and_dispose(ctx, w, cid, rec, adapter)
     # 4. close
     sw, n, ci = strategy_switch_rate(ledger)
     w.append(

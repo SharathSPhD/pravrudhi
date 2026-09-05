@@ -47,14 +47,11 @@ def main() -> int:
         r=lora["r"], lora_alpha=lora["alpha"], lora_dropout=lora["dropout"], target_modules=targets, task_type="CAUSAL_LM"
     )
     out = Path(a.out)
-    # memory arithmetic: at most 8192 tokens per micro-batch (measured 17 GiB at 8 x 1024); accumulate to the recipe's batch
-    micro = max(1, min(int(sft["batch_size"]), 8192 // int(sft["max_seq_len"])))
-    accum = max(1, -(-int(sft["batch_size"]) // micro))
     cfg = SFTConfig(
         output_dir=str(out / "trainer"),
         num_train_epochs=sft["epochs"],
-        per_device_train_batch_size=micro,
-        gradient_accumulation_steps=accum,
+        per_device_train_batch_size=sft["batch_size"],
+        gradient_accumulation_steps=1,
         learning_rate=sft["lr"],
         warmup_ratio=sft["warmup_ratio"],
         lr_scheduler_type="cosine",

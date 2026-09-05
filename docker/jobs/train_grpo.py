@@ -93,7 +93,7 @@ def main() -> int:
         save_strategy="no",
         report_to=[],
         seed=a.seed,
-        gradient_checkpointing=a.fp32,  # fp32 path: checkpointing trades time for the memory the card lacks
+        gradient_checkpointing=False,
         temperature=0.8,
         max_grad_norm=1.0,
         loss_type="dr_grpo",

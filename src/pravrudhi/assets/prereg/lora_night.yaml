@@ -1,0 +1,41 @@
+# First-night constants for the LoRA target (frozen 2026-09-04). Changes only by ADR. Read by the engine, never by kernel functions.
+version: 1
+model: Qwen/Qwen3-4B
+bench: gsm8k-test
+proposer:
+  gguf: Qwen3-30B-A3B-Q4_K_M.gguf
+  k_candidates: 12
+  temperature: 0.7
+  max_tokens: 4096
+  prompt_version: v1
+sampling:                 # one rejection-sampling job per night on train-split prompts
+  n_prompts: 256
+  prompts_offset: 0       # train rows [offset, offset+n_prompts)
+  n_samples: 4
+  temperature: 0.8
+  max_new_tokens: 512
+grpo_prompts:
+  n_prompts: 64
+  prompts_offset: 3000
+anchors:
+  train_offset: 7000
+  n: 200
+evaluation:
+  k_items: 100
+  exposure_cap: 3
+  temperature: 0.7
+  max_new_tokens: 512
+  batch_size: 32
+boundary:                 # 06 §4 with L3's measured sigma_seed; tau = delta_min = max(2*sigma_seed, 0.01)
+  alpha_eff: 0.05
+  alpha_fut: 0.20
+  k_max: 4
+  sigma_mode: adaptive
+  n0: 3
+  delta_min_floor: 0.01
+budget:
+  night_gpu_h: 3.0
+  shares: {planted: 0.0, sensors: 0.0, f_epi: 0.15}   # no planted nulls in the first night: the pool is one candidate deep; H3's planted-null test starts in P1
+  gpu_cost_per_hour: 1.0
+rethink_m: 6
+max_rounds: 4              # deliberation rounds per night; a `continue` candidate receives its next seed in the next round

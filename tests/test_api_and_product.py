@@ -1,0 +1,121 @@
+import json
+from pathlib import Path
+
+from fastapi.testclient import TestClient
+
+from pravrudhi.api.server import create_app
+from pravrudhi.application.export import export_adapter
+from pravrudhi.application.init import init_project
+from pravrudhi.application.status import status
+from pravrudhi_kernel.ledger import LedgerWriter, verify
+
+BUCKET = {"task_family": "t", "target_model": "m", "corpus": "c"}
+
+
+def test_init_is_idempotent_and_private(tmp_path: Path) -> None:
+    a = init_project(tmp_path, model="Qwen/Qwen3-4B")
+    b = init_project(tmp_path)
+    assert a["isolation"] in ("process", "container") and (tmp_path / "research" / "ledger.jsonl").exists()
+    assert b["created"] == []  # second run creates nothing
+    assert (tmp_path / ".pravrudhi" / "kernel" / "secret").stat().st_mode & 0o777 == 0o600
+    assert ".pravrudhi/" in (tmp_path / ".gitignore").read_text()
+    s = status(tmp_path)
+    assert s["initialised"] and s["chain_ok"] and s["events"] == 1
+
+
+def _promoted_ledger(tmp_path: Path) -> Path:
+    init_project(tmp_path)
+    w = LedgerWriter.open(tmp_path / "research" / "ledger.jsonl", "0.1.0")
+    w.append(
+        "propose",
+        "proposer",
+        {"op": "adapter", "strategy": "sft_rejection", "edit_family": "optimiser"},
+        epoch=0,
+        night=1,
+        cycle=1,
+        candidate_id="c-0001",
+        surface="W3.adapter",
+        bucket=BUCKET,
+        provenance="agama",
+    )
+    w.append(
+        "observe",
+        "kernel",
+        {"observed": {"delta_in": 0.05, "n_items": 100}, "hashes": {"model": "a" * 64}, "stats": {"boundary": "confirm"}},
+        epoch=0,
+        night=1,
+        cycle=1,
+        candidate_id="c-0001",
+        surface="W3.adapter",
+        bucket=BUCKET,
+        provenance="pratyaksha",
+    )
+    adapter = tmp_path / "adapter"
+    adapter.mkdir()
+    (adapter / "adapter_model.safetensors").write_bytes(b"x")
+    (adapter / "adapter_config.json").write_text("{}")
+    pack = tmp_path / "research" / "inbox" / "night1" / "c-0001"
+    pack.mkdir(parents=True)
+    (pack / "README.md").write_text("# pack\n")
+    w.append(
+        "promote",
+        "broker",
+        {"tier": "T2", "from_worktree": str(adapter), "merge_commit": "b" * 64, "inbox_pack": str(pack), "tau_after": 0.6},
+        epoch=0,
+        night=1,
+        cycle=1,
+        candidate_id="c-0001",
+        surface="W3.adapter",
+    )
+    return tmp_path
+
+
+def test_export_copies_green_adapter_with_manifest(tmp_path: Path) -> None:
+    root = _promoted_ledger(tmp_path)
+    m = export_adapter(root, tmp_path / "out")
+    assert m["candidate_id"] == "c-0001" and (tmp_path / "out" / "adapter_model.safetensors").exists()
+    assert json.loads((tmp_path / "out" / "pravrudhi_export.json").read_text())["badge"] == "green"
+
+
+def test_export_refuses_when_not_green(tmp_path: Path) -> None:
+    root = _promoted_ledger(tmp_path)
+    w = LedgerWriter.open(root / "research" / "ledger.jsonl", "0.1.0")
+    w.append(
+        "prune",
+        "auditor",
+        {"hetvabhasa": "badhita", "reason": "canary", "status": "pruned"},
+        epoch=0,
+        night=1,
+        candidate_id="c-0001",
+        surface="W3.adapter",
+    )
+    try:
+        export_adapter(root, tmp_path / "out2")
+    except PermissionError as e:
+        assert "not green" in str(e)
+    else:
+        raise AssertionError("expected refusal")
+
+
+def test_api_reads_ledger_and_sign_is_a_human_act(tmp_path: Path) -> None:
+    root = _promoted_ledger(tmp_path)
+    c = TestClient(create_app(root))
+    assert c.get("/health").json()["ok"]
+    assert c.get("/status").json()["badges"]["green"] == 1
+    assert c.get("/candidates/c-0001").json()["badge"] == "green"
+    assert c.get("/candidates/c-9999").status_code == 404
+    assert len(c.get("/observations").json()) == 1
+    inbox = c.get("/inbox").json()
+    assert len(inbox) == 1 and inbox[0]["signed"] is False
+    pack = inbox[0]["pack"]
+    assert c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}).status_code == 403
+    assert (
+        c.post("/inbox/sign", json={"pack": pack, "decision": "approve"}, headers={"X-Pravrudhi-Operator": "claude"}).status_code
+        == 403
+    )
+    r = c.post(
+        "/inbox/sign", json={"pack": pack, "decision": "approve", "note": "read"}, headers={"X-Pravrudhi-Operator": "Sharath"}
+    )
+    assert r.status_code == 200 and r.json()["by"] == "Sharath"
+    assert c.get("/inbox").json()[0]["signed"] is True
+    assert verify(root / "research" / "ledger.jsonl").ok

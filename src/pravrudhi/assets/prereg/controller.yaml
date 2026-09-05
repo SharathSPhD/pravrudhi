@@ -1,0 +1,21 @@
+# Pre-registered controller constants. Changes only by ADR. Read by scripts and the engine; never by kernel functions
+# (they take these as arguments). Provisional values are labelled; C16 replaces the decorative thresholds from the
+# bootstrap nights' measured score dispersion.
+version: 1
+frozen_at: "2026-09-04"
+tau0_2: 0.01            # prior variance on a candidate effect (delta_in units^2) before any level has data; provisional
+kappa: 1.0              # cost weight: one night's budget trades against one nat
+f_epi: 0.15             # epistemic floor: share of the effective budget reserved for highest-EIG candidates (TRIZ S4.1)
+rho_floor: 0.05         # floor on predictor reliability so a zero-record predictor is inert, not NaN
+shares:
+  planted: 0.10         # planted-null share of the night (06 §4.5)
+  sensors: 0.10         # sensor-read cap (05 §3)
+decorative:
+  cv_min: 0.05          # PROVISIONAL until C16 measures the bootstrap nights' dispersion
+  mi_min_bits: 0.05     # PROVISIONAL until C16
+preferences:            # 02-efe-controller-spec §1.3; PROVISIONAL scale: one sigma_eval of delta_out ~ 1 nat (L3 sets sigma_eval)
+  beta: 40.0
+  lambda: 80.0          # lambda > beta: regressions dispreferred more than gains preferred
+  eta: 5.0              # canary-failure penalty
+  zeta: 1.0             # audit-severity penalty per unit severity
+rethink_m: 6            # ADR-0005: consecutive execution-level selections without confirm before a rethink checkpoint

@@ -6,7 +6,6 @@ FROM rtx5090-train:latest
 LABEL org.pravrudhi.lineage="nvcr.io/nvidia/pytorch:25.06-py3 -> rtx5090-train:latest"
 # PEFT 0.19 refuses the lineage's torchao 0.11 (needs >=0.16); nothing here uses torchao, so remove it.
 RUN pip uninstall -y torchao >/dev/null 2>&1 || true
-ENV PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HOME=/models PYTHONUNBUFFERED=1 TOKENIZERS_PARALLELISM=false
 COPY docker/jobs /opt/pravrudhi/jobs
 WORKDIR /work

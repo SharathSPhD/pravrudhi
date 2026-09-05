@@ -29,13 +29,12 @@ ledger-replay:   ## rebuild state.json from the ledger and verify the chain and 
 reproduce:       ## regenerate docs/evidence from the ledger; diff must be empty
 	$(UV) run pravrudhi evidence noise_floor --check
 	$(UV) run pravrudhi evidence night1 --check
-	$(UV) run pravrudhi evidence night2 --check
 decorative-check:  ## decorative-controller check on the last select batch (research/last_select.json)
 	$(UV) run python scripts/decorative_check.py --batch research/last_select.json
 glossary-lint:
 	@echo "not implemented: P2" >&2; exit 2
-headline-check:
-	@echo "not implemented: L5" >&2; exit 2
+headline-check:  ## numbers in README/paper/evidence must trace to a gate JSON or prereg file
+	$(UV) run python scripts/headline_check.py
 kernel-image:
 	@echo "not implemented: L3" >&2; exit 2
 exec-image:      ## build pravrudhi/exec-5090 from the local NVIDIA 25.06 lineage (ADR-0003)

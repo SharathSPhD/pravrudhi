@@ -23,8 +23,8 @@ BUDGET_OPT = typer.Option(None, "--budget", help="GPU-hours; default from resear
 K_OPT = typer.Option(None, "--k")
 TRAIN_PARQUET_OPT = typer.Option(Path(".pravrudhi/data/gsm8k-train.parquet"), "--train-parquet")
 GGUF_OPT = typer.Option(None, "--gguf")
-LEDGER_OPT = typer.Option(Path("research/ledger.jsonl"), "--ledger")
-STATE_OPT = typer.Option(Path("research/state.json"), "--state")
+LEDGER_OPT = typer.Option(None, "--ledger", help="default <root>/research/ledger.jsonl")
+STATE_OPT = typer.Option(None, "--state", help="default <root>/research/state.json")
 VERIFY_OPT = typer.Option(
     False,
     "--verify",
@@ -79,8 +79,12 @@ def gate_sign(path: Path, by: str = BY_OPT, note: str = NOTE_OPT) -> None:
 
 
 @app.command("replay")
-def replay_cmd(ledger: Path = LEDGER_OPT, state: Path = STATE_OPT, verify: bool = VERIFY_OPT) -> None:
+def replay_cmd(
+    ledger: Path | None = LEDGER_OPT, state: Path | None = STATE_OPT, verify: bool = VERIFY_OPT, root: Path = ROOT_OPT
+) -> None:
     """anusaṁdhāna: rebuild state.json from the ledger alone."""
+    ledger = ledger or root / "research" / "ledger.jsonl"
+    state = state or root / "research" / "state.json"
     code, lines = replay_command(ledger, state, check=verify)
     for line in lines:
         typer.echo(line, err=code != 0)
@@ -239,6 +243,44 @@ def inbox_cmd(root: Path = ROOT_OPT) -> None:
         typer.echo("inbox empty")
     for r in rows:
         typer.echo(f"{r['night']} {r['candidate']} badge={r['badge']} signed={r['signed']} {r['pack']}")
+
+
+@app.command("init")
+def init_cmd(root: Path = ROOT_OPT, model: str | None = typer.Option(None, "--model")) -> None:
+    """Make this project ready for a night: kernel state dir, config, pre-registrations, prompts, genesis ledger."""
+    from pravrudhi.application.init import init_project
+
+    out = init_project(root, model=model)
+    typer.echo(f"initialised {out['root']} (isolation {out['isolation']}); created {len(out['created'])} files")
+    for c in out["created"]:
+        typer.echo(f"  {c}")
+
+
+@app.command("status")
+def status_cmd(root: Path = ROOT_OPT) -> None:
+    """What the ledger says: chain, candidates, badges, nights, inbox."""
+    from pravrudhi.application.status import status
+
+    typer.echo(json.dumps(status(root), indent=2, sort_keys=True))
+
+
+@app.command("export")
+def export_cmd(dest: Path, candidate: str | None = typer.Option(None, "--candidate"), root: Path = ROOT_OPT) -> None:
+    """Copy the promoted (green) adapter and its provenance manifest to DEST. Never merges into base weights."""
+    from pravrudhi.application.export import export_adapter
+
+    m = export_adapter(root, dest, candidate_id=candidate)
+    typer.echo(f"exported {m['candidate_id']} (night {m['night']}, adapter {m['adapter_sha256'][:12]}) to {dest}")
+
+
+@app.command("serve")
+def serve_cmd(
+    root: Path = ROOT_OPT, host: str = typer.Option("127.0.0.1", "--host"), port: int = typer.Option(8765, "--port")
+) -> None:
+    """Serve the ledger, candidates, observations, evidence and inbox over HTTP (sign-off needs an operator header)."""
+    from pravrudhi.api.server import serve
+
+    serve(root, host=host, port=port)
 
 
 @study_app.command("paired-confirm")

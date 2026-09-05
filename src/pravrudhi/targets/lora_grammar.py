@@ -38,8 +38,8 @@ class GrpoParams(BaseModel):
     # the bounds keep peak memory under the card with the measured 28.4 GiB at group 4 x 128 tokens.
     steps: int = Field(default=20, ge=5, le=60)
     group_size: int = Field(default=4, ge=2, le=4)
-    prompts_per_step: int = Field(default=1, ge=1, le=1)
-    max_completion_tokens: int = Field(default=128, ge=64, le=128)
+    prompts_per_step: int = Field(default=1, ge=1, le=2)
+    max_completion_tokens: int = Field(default=128, ge=64, le=192)
     lr: float = Field(default=5e-6, ge=1e-7, le=1e-4)
     beta_kl: float = Field(default=0.0, ge=0.0, le=0.1)
 

@@ -22,7 +22,7 @@ GRAMMAR_DOC = """{
   "lora": {"r": 1..64, "alpha": 1..256, "dropout": 0..0.3, "target_modules": "all-linear"|"attention"|"mlp"},
   "sft":  {"n_kept": 32..4096, "filter": "all_correct"|"shortest_correct"|"longest_correct"|"diverse_correct",
            "epochs": 1..3, "lr": 1e-6..5e-3, "warmup_ratio": 0..0.2, "max_seq_len": 256..2048, "batch_size": 1..32},
-  "grpo": {"steps": 5..60, "group_size": 2..4, "prompts_per_step": 1, "max_completion_tokens": 64..128,
+  "grpo": {"steps": 5..60, "group_size": 2..4, "prompts_per_step": 1..2, "max_completion_tokens": 64..192,
            "lr": 1e-7..1e-4, "beta_kl": 0..0.1},
   "eval_template": "gsm8k_v1" | "gsm8k_v2_terse" | "gsm8k_v3_boxed",
   "rationale": "<= 400 chars"
