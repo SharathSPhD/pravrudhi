@@ -3,11 +3,29 @@
   "provider": {
     "pravrudhi-local": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "Pravrudhi local (llama.cpp on this GPU)",
-      "options": { "baseURL": "http://127.0.0.1:8090/v1" },
+      "name": "Pravrudhi local (llama.cpp on the CUDA host)",
+      "options": {
+        "baseURL": "http://127.0.0.1:8090/v1"
+      },
       "models": {
-        "glm-4.7-flash": { "name": "GLM-4.7-Flash Q4_K (local)" },
-        "qwen3-30b-a3b": { "name": "Qwen3-30B-A3B Q4_K_M (local)" }
+        "glm-4.7-flash": {
+          "name": "GLM-4.7-Flash Q4_K (local)"
+        },
+        "qwen3-30b-a3b": {
+          "name": "Qwen3-30B-A3B Q4_K_M (local)"
+        }
+      }
+    },
+    "pravrudhi-mac": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Pravrudhi fleet host mac-mini (Metal, over an ssh tunnel)",
+      "options": {
+        "baseURL": "http://127.0.0.1:8081/v1"
+      },
+      "models": {
+        "qwen3-1.7b": {
+          "name": "Qwen3-1.7B Q4_K_M on Apple M4"
+        }
       }
     }
   }

@@ -1,0 +1,118 @@
+"""Delegating development work to the agent fleet, safely.
+
+Several agents improving one repository is useful only if their work cannot collide or slip in unvalidated. Three
+guarantees are enforced here rather than trusted to the agents or to whoever wrote the prompt.
+
+Disjoint ownership: a task declares the paths it may touch, and two tasks that could touch the same path are never
+dispatched together. Agents cannot overwrite each other because they are never given overlapping ground, and each
+works in its own worktree besides.
+
+Declared scope: after the run the diff is checked against the declaration. An agent that edited something it was
+not given is rejected whole, not partially merged, because a diff that wandered is evidence the agent misunderstood
+the task rather than a diff with one stray file in it.
+
+Validation before merge: the task's own check runs inside the worktree, and only a passing, in-scope,
+protected-path-clean diff is eligible. Nothing reaches the working tree because an agent said it was finished.
+"""
+
+from __future__ import annotations
+
+import fnmatch
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from pravrudhi.agents.base import Diff
+
+
+@dataclass(frozen=True)
+class TaskSpec:
+    """One unit of delegated work: what to do, where it may write, and how it is checked."""
+
+    task_id: str
+    prompt: str
+    allowed_paths: tuple[str, ...]
+    validate: str = "uv run pytest -q"
+    timeout_s: int = 1800
+
+    def owns(self, path: str) -> bool:
+        return any(fnmatch.fnmatch(path, pat) for pat in self.allowed_paths)
+
+    def out_of_scope(self, diff: Diff) -> list[str]:
+        return sorted(f for f in diff.files if not self.owns(f))
+
+
+@dataclass(frozen=True)
+class Verdict:
+    task_id: str
+    agent: str
+    accepted: bool
+    reasons: list[str] = field(default_factory=list)
+    files: list[str] = field(default_factory=list)
+    validation_output: str = ""
+    wall_s: float = 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "task_id": self.task_id, "agent": self.agent, "accepted": self.accepted,
+            "reasons": self.reasons, "files": self.files, "wall_s": round(self.wall_s, 1),
+        }
+
+
+def overlapping(tasks: list[TaskSpec]) -> list[tuple[str, str]]:
+    """Pairs of tasks whose declared paths could collide.
+
+    Compared pattern against pattern, not file against file: two tasks that both claim `src/pravrudhi/cli/*` are in
+    conflict even if today they would happen to edit different files there.
+    """
+    bad: list[tuple[str, str]] = []
+    for i, a in enumerate(tasks):
+        for b in tasks[i + 1 :]:
+            if any(fnmatch.fnmatch(pa, pb) or fnmatch.fnmatch(pb, pa) or pa == pb for pa in a.allowed_paths for pb in b.allowed_paths):
+                bad.append((a.task_id, b.task_id))
+    return bad
+
+
+def validate_in(workspace: Path, command: str, timeout_s: int = 1800) -> tuple[bool, str]:
+    try:
+        p = subprocess.run(["bash", "-lc", command], cwd=workspace, capture_output=True, text=True, timeout=timeout_s)
+        return p.returncode == 0, (p.stdout + p.stderr)[-4000:]
+    except subprocess.TimeoutExpired:
+        return False, f"validation timed out after {timeout_s}s"
+
+
+def dispatch(agent: Any, task: TaskSpec, *, log: Any = print) -> Verdict:
+    """Run one task with one agent and judge the result. The worktree is left in place when accepted, so the
+    change can be inspected and merged deliberately; a rejected worktree is also kept, because a rejected diff is
+    the most interesting thing to read."""
+    brief = (
+        f"{task.prompt}\n\nYou may create or modify ONLY these paths: {', '.join(task.allowed_paths)}.\n"
+        "Do not modify any other file. Do not touch pravrudhi_kernel/, research/, gates/ or .pravrudhi/.\n"
+        f"Your work is accepted only if `{task.validate}` passes."
+    )
+    ws = agent.create_workspace(task.task_id)
+    log(f"{task.task_id}: {agent.name} working in {ws}")
+    run = agent.run(brief, ws, timeout_s=task.timeout_s)
+    diff = agent.collect_changes(ws)
+    reasons: list[str] = []
+    if not run.ok:
+        reasons.append(f"agent exited non-zero: {run.stderr_tail[:200] or 'no detail'}")
+    if diff.empty:
+        reasons.append("no change produced")
+    if diff.violations:
+        reasons.append(f"touched protected paths: {', '.join(diff.violations)}")
+    stray = task.out_of_scope(diff)
+    if stray:
+        reasons.append(f"wrote outside its declared scope: {', '.join(stray[:8])}")
+    output = ""
+    if not reasons:
+        ok, output = validate_in(ws, task.validate, task.timeout_s)
+        if not ok:
+            reasons.append("validation failed")
+    verdict = Verdict(
+        task_id=task.task_id, agent=agent.name, accepted=not reasons, reasons=reasons,
+        files=diff.files, validation_output=output[-2000:], wall_s=run.wall_s,
+    )
+    log(f"{task.task_id}: {'ACCEPTED' if verdict.accepted else 'REJECTED'} ({'; '.join(reasons) or 'all checks passed'})")
+    return verdict
