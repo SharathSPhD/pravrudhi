@@ -1,5 +1,46 @@
-% Source: gates/gate_L3.json and gates/gate_L4.json when they exist. This section is empty by construction until then.
+% Source: gates/gate_L3.json (domain_gate.evidence), research/prereg/variance.json, research/prereg/measured_stack.json. Every number below is a field of one of these files.
 \section{Results}
 \label{sec:results}
 
-Results are entered only from gate records. No gate carrying an empirical claim exists at the time of this build.
+\subsection{Execution spine and the measured noise floor}
+\label{sec:results-l3}
+
+The first evidence the kernel admitted is an A/A study of the unmodified trainee, run before any candidate existed, so that the sequential boundaries and the surprise threshold rest on a measured floor rather than a quoted one. Each run is a kernel-launched container job over one held-out rotation of 100 items drawn by keyed hash from the sealed pool of 1319 GSM8K test items under an exposure cap of three, with one sampling seed at temperature 0.7 and at most 512 new tokens. The container receives questions only; the kernel scores the completions against the sealed answers; an observation exists only after the item file, pool manifest, scorer source, artefact tree and model weights hash to the values the kernel sealed. Table~\ref{tab:l3-stack} records the stack as measured by the preflight job on the card used, and Table~\ref{tab:l3-noise} the study.
+
+\begin{table}[t]
+\centering
+\caption{Execution stack as measured by the preflight job (32 items, batch 16, greedy, 256 new tokens). Throughput is batched decode; single-stream throughput is lower.}
+\label{tab:l3-stack}
+\begin{tabular}{ll}
+\toprule
+\textbf{Quantity} & \textbf{Measured} \\
+\midrule
+GPU & NVIDIA GeForce RTX 5090 (32607 MiB) \\
+Image lineage & NVIDIA PyTorch 25.06; torch 2.8.0a0, CUDA 12.9, transformers 5.13.0 \\
+Trainee & Qwen/Qwen3-4B, bfloat16 \\
+Peak VRAM (driver / allocator) & 9.78 GiB / 8.595 GiB \\
+Batched decode throughput & 494.6 tokens/s \\
+Model load time & 0.86 s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Noise floor of the unmodified trainee on the sealed pool: 10 rotations $\times$ 3 seeds $\times$ 100 items (3000 scored items), temperature 0.7, isolation level container. Wilson interval on the pooled pass rate.}
+\label{tab:l3-noise}
+\begin{tabular}{lc}
+\toprule
+\textbf{Quantity} & \textbf{Value} \\
+\midrule
+Pooled pass rate & 0.8997 \\
+Wilson 95\% interval & [0.8884, 0.9099] \\
+$\sigma_{\mathrm{seed}}$ (within rotation, between seeds) & 0.0212 \\
+$\sigma_{\mathrm{rot}}$ (between rotation means) & 0.0304 \\
+$\sigma_{\mathrm{total}}$ (all runs) & 0.0342 \\
+Surprise threshold (99th percentile of $|z|$) & 2.373 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two consequences follow for the first night. The between-rotation dispersion exceeds the between-seed dispersion, so item sampling rather than decoding randomness dominates the variance of a 100-item pass rate; a paired design that evaluates candidate and incumbent on the same rotation and seed removes the larger component, and the sequential boundary is therefore parameterised on $\sigma_{\mathrm{seed}}$ with the minimum effect of interest set to twice that value. The pooled pass rate near 0.90 also bounds what an adapter can add on this benchmark: the headroom is about ten points, and an effect smaller than the seed noise cannot be distinguished at a single rotation, which the boundary's futility rule expresses as a prune carrying the label \emph{asiddha}.
