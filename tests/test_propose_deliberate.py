@@ -44,8 +44,15 @@ def _root(tmp_path: Path) -> tuple[Path, LedgerWriter]:
     src = Path(__file__).resolve().parents[1] / "harness" / "prompts"
     (tmp_path / "harness" / "prompts" / "proposer" / "v1.md").write_text((src / "proposer" / "v1.md").read_text())
     (tmp_path / "harness" / "prompts" / "predictor" / "v1.md").write_text((src / "predictor" / "v1.md").read_text())
-    cfg = {"tau0_2": 0.01, "kappa": 1.0, "f_epi": 0.15, "rho_floor": 0.05, "shares": {"planted": 0.0, "sensors": 0.0, "f_epi": 0.15},
-           "decorative": {"cv_min": 0.05, "mi_min_bits": 0.05}, "preferences": {"beta": 40.0, "lambda": 80.0, "eta": 5.0, "zeta": 1.0}}
+    cfg = {
+        "tau0_2": 0.01,
+        "kappa": 1.0,
+        "f_epi": 0.15,
+        "rho_floor": 0.05,
+        "shares": {"planted": 0.0, "sensors": 0.0, "f_epi": 0.15},
+        "decorative": {"cv_min": 0.05, "mi_min_bits": 0.05},
+        "preferences": {"beta": 40.0, "lambda": 80.0, "eta": 5.0, "zeta": 1.0},
+    }
     (tmp_path / "research" / "prereg" / "controller.yaml").write_text(yaml.safe_dump(cfg))
     w = LedgerWriter.open(tmp_path / "research" / "ledger.jsonl", "0.1.0")
     w.append(

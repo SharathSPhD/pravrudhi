@@ -44,3 +44,34 @@ Surprise threshold (99th percentile of $|z|$) & 2.373 \\
 \end{table}
 
 Two consequences follow for the first night. The between-rotation dispersion exceeds the between-seed dispersion, so item sampling rather than decoding randomness dominates the variance of a 100-item pass rate; a paired design that evaluates candidate and incumbent on the same rotation and seed removes the larger component, and the sequential boundary is therefore parameterised on $\sigma_{\mathrm{seed}}$ with the minimum effect of interest set to twice that value. The pooled pass rate near 0.90 also bounds what an adapter can add on this benchmark: the headroom is about ten points, and an effect smaller than the seed noise cannot be distinguished at a single rotation, which the boundary's futility rule expresses as a prune carrying the label \emph{asiddha}.
+
+\subsection{The first nights on the LoRA target}
+\label{sec:results-l4}
+
+% Source: gates/gate_L4.json (domain_gate.evidence, code_gate.evidence) and docs/evidence/L4_night1.md, L4_night2.md.
+Two nights ran on the LoRA target with the pre-registered budget, the measured noise floor, and the proposer served locally. Across the nights the proposer emitted 29 recipes within the grammar, 15 by rejection-sampled supervised fine-tuning and 14 by group-relative policy optimisation; 18 were trained and evaluated in 29 paired comparisons against the incumbent on the same rotation and sampling seed, every one scored by the kernel after hash verification. The paired differences in pass rate had mean 0.001 and standard deviation 0.0201 over a range from $-0.040$ to $+0.050$. Under the sequential boundary parameterised on the measured seed noise, with the minimum effect of interest set to 0.0424, fourteen candidates were pruned with the label \emph{asiddha}, none crossed the efficacy boundary, and four remained under test when the sealed pool was exhausted after 39 rotations; nothing was promoted. Table~\ref{tab:l4-nights} summarises the account rendered from the ledger.
+
+\begin{table}[t]
+\centering
+\caption{Nights 1 and 2 on the LoRA target (gsm8k-test, 100 items per rotation, one loop seed). Every entry is a field of the gate record or of the evidence documents rendered from the ledger.}
+\label{tab:l4-nights}
+\begin{tabular}{lc}
+\toprule
+\textbf{Quantity} & \textbf{Value} \\
+\midrule
+Recipes proposed (SFT / GRPO) & 29 (15 / 14) \\
+Candidates trained and evaluated & 18 \\
+Paired evaluations (candidate rows / incumbent rows) & 29 / 29 \\
+Paired $\Delta$ pass rate: mean, SD, range & 0.001, 0.0201, [$-0.040$, $+0.050$] \\
+Pruned (\emph{asiddha}) / confirmed / promoted & 14 / 0 / 0 \\
+Continuing at pool exhaustion & 4 \\
+GPU-hours charged (spend rows) & 1.804 \\
+Scored predictions, mean Brier & 22, 0.195 \\
+Predictor precision $\gamma_{\mathrm{prag}}$: first, last & 0.05, 0.896 \\
+Strategy-switch rate (cumulative) & 24/54, Wilson [0.320, 0.576] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The result is a null at the screen tier and it is informative in two ways. First, the boundary behaved as designed: candidates whose paired differences sat inside the seed noise were pruned rather than promoted, and the one candidate with a large first draw ($+0.050$) was followed by two draws at zero and remained undecided. Second, the target has almost no headroom for the pre-registered effect: an unmodified model that passes about nine tenths of the items can gain at most ten points, and an effect of four points is a fifth of that, so the study measures the boundary's discipline more than any adapter's merit. The controller's machinery did what the design asked of it, including the rise of the predictor's earned precision from the floor to 0.896 as its sealed predictions were scored, and the strategy-switch rate shows that the epistemic term kept both strategies in play. The experiment that follows from this null, recorded in the gate as the spawned proposal, is a target with a base pass rate near one half and a held-out pool sized to the planned number of confirmations.
+
