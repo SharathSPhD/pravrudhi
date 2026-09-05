@@ -41,3 +41,13 @@ def test_extract_salvages_truncated_array():
     text = '<think>x</think>\n[\n{"a": 1, "s": "q]"},\n{"a": 2},\n{"a": 3, "s": "unfinished'
     assert P._extract_json_array(text) == [{"a": 1, "s": "q]"}, {"a": 2}]
     assert P._extract_json_array('[{"a": 1}]') == [{"a": 1}]
+
+
+def test_extract_skips_malformed_objects_and_bad_escapes():
+    text = (
+        '[\n{"a": 1, "template": "Solve {question}", "s": "the problem\\\'s"},\n'
+        '{"a": 2, "b": 2, "c": "unterminated,\n{"a": 3, "b": 3, "c": "ok"}'
+    )
+    out = P._extract_json_array(text)
+    assert out[0]["s"] == "the problem's" and out[0]["template"] == "Solve {question}"
+    assert out[-1] == {"a": 3, "b": 3, "c": "ok"}

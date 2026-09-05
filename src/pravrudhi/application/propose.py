@@ -55,6 +55,7 @@ def _extract_json_array(text: str) -> list[dict[str, Any]]:
         except json.JSONDecodeError:
             pass
     # Truncated or malformed array: salvage the complete top-level objects in order (the audit row records it).
+    text = text.replace("\\'", "'")  # the one invalid escape local models emit routinely
     dec, pos, out = json.JSONDecoder(), start + 1, []
     while True:
         nxt = text.find("{", pos)
@@ -63,7 +64,8 @@ def _extract_json_array(text: str) -> list[dict[str, Any]]:
         try:
             obj, pos = dec.raw_decode(text, nxt)
         except json.JSONDecodeError:
-            break
+            pos = nxt + 1  # skip this brace (a template placeholder or a malformed object) and keep looking
+            continue
         if isinstance(obj, dict):
             out.append(obj)
     if not out:
@@ -215,7 +217,7 @@ def propose_generic(
         w.append(
             "audit",
             "proposer",
-            {"kind": "bad_candidate", "severity": "medium", "detail": str(e), "text_tail": res.text[-500:]},
+            {"kind": "bad_candidate", "severity": "medium", "detail": str(e), "text_tail": res.text[-500:], "text": res.text},
             epoch=0,
             night=night,
         )

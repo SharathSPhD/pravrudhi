@@ -75,3 +75,51 @@ Strategy-switch rate (cumulative) & 24/54, Wilson [0.320, 0.576] \\
 
 The result is a null at the screen tier and it is informative in two ways. First, the boundary behaved as designed: candidates whose paired differences sat inside the seed noise were pruned rather than promoted, and the one candidate with a large first draw ($+0.050$) was followed by two draws at zero and remained undecided. Second, the target has almost no headroom for the pre-registered effect: an unmodified model that passes about nine tenths of the items can gain at most ten points, and an effect of four points is a fifth of that, so the study measures the boundary's discipline more than any adapter's merit. The controller's machinery did what the design asked of it, including the rise of the predictor's earned precision from the floor to 0.896 as its sealed predictions were scored, and the strategy-switch rate shows that the epistemic term kept both strategies in play. The experiment that follows from this null, recorded in the gate as the spawned proposal, is a target with a base pass rate near one half and a held-out pool sized to the planned number of confirmations.
 
+
+\subsection{A trainee with headroom: night 4 and the external tier}
+\label{sec:results-p1}
+
+% Source: docs/evidence/P1_summary_4.json, docs/evidence/L4_night4.md, docs/evidence/P1_external.md (ledger rows 717-718, 725), research/prereg/variance.json (Qwen3-0.6B on gsm8k-trainB), ledger row 587 (recipe of c-0045).
+The null of the first nights was answered as the gate proposed: the target moved to a trainee with headroom and to a pool sized for confirmations. Night 3 kept the 1.7B trainee on a second sealed pool of 3500 GSM8K training items (rows 3500--6999, disjoint from every prompt the loop samples or trains on) and returned four continuing candidates, three of which were taken to 400-item confirmations of $+0.010$ $[-0.025, 0.040]$, $+0.015$ $[-0.020, 0.045]$ and $+0.0175$ $[-0.0175, 0.0475]$ (BCa intervals; paired permutation $p$ of 0.66, 0.46 and 0.36), a second null at the same instrument resolution. Night 4 changed the trainee to Qwen3-0.6B, whose A/A study on the same pool gave a pooled pass rate of 0.603 with $\sigma_{\mathrm{seed}}=0.0223$ over 15 runs, doubled the rotation to 200 items, and admitted a teacher model (Qwen3-4B) to the sampling stage of the rejection-sampled fine-tuning recipe, so that the proposer could distil rather than only self-sample. Table~\ref{tab:p1-night4} summarises the night from the ledger.
+
+\begin{table}[t]
+\centering
+\caption{Night 4 on the LoRA target (Qwen3-0.6B, gsm8k-trainB, 200 items per rotation, exposure cap 4, temperature 0.7). Every entry is a field of the summary rendered from the ledger for night 4.}
+\label{tab:p1-night4}
+\begin{tabular}{lc}
+\toprule
+\textbf{Quantity} & \textbf{Value} \\
+\midrule
+Recipes proposed (SFT / GRPO) & 8 (4 / 4) \\
+Candidates trained and evaluated & 8 \\
+Paired evaluations (candidate rows / incumbent rows) & 13 / 13 \\
+Paired $\Delta$ pass rate: mean, SD, range & $-0.004$, 0.0395, [$-0.065$, $+0.090$] \\
+Pruned (\emph{asiddha}) / confirmed / promoted & 7 / 1 / 1 \\
+GPU-hours charged to the night (spend rows, including its studies) & 0.968 \\
+Controller: $\mathrm{cv}_G$ range, max MI (bits) & [0.78, 1.10], 0.518 \\
+Strategy-switch rate (cumulative) & 48/97, Wilson [0.397, 0.593] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The promoted candidate, c-0045, is a rejection-sampled supervised fine-tune with the teacher: 1024 kept samples under a diverse-correct filter, three epochs at learning rate $5\times10^{-5}$, a rank-8 adapter on the attention projections with $\alpha=16$ and dropout 0.1. Its first paired draw against the incumbent on a 200-item rotation was $+0.090$, which crossed the efficacy boundary at one seed because the minimum effect of interest for this trainee is $2\sigma_{\mathrm{seed}}=0.045$ and the draw is four seed deviations from zero; the canaries passed (anchor negative log-likelihood within its 3\,\% bound, distinct-2 above 0.9, length ratio within bounds) and the candidate was promoted. Seven later candidates were pruned against the stronger incumbent. A 400-item confirmation on a fresh rotation, run after the night with the same trainee and seed protocol, gave a paired difference of $+0.040$ with BCa interval $[-0.010, 0.0825]$, 52 wins against 36 losses over 312 ties, and paired permutation $p=0.111$: consistent with an effect near the minimum of interest and, at $n=400$, not on its own a detection.
+
+The external tier settles what the internal instrument leaves open. Table~\ref{tab:p1-external} reports \texttt{lm-evaluation-harness} 0.4.9 on the full GSM8K test set (1319 items, five-shot, exact match under the strict extractor) for the base Qwen3-0.6B and for the same weights with the c-0045 adapter, both offline, same invocation, batch 32, bfloat16. The adapter raises strict exact match from 0.4086 to 0.4898, a gain of 0.081 with tool-reported standard errors of 0.0135 and 0.0138. The flexible extractor gives 0.4064 and 0.4913. The test set never entered the loop: the pool was sealed from training rows, the sampling prompts and the anchors were drawn from disjoint training ranges, and the adapter was trained on 1024 teacher completions of training questions. The magnitude is larger under the external protocol than under the loop's own (0.081 against 0.040), which is expected in direction: the loop scores single samples at temperature 0.7 on an untuned prompt, where a 0.6B model's variance is largest, while the external protocol is greedy and few-shot. Both are reported; neither replaces the other.
+
+\begin{table}[t]
+\centering
+\caption{External tier for the model track: GSM8K test, 1319 items, five-shot, exact match, scored by lm-evaluation-harness 0.4.9 offline with the same invocation. Standard errors are the tool's. Rows are the ledger's external-evaluation records 717 and 718.}
+\label{tab:p1-external}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Condition} & \textbf{Weights} & \textbf{Strict exact match} & \textbf{Flexible extract} \\
+\midrule
+base & Qwen3-0.6B & $0.4086 \pm 0.0135$ & $0.4064 \pm 0.0135$ \\
+adapter c-0045 & Qwen3-0.6B + LoRA (r=8, attention) & $0.4898 \pm 0.0138$ & $0.4913 \pm 0.0138$ \\
+\midrule
+difference & & $+0.0811$ & $+0.0849$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two alternative explanations are excluded by the record. Contamination of the test set is excluded by construction, as above, and by the hash-sealed pool manifest. A scoring artefact of the loop is excluded because the external number is produced by a tool the loop never calls, on a benchmark split the loop never reads. What the record does not exclude is that a 0.6B model distilled from a 4B teacher on the same task family improves for reasons that have nothing to do with the controller's selection: the counterfactual, a randomly chosen recipe from the same grammar trained for the same budget, is the ablation the next epoch pre-registers.
