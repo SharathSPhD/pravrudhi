@@ -16,7 +16,6 @@ from pathlib import Path
 
 from pravrudhi_kernel.ledger import LedgerWriter
 from pravrudhi_kernel.ledger.verify import verify
-from pravrudhi_kernel.ledger.writer import chain_hash
 
 
 def main(path: Path) -> None:
@@ -37,7 +36,6 @@ def main(path: Path) -> None:
     # the writer serialises via pydantic; rewrite the prefix through verify to be sure the bytes still chain
     res = verify(path)
     assert res.ok, res
-    it = iter(bad)
     cur = {"t": None}
     w = LedgerWriter.open(path, good[-1]["kernel_release"], clock=lambda: cur["t"])
     moved = []
