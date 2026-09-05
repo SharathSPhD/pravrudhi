@@ -49,8 +49,12 @@ function DemoImprove() {
 }
 
 export default function ImprovePage() {
-  if (IS_DEMO) return <DemoImprove />;
-  return <LiveImprove />;
+  // Decided after mount: the prerendered HTML has no window, so choosing here rather than at module load keeps
+  // the server output and the first client render identical.
+  const [mode, setMode] = useState<"unknown" | "demo" | "live">("unknown");
+  useEffect(() => setMode(IS_DEMO ? "demo" : "live"), []);
+  if (mode === "unknown") return <div className="h-48 animate-pulse rounded-lg bg-[var(--color-surface)]" />;
+  return mode === "demo" ? <DemoImprove /> : <LiveImprove />;
 }
 
 function LiveImprove() {

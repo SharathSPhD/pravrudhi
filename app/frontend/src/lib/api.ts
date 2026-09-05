@@ -6,10 +6,21 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, "") || "http://localhost:8008";
 
-// The public build never calls an engine: a browser blocks a public page from reaching localhost, so attempting it
-// only produces console errors and a broken first impression. In that build every read is served from a recorded
-// snapshot instead. See lib/demo.ts.
-export const IS_DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
+// Whether this page is a recording rather than a live engine.
+//
+// Decided at runtime, from where the page is being served, because that is what actually determines it: a browser
+// blocks a page on a public origin from reaching an engine on the visitor's machine, so a public page trying
+// anyway produces nothing but console errors. A page served by the engine itself is on localhost and is live.
+// NEXT_PUBLIC_DEMO forces the recording on for local preview of the public site.
+function detectDemo(): boolean {
+  if (process.env.NEXT_PUBLIC_DEMO === "1") return true;
+  if (typeof window === "undefined") return false;
+  if (process.env.NEXT_PUBLIC_API_BASE) return false;
+  const host = window.location.hostname;
+  return !(host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1");
+}
+
+export const IS_DEMO = detectDemo();
 
 export class ApiError extends Error {
   constructor(

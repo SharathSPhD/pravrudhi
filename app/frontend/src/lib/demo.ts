@@ -35,7 +35,7 @@ export interface DemoBundle {
   featured_run: { id: string; night: number; track: string; events: RunEvent[] };
 }
 
-export const DEMO = process.env.NEXT_PUBLIC_DEMO === "1";
+export { IS_DEMO as DEMO } from "./api";
 
 let cache: Promise<DemoBundle> | null = null;
 
