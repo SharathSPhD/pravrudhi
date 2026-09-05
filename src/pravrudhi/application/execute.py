@@ -247,12 +247,16 @@ def inherit_incumbent(root: Path, state: KernelState, model: str, log: Any = pri
     Read from the ledger alone: the last `promote` row on W3.adapter whose candidate was proposed for `model`, with the
     adapter located through the candidate's training spend row. A promoted candidate whose adapter directory is gone
     cannot be the incumbent; that case is logged and the base model is used."""
+    from pravrudhi_kernel.ledger.replay import withdrawn_observations
     from pravrudhi_kernel.ledger.verify import iter_events
 
     target: dict[str, str] = {}
     run_ids: dict[str, str] = {}
     last: str | None = None
+    withdrawn = withdrawn_observations(root / "research" / "ledger.jsonl")
     for ev in iter_events(root / "research" / "ledger.jsonl"):
+        if ev.kind == "promote" and ev.seq in withdrawn:
+            continue
         cid = ev.candidate_id
         if ev.kind == "propose" and cid and ev.bucket is not None:
             target[cid] = ev.bucket.target_model

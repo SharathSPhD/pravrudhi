@@ -10,10 +10,10 @@
 | c-0057 | retry_policy | retries | yes | -0.110 | prune |  | pruned | asiddha |  |
 | c-0058 | sampling_policy | sampling | yes | -0.190 | prune |  | pruned | asiddha |  |
 | c-0059 | prompt_only | system_prompt | yes |  |  |  | proposed |  |  |
-| c-0060 | retry_policy | retries | yes | +0.090 | confirm |  | promoted |  |  |
+| c-0060 | retry_policy | retries | yes | +0.090 | confirm |  | promotion_withdrawn |  |  |
 | c-0061 | sampling_policy | sampling | yes | -0.150 | prune |  | pruned | asiddha |  |
 
-Candidates proposed: 8; selected: 8; outcomes: promoted=1, proposed=1, pruned=6; GPU-hours charged (spend rows): 0.16.
+Candidates proposed: 8; selected: 8; outcomes: promotion_withdrawn=1, proposed=1, pruned=6; GPU-hours charged (spend rows): 0.16.
 
 Audits:
 

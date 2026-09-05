@@ -28,3 +28,16 @@ def test_withdrawn_observation_is_dropped(tmp_path):
     after = replay(p)
     assert after.candidates["c-0001"].n_obs == 1 and after.candidates["c-0001"].xs == [-0.055]
     assert after.sublations == 1 and verify(p).ok
+
+
+def test_withdrawn_promotion_is_not_a_promotion(tmp_path):
+    p = tmp_path / "ledger.jsonl"
+    w = LedgerWriter.open(p, "0.1.0")
+    w.append("propose", "proposer", {"op": "harness"}, epoch=0, night=1, candidate_id="c-0060",
+             surface="H3.prompt", bucket=B, provenance="agama")
+    pr = w.append("promote", "broker", {"tier": "T2"}, epoch=0, night=1, candidate_id="c-0060", surface="H3.prompt")
+    assert replay(p).candidates["c-0060"].promoted
+    w.append("sublate", "auditor", {"kind": "promotion_withdrawn", "target_seq": pr.seq, "reason": "external tier"},
+             epoch=0, night=1, candidate_id="c-0060", surface="H3.prompt", provenance="pratyaksha")
+    st = replay(p)
+    assert not st.candidates["c-0060"].promoted and st.promoted == {} and verify(p).ok

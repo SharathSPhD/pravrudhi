@@ -373,9 +373,12 @@ def run_harness_night(
     w = LedgerWriter.open(ledger, "0.1.0")
     from pravrudhi_kernel.ledger.verify import iter_events
 
-    # incumbent = latest promoted harness on this surface, else baseline
+    # incumbent = latest promoted harness on this surface whose promotion was not withdrawn, else baseline
+    from pravrudhi_kernel.ledger.replay import withdrawn_observations
+
+    withdrawn = withdrawn_observations(ledger)
     for ev in iter_events(ledger):
-        if ev.kind == "promote" and ev.surface == "H3.prompt" and ev.payload.get("harness"):
+        if ev.kind == "promote" and ev.surface == "H3.prompt" and ev.payload.get("harness") and ev.seq not in withdrawn:
             inc_parsed = parse_harness(ev.payload["harness"])
             if not isinstance(inc_parsed, str):
                 ctx.incumbent, ctx.incumbent_id = inc_parsed, str(ev.candidate_id)

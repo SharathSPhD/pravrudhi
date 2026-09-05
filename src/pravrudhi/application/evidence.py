@@ -138,6 +138,7 @@ def render_first_night(ledger: Path, night: int, track: str = "lora") -> str:
     cands: dict[str, dict[str, Any]] = {}
     audits: list[dict[str, Any]] = []
     spent = 0.0
+    withdrawn = withdrawn_observations(ledger)
     for ev in track_events(ledger, track):
         if ev.night != night:
             continue
@@ -167,7 +168,7 @@ def render_first_night(ledger: Path, night: int, track: str = "lora") -> str:
             cands[cid]["outcome"] = "pruned"
             cands[cid]["hetvabhasa"] = p.get("hetvabhasa")
         elif ev.kind == "promote" and cid in cands:
-            cands[cid]["outcome"] = "promoted"
+            cands[cid]["outcome"] = "promotion_withdrawn" if ev.seq in withdrawn else "promoted"
         elif ev.kind == "skip" and cid in cands:
             cands[cid]["outcome"] = f"skipped:{p.get('reason')}"
         elif ev.kind == "audit":

@@ -196,11 +196,15 @@ def _apply(st: State, ev: LedgerEvent) -> None:
     st.seq, st.t_last, st.ledger_head = ev.seq, ev.t, ev.this_hash
 
 
+WITHDRAWING_KINDS = frozenset({"observation_withdrawn", "promotion_withdrawn"})
+
+
 def withdrawn_observations(path: Path) -> set[int]:
-    """Seqs of observe rows withdrawn by `sublate{kind: observation_withdrawn, target_seq}` rows (ADR-0015)."""
+    """Seqs of rows withdrawn by `sublate{kind: observation_withdrawn | promotion_withdrawn, target_seq}` rows
+    (ADR-0015). A withdrawn promotion no longer makes its candidate the incumbent; the rows stay in the chain."""
     out: set[int] = set()
     for ev in iter_events(Path(path)):
-        if ev.kind == "sublate" and ev.payload.get("kind") == "observation_withdrawn":
+        if ev.kind == "sublate" and ev.payload.get("kind") in WITHDRAWING_KINDS:
             try:
                 out.add(int(ev.payload["target_seq"]))
             except (KeyError, TypeError, ValueError):
@@ -212,7 +216,7 @@ def replay(path: Path) -> State:
     st = State()
     withdrawn = withdrawn_observations(path)
     for ev in iter_events(Path(path)):
-        if ev.kind == "observe" and ev.seq in withdrawn:
+        if ev.kind in ("observe", "promote") and ev.seq in withdrawn:
             st.seq, st.t_last, st.ledger_head = ev.seq, ev.t, ev.this_hash  # the row stays in the chain
             continue
         _apply(st, ev)
