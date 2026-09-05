@@ -123,3 +123,31 @@ difference & & $+0.0811$ & $+0.0849$ \\
 \end{table}
 
 Two alternative explanations are excluded by the record. Contamination of the test set is excluded by construction, as above, and by the hash-sealed pool manifest. A scoring artefact of the loop is excluded because the external number is produced by a tool the loop never calls, on a benchmark split the loop never reads. What the record does not exclude is that a 0.6B model distilled from a 4B teacher on the same task family improves for reasons that have nothing to do with the controller's selection: the counterfactual, a randomly chosen recipe from the same grammar trained for the same budget, is the ablation the next epoch pre-registers.
+
+\subsection{The harness track: an internal gain that the external tier refused}
+\label{sec:results-harness}
+
+% Source: research/prereg/variance_harness.json, docs/evidence/P1_harness_night1.md, docs/evidence/P1_external.md (ledger rows 719, 900), ledger rows 878 (promote) and 928 (sublate), ADR-0017, ADR-0018.
+The harness track holds the model fixed (Qwen3-1.7B) and lets the loop mutate the scaffold around it: system prompt, user template, feedback template, retry count with visible-test feedback, best-of-$n$ sampling, temperature, generation length. The loop's pool is MBPP+ (378 problems with hidden tests, sealed with their tests) and the hidden tests run inside the sandbox container without network. The A/A study of the initial harness gave a pooled MBPP+ pass rate of 0.504 over nine runs with $\sigma_{\mathrm{seed}}=0.0105$ and $\sigma_{\mathrm{rot}}=0.0486$: the seed noise of a deterministic-leaning harness at temperature 0.2 is small, and the between-rotation spread is five times larger, which the paired design absorbs.
+
+Night 1 needed five attempts to produce a candidate at all. The first two failed because the proposer was shown the adapter grammar instead of the harness grammar; the next two because the proposer model returned its JSON array cut off inside an object with a clean stop, so that no candidate parsed. The fifth attempt constrained decoding to the harness schema through the serving layer's grammar compiler and produced eight admissible candidates in one call (1173 completion tokens, 5.1\,s). All eight, however, shared one template that ended in an unsupported placeholder, \texttt{assert \{example\}}, which the agent runner leaves in place; under it the fixed model tends to answer with assertions rather than with a function definition. Six candidates were pruned on their first draw at $-0.05$ to $-0.31$ against the initial harness. One, c-0060, a retry policy with three attempts at temperature 0.6, crossed the efficacy boundary at a single draw of $+0.090$ (0.550 against 0.460 on the same rotation and seed) and was promoted. The eighth was never decided: its draw of $-0.31$ overflowed the closed-form e-value and stopped the night, a defect since corrected by computing the e-value in log space.
+
+The external tier settled the promotion. Under EvalPlus on HumanEval+ (164 problems the loop never reads, same model, same invocation, seed 0), the initial harness passes 0.591 of the problems (97 of 164; base tests 0.634) and the promoted harness 0.085 (14 of 164). Table~\ref{tab:h-external} reports both rows. The mechanism is visible in the samples: MBPP+ statements end with an assert, so a retry policy receives visible-test failures and repairs the echoed assertion into a function; HumanEval+ statements carry doctest examples and no assert lines, so no retry fires and the echoed assertions stand. The internal gain was real on the pool and specific to a property of the pool. The promotion was withdrawn by a sublation row that names the external rows as its reason; the initial harness is again the reference, the promotion and its withdrawal both remain in the chain, and the night's evidence document shows the candidate as promoted then withdrawn.
+
+\begin{table}[t]
+\centering
+\caption{External tier for the harness track: HumanEval+ (164 problems), EvalPlus 0.3.1, fixed model Qwen3-1.7B, seed 0, same invocation. Half-widths are Wilson 95\,\% intervals on the pass count. Rows are the ledger's external-evaluation records 719 and 900.}
+\label{tab:h-external}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Condition} & \textbf{Harness} & \textbf{HumanEval+ pass@1} & \textbf{HumanEval base tests} \\
+\midrule
+initial & prompt-only, temperature 0.2, no retries & $0.591 \pm 0.074$ & 0.634 \\
+promoted c-0060 & retry policy (3), temperature 0.6, echo-prone template & $0.085 \pm 0.043$ & 0.085 \\
+\midrule
+difference & & $-0.506$ & $-0.549$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two consequences were drawn before the second harness night. The grammar now rejects any template placeholder other than the substituted ones, so the class of candidate that produced the artefact cannot be proposed, and the proposer's prompt states how replies are scored and shows the incumbent harness. The boundary now requires two seeds before an efficacy crossing may confirm on either track, a threshold move recorded as such: a single draw four seed deviations from zero is exactly the event a candidate with a larger seed variance than the frozen floor produces, and one more paired evaluation lets the adaptive variance see it. The night-4 promotion on the model track was also made at a single seed; its 400-item confirmation and its external gain held, so the rule is a guard on future promotions rather than a repair of that one.
