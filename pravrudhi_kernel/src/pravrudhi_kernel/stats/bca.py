@@ -95,7 +95,8 @@ def bca_ci(
     out = []
     for zq in (_ndtri(alpha / 2), _ndtri(1 - alpha / 2)):
         adj = z0 + (z0 + zq) / (1 - a * (z0 + zq))
-        out.append(float(np.quantile(boots, min(max(_ndtr(adj), 0.0), 1.0))))
+        q_adj = _ndtr(adj) if np.isfinite(adj) else _ndtr(zq)  # degenerate stream (ADR-0014): percentile fallback
+        out.append(float(np.quantile(boots, min(max(q_adj, 0.0), 1.0))))
     lo, hi = sorted(out)
     return lo, hi
 
@@ -136,6 +137,7 @@ def boot_ci_bca_g(
     out = []
     for zq in (_ndtri(alpha / 2), _ndtri(1 - alpha / 2)):
         adj = z0 + (z0 + zq) / (1 - a * (z0 + zq))
-        out.append(float(np.quantile(boots, min(max(_ndtr(adj), 0.0), 1.0))))
+        q_adj = _ndtr(adj) if np.isfinite(adj) else _ndtr(zq)  # degenerate stream (ADR-0014): percentile fallback
+        out.append(float(np.quantile(boots, min(max(q_adj, 0.0), 1.0))))
     lo, hi = sorted(out)
     return lo, hi
