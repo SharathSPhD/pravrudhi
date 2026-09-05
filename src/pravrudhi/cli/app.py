@@ -230,6 +230,11 @@ def evidence_cmd(
         nights = tuple(int(x) for x in name.removeprefix("summary").split("-") if x)
         text = render_nights_summary(root / "research" / "ledger.jsonl", nights)
         dest = root / "docs" / "evidence" / f"P1_summary_{'_'.join(str(n) for n in nights)}.json"
+    elif name == "sensors":
+        from pravrudhi.application.sensors import render_sensors
+
+        text = render_sensors(root / "research" / "ledger.jsonl")
+        dest = root / "docs" / "evidence" / "H6_sensor_screen.md"
     elif name == "external":
         from pravrudhi.application.external import render_external
 
