@@ -16,6 +16,32 @@ You may edit anything under `harness/` (prompts, templates), `research/prereg/*.
 
 The loop's own instrument selects candidates; it does not by itself prove an improvement on a public benchmark. Two wrappers run third-party scorers with the same invocation before and after a loop: `scripts/ext_eval.sh` runs lm-evaluation-harness inside the scorer image (base model, or base plus an exported adapter), and `scripts/ext_humaneval.sh` runs your agent harness on HumanEval+ and scores it with EvalPlus. Their result files enter the ledger by hash with `pravrudhi ext-record` (tier `external`, never pratyakṣa in the kernel sense), and `pravrudhi evidence external` renders the table and the paired differences from those rows alone. Quote external numbers from that document, with the standard errors the scorers report.
 
+## More machines, and coding agents
+
+Neither is required: one machine and no coding agents is the default, and a fresh install has no fleet file at all.
+
+`pravrudhi hosts list` probes every enrolled machine and reports what it can actually do, measured on the machine
+rather than declared in a config. `pravrudhi hosts add <name> --address <host> --user <you>` enrols another over
+SSH and refuses to record one that does not answer the probe. `pravrudhi hosts place train` says which machine
+would take a job and why each other machine would not. A machine with a CUDA GPU and a container runtime can
+train; an Apple Silicon machine can serve open-weight models through Metal but cannot train, because the kernel
+admits only container-isolated runs.
+
+The first thing a second machine buys you is `--proposer-endpoint`. The proposer is the largest model in the loop
+and on a single GPU it competes for the memory the trainee needs; pointed at another host serving an
+OpenAI-compatible endpoint, the training accelerator never has to share.
+
+`pravrudhi agents` lists the coding agents that can run here and the specific reason for any that cannot. Agents
+work only inside their own git worktree, a task declares the paths it may touch, and a diff that strays outside
+that declaration or touches the kernel, the ledger, sealed state or the pre-registration files is rejected whole.
+Hosted assistants improve code only; weight-level distillation teachers stay open-weight models.
+
+## Checking an installation
+
+`pravrudhi doctor` reports whether this installation is ready to run: initialised, ledger chain verifying, docker
+present, at least one sealed pool, pre-registration files in place. It exits non-zero if any check failed, so it
+can gate a script.
+
 ## Sign-off and export
 
 Promotion to incumbent inside a night is automatic and reversible by replay; merging an adapter into base weights, or shipping it, is a human act. Sign a pack through the API with the `X-Pravrudhi-Operator` header (agent identities are refused) or a gate with `pravrudhi gate sign`, then `pravrudhi export <dir>` copies the green adapter with a provenance manifest naming the candidate, the ledger head and the adapter hash.
