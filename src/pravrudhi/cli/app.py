@@ -213,6 +213,10 @@ def evidence_cmd(
     elif name == "summary":
         text = render_nights_summary(root / "research" / "ledger.jsonl", (1, 2))
         dest = root / "docs" / "evidence" / "L4_summary.json"
+    elif name.startswith("summary"):
+        nights = tuple(int(x) for x in name.removeprefix("summary").split("-") if x)
+        text = render_nights_summary(root / "research" / "ledger.jsonl", nights)
+        dest = root / "docs" / "evidence" / f"P1_summary_{'_'.join(str(n) for n in nights)}.json"
     elif name.startswith("night"):
         text = render_first_night(root / "research" / "ledger.jsonl", int(name.removeprefix("night") or "1"))
         dest = root / "docs" / "evidence" / f"L4_{name}.md"

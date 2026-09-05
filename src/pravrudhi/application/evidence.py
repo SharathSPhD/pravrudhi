@@ -218,7 +218,12 @@ def render_nights_summary(ledger: Path, nights: tuple[int, ...]) -> str:
         "paired_delta_max": max(all_d) if all_d else None,
         "pruned": len(prunes),
         "pruned_by_hetvabhasa": dict(Counter(str(r.payload.get("hetvabhasa")) for r in prunes)),
-        "confirmed": sum(1 for r in obs_c if (r.payload.get("stats") or {}).get("boundary") == "confirm"),
+        "confirmed": sum(
+            1
+            for r in obs_c
+            if (r.payload.get("stats") or {}).get("boundary") == "confirm" and r.payload.get("study") != "paired_confirm"
+        ),
+        "paired_confirm_studies": sum(1 for r in obs_c if r.payload.get("study") == "paired_confirm"),
         "promoted": sum(1 for r in rows if r.kind == "promote"),
         "continuing_at_close": {
             c: {"deltas": v, "mean": round(sum(v) / len(v), 4), "n": len(v)} for c, v in xs.items() if c not in pruned_ids

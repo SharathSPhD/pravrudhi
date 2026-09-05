@@ -1,0 +1,113 @@
+{
+  "brier_mean": 0.192,
+  "brier_n": 20,
+  "candidate_observe_rows": 35,
+  "candidates_observed": 16,
+  "confirmed": 1,
+  "continuing_at_close": {
+    "c-0031": {
+      "deltas": [
+        0.010000000000000009,
+        0.06000000000000005,
+        -0.020000000000000018,
+        0.015000000000000013
+      ],
+      "mean": 0.0163,
+      "n": 4
+    },
+    "c-0032": {
+      "deltas": [
+        0.030000000000000027,
+        0.010000000000000009,
+        0.0
+      ],
+      "mean": 0.0133,
+      "n": 3
+    },
+    "c-0035": {
+      "deltas": [
+        0.019999999999999907,
+        0.050000000000000044,
+        -0.020000000000000018,
+        0.010000000000000009
+      ],
+      "mean": 0.015,
+      "n": 4
+    },
+    "c-0037": {
+      "deltas": [
+        0.019999999999999907,
+        -0.020000000000000018,
+        0.040000000000000036,
+        0.01750000000000007
+      ],
+      "mean": 0.0144,
+      "n": 4
+    },
+    "c-0045": {
+      "deltas": [
+        0.09000000000000008
+      ],
+      "mean": 0.09,
+      "n": 1
+    }
+  },
+  "decorative_cv_G_max": 1.104325038533354,
+  "decorative_cv_G_min": 0.5433218397735601,
+  "decorative_mi_bits_max": 0.5184445166429477,
+  "gamma_first": {
+    "epi": 0.4249144277045467,
+    "prag": 0.8963217700087178
+  },
+  "gamma_last": {
+    "epi": 0.15,
+    "prag": 0.705778755777057
+  },
+  "gpu_h_spend_rows": 2.086,
+  "incumbent_observe_rows": 35,
+  "job_failed": 0,
+  "ledger_seq_range": [
+    349,
+    678
+  ],
+  "night_start_prereg_sha256": [
+    {
+      "canaries": "6c636ec0e0c62740f73cbf0209ed05237241313e62bf624fd12072992da2a7e7",
+      "lora_night": "c748fbc97c04ff3a40591a51da9a5b20d61b25be6366ce33883e7879e27696d0",
+      "variance": "a7c3bc909f231d59f7a020b554e8a7a271ca0b0da0a9f8d85ef60e9d1b10d917"
+    }
+  ],
+  "nights": [
+    3,
+    4
+  ],
+  "observe_rows_all_kernel_pratyaksha_container": true,
+  "paired_confirm_studies": 3,
+  "paired_delta_max": 0.09000000000000008,
+  "paired_delta_mean": 0.0031,
+  "paired_delta_min": -0.06500000000000006,
+  "paired_delta_n": 35,
+  "paired_delta_sd": 0.0298,
+  "pool_exhausted": 0,
+  "promoted": 1,
+  "proposed": 16,
+  "proposed_by_strategy": {
+    "grpo_verifiable": 8,
+    "sft_rejection": 8
+  },
+  "pruned": 11,
+  "pruned_by_hetvabhasa": {
+    "asiddha": 11
+  },
+  "rethink_checkpoints": 0,
+  "strategy_switch_rate_last": {
+    "kind": "strategy_switch_rate",
+    "n": 97,
+    "severity": "info",
+    "switches": 48,
+    "wilson": [
+      0.3974565165320967,
+      0.5926269410885678
+    ]
+  }
+}
