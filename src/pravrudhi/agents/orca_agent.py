@@ -14,6 +14,7 @@ one place. The advantage of keeping it optional is that nothing in the loop stop
 from __future__ import annotations
 
 import json
+import shlex
 import shutil
 import subprocess
 import time
@@ -31,12 +32,27 @@ def _orca(args: list[str], timeout_s: int = 120) -> tuple[int, str, str]:
     return p.returncode, p.stdout, p.stderr
 
 
-def _json_or_none(text: str) -> dict | None:
+def _envelope(text: str) -> dict | None:
+    """Orca replies with {id, ok, result, _meta}; return `result` when the call succeeded."""
     try:
         v = json.loads(text)
-        return v if isinstance(v, dict) else None
     except ValueError:
         return None
+    if not isinstance(v, dict):
+        return None
+    if v.get("ok") is False:
+        return {"_error": (v.get("error") or {}).get("message", "orca call failed")}
+    r = v.get("result")
+    return r if isinstance(r, dict) else v
+
+
+def _dig(d: dict | None, *path: str):
+    cur: object = d or {}
+    for key in path:
+        if not isinstance(cur, dict):
+            return None
+        cur = cur.get(key)
+    return cur
 
 
 class OrcaAgent(GitWorktreeMixin):
@@ -65,7 +81,7 @@ class OrcaAgent(GitWorktreeMixin):
         return self.runtime_ready()
 
     def register_repo(self) -> None:
-        _orca(["repo", "add", str(self.root)])
+        _orca(["repo", "add", "--path", str(self.root), "--json"])
 
     def create_workspace(self, task_id: str, base_ref: str = "HEAD") -> Path:
         """Ask Orca for a worktree; fall back to a plain git worktree only if Orca declines to report a path."""
@@ -76,30 +92,48 @@ class OrcaAgent(GitWorktreeMixin):
             ["worktree", "create", "--name", f"pravrudhi-{task_id}", "--repo", f"path:{self.root}",
              "--base-branch", base_ref, "--json"]
         )
-        info = _json_or_none(out)
-        path = (info or {}).get("path") or (info or {}).get("worktreePath")
+        info = _envelope(out)
+        path = _dig(info, "worktree", "path") or (info or {}).get("path")
         if not path:
             raise OrcaUnavailable(f"orca worktree create returned no path (exit {code}): {(err or out)[:300]}")
         return Path(path)
 
+    def agent_command(self, prompt: str) -> list[str]:
+        """The headless invocation Orca runs in the worktree's terminal."""
+        if self.agent_id == "claude":
+            return ["claude", "-p", prompt, "--output-format", "json", "--allowed-tools", "Read,Edit,Write,Grep,Glob,Bash"]
+        if self.agent_id == "codex":
+            return ["codex", "exec", "--sandbox", "workspace-write", "--skip-git-repo-check", prompt]
+        raise OrcaUnavailable(f"no headless invocation known for agent {self.agent_id!r}")
+
     def run(self, prompt: str, workspace: Path, timeout_s: int | None = None) -> AgentRun:
+        """Run the agent in an Orca-managed terminal and wait for the process to exit.
+
+        Orca owns the worktree and the terminal, so the session is visible and reviewable in Orca alongside any
+        other agent. Waiting on exit rather than on a TUI going idle keeps the result deterministic, which an
+        unattended loop needs; the agent's own headless mode supplies the structured output.
+        """
         timeout_s = timeout_s or self.timeout_s
         t0 = time.monotonic()
+        cmd = " ".join(shlex.quote(c) for c in self.agent_command(prompt))
         code, out, err = _orca(
-            ["terminal", "create", "--worktree", f"path:{workspace}", "--title", f"pravrudhi-{self.agent_id}", "--json"]
+            ["terminal", "create", "--worktree", f"path:{workspace}", "--title", f"pravrudhi-{self.agent_id}",
+             "--command", cmd, "--json"],
+            timeout_s=180,
         )
-        info = _json_or_none(out) or {}
-        handle = info.get("terminal") or info.get("handle") or info.get("id")
+        info = _envelope(out) or {}
+        handle = _dig(info, "terminal", "handle") or info.get("handle")
         if not handle:
+            reason = info.get("_error") or (err or out)[:300]
             return AgentRun(agent=self.name, ok=False, exit_code=code or 1, wall_s=time.monotonic() - t0,
-                            text="", workspace=workspace, stderr_tail=(err or out)[-2000:])
+                            text="", workspace=workspace, stderr_tail=str(reason))
         self._terminals[str(workspace)] = str(handle)
-        _orca(["terminal", "send", "--terminal", str(handle), "--text", prompt, "--enter", "--json"])
-        _orca(["terminal", "wait", "--terminal", str(handle), "--for", "tui-idle",
-               "--timeout-ms", str(int(timeout_s * 1000)), "--json"], timeout_s=timeout_s + 60)
-        rcode, rout, rerr = _orca(["terminal", "read", "--terminal", str(handle), "--json"])
-        payload = _json_or_none(rout)
-        text = json.dumps(payload) if payload else rout
+        _orca(["terminal", "wait", "--terminal", str(handle), "--for", "exit",
+               "--timeout-ms", str(int(timeout_s * 1000)), "--json"], timeout_s=timeout_s + 120)
+        rcode, rout, rerr = _orca(["terminal", "read", "--terminal", str(handle), "--limit", "4000", "--json"], timeout_s=180)
+        payload = _envelope(rout) or {}
+        rows = payload.get("lines") or payload.get("rows") or payload.get("output")
+        text = "\n".join(r if isinstance(r, str) else json.dumps(r) for r in rows) if isinstance(rows, list) else rout
         return AgentRun(agent=self.name, ok=rcode == 0, exit_code=rcode, wall_s=time.monotonic() - t0,
                         text=text, workspace=workspace, session_id=str(handle), stderr_tail=rerr[-2000:])
 
