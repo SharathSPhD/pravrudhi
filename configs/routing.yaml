@@ -1,42 +1,46 @@
 # What each route costs and what it can do, as far as this project has measured it.
 #
-# Relative cost is per input token, normalised so the cheapest available route is 1.0. It is a ratio rather than a
-# price because prices change and ratios move more slowly; a route's absolute bill is not something this repository
-# can observe. Update these when the provider's rate card changes, and record the date.
+# Relative cost is normalised so the cheapest usable route is 1.0. It is a ratio rather than a price because prices
+# change and ratios move more slowly. The Claude figures come from `total_cost_usd` in the headless client's own
+# JSON envelope on an identical trivial prompt: haiku 0.0719, sonnet 0.2117. The codex figure is an estimate from
+# token volume, not a reported price, and is marked as such.
 #
-# `agent` and `model` are the pair the agent registry understands. `tiers` names the difficulty tiers a route is
-# permitted to serve at all; the router chooses among permitted routes by measured outcome, never outside them.
+# VERIFIED 2026-09-05, and the first attempt at this got it wrong: on this ChatGPT-backed Codex account the CLI
+# accepts `gpt-6-astra` and NOTHING else. Every other name tried - gpt-6, gpt-6-mini, gpt-6-astra-mini,
+# codex-mini-latest, gpt-5.1-codex, gpt-5.1-codex-mini, gpt-5-codex - is refused with
+# "not supported when using Codex with a ChatGPT account". A first probe appeared to show four of them working; it
+# was matching the wrong substring in the CLI's output, and two dispatches were wasted on the strength of it.
+# Probe by checking for the refusal string, never by looking for a success token.
+#
+# The consequence is that cost cannot be managed by choosing a cheaper model on codex. It is managed by sending
+# work that does not need the strongest model to Claude Code instead, where a cheaper model does exist.
 updated: 2026-09-05
-minimum_trials: 3          # below this a route has no measured record and the declared order decides
-confidence: 0.95           # interval used when asking whether one route is distinguishably worse than another
+minimum_trials: 3
+confidence: 0.95
 
 routes:
-  - id: astra
-    agent: codex
-    model: gpt-6-astra
-    relative_cost: 10.0
-    tiers: [critical, design, standard, mechanical]
-    note: >-
-      The strongest available and the most expensive. Twenty sessions in one day consumed seven million input
-      tokens while it was the silent default for three of the four tiers.
-
-  - id: astra-mini
-    agent: codex
-    model: gpt-6-astra-mini
+  - id: haiku
+    agent: claude-code
+    model: haiku
     relative_cost: 1.0
     tiers: [mechanical, standard]
-
-  - id: gpt6-mini
-    agent: codex
-    model: gpt-6-mini
-    relative_cost: 1.5
-    tiers: [mechanical, standard, design]
+    note: Cheapest route that can actually drive an agent loop.
 
   - id: sonnet
     agent: claude-code
     model: sonnet
-    relative_cost: 4.0
-    tiers: [design, standard, critical]
+    relative_cost: 2.9
+    tiers: [mechanical, standard, design, critical]
+
+  - id: astra
+    agent: codex
+    model: gpt-6-astra
+    relative_cost: 10.0
+    tiers: [design, critical]
+    note: >-
+      The strongest available and the only model this account's codex will accept. Twenty sessions in one day
+      consumed seven million input tokens while it was the silent default for three of the four tiers. It is no
+      longer permitted below the design tier.
 
   - id: local-glm
     agent: orca:local
@@ -46,12 +50,10 @@ routes:
     note: >-
       Costs nothing and, on this evidence, does nothing: it produced no change at all on two tasks a hosted agent
       completed in minutes. Serving text and driving an agentic tool-calling loop are different capabilities.
-      Permitted at no tier until that is disproved by a trial, which the router will never run on its own.
+      Permitted at no tier until that is disproved by a trial the router will never run on its own.
 
-# Declared preference per tier, used until a route has `minimum_trials` outcomes at that tier. Ordered cheapest
-# first among routes believed capable, which is a guess and is labelled as one.
 declared:
-  mechanical: [astra-mini, gpt6-mini, astra]
-  standard: [gpt6-mini, astra-mini, sonnet, astra]
-  design: [sonnet, gpt6-mini, astra]
-  critical: [astra, sonnet]
+  mechanical: [haiku, sonnet]
+  standard: [haiku, sonnet]
+  design: [sonnet, astra]
+  critical: [sonnet, astra]

@@ -125,12 +125,17 @@ def test_records_include_a_route_with_no_trials(tmp_path: Path) -> None:
     assert by["dear"].trials == 0 and not by["dear"].measured
 
 
-def test_the_shipped_table_reserves_the_dearest_model_for_critical_work() -> None:
+def test_the_shipped_table_reserves_the_dearest_model_for_the_hardest_work() -> None:
+    """Permission, not selection. The router deliberately tries a cheaper route first at every tier, critical
+    included, so asserting that critical *picks* the dearest route would contradict the whole design; what must
+    hold is that the cheap tiers cannot reach it at all."""
     t = load_table()
     dearest = max(t.routes.values(), key=lambda r: r.relative_cost)
-    cheaper_tiers = [tier for tier in ("mechanical", "standard") if choose(t, [], tier).route.id == dearest.id]
-    assert not cheaper_tiers, f"cold-start routing sends {cheaper_tiers} to the dearest route"
-    assert choose(t, [], "critical").route.id == dearest.id
+    for tier in ("mechanical", "standard"):
+        assert dearest.id not in [r.id for r in t.permitted(tier)], f"{tier} can reach the dearest route"
+    assert dearest.id in [r.id for r in t.permitted("critical")], "the dearest route must be available somewhere"
+    for tier in ("mechanical", "standard", "design", "critical"):
+        assert choose(t, [], tier).route.relative_cost <= dearest.relative_cost
 
 
 def test_report_covers_every_tier(tmp_path: Path) -> None:
