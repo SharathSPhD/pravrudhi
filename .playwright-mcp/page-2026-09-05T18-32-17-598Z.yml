@@ -1,0 +1,64 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - complementary [ref=f4e3]:
+      - generic [ref=f4e4]:
+        - generic [ref=f4e5]: Pravrudhi
+        - paragraph [ref=f4e6]: Improve your model or your agent harness, on your hardware, while you watch.
+      - navigation [ref=f4e7]:
+        - link "Improve" [ref=f4e8] [cursor=pointer]:
+          - /url: /
+        - link "Objectives" [ref=f4e12] [cursor=pointer]:
+          - /url: /objectives
+        - link "Runs" [ref=f4e17] [cursor=pointer]:
+          - /url: /runs
+        - link "Models" [ref=f4e22] [cursor=pointer]:
+          - /url: /models
+        - link "Machines" [ref=f4e27] [cursor=pointer]:
+          - /url: /machines
+        - link "Settings" [ref=f4e31] [cursor=pointer]:
+          - /url: /settings
+        - link "Install" [ref=f4e35] [cursor=pointer]:
+          - /url: /install
+    - generic [ref=f4e39]:
+      - generic [ref=f4e44]:
+        - text: Recorded demo — real runs from an RTX 5090. To improve your own model,
+        - link "install the engine" [ref=f4e45] [cursor=pointer]:
+          - /url: /install
+        - text: and open it locally.
+      - main [ref=f4e46]:
+        - generic [ref=f4e47]:
+          - generic [ref=f4e48]:
+            - heading "Machines" [level=1] [ref=f4e49]
+            - paragraph [ref=f4e50]: This machine, and any others enrolled to run work.
+          - generic [ref=f4e52]:
+            - generic [ref=f4e53]:
+              - generic [ref=f4e54]: the author's workstation
+              - generic [ref=f4e59]:
+                - generic [ref=f4e60]:
+                  - term [ref=f4e61]: OS / arch
+                  - definition [ref=f4e62]: Linux / x86_64
+                - generic [ref=f4e63]:
+                  - term [ref=f4e64]: Accelerator
+                  - definition [ref=f4e65]: cuda — NVIDIA GeForce RTX 5090
+                - generic [ref=f4e66]:
+                  - term [ref=f4e67]: Usable memory
+                  - definition [ref=f4e68]: 31.8 GB
+                - generic [ref=f4e69]:
+                  - term [ref=f4e70]: Can train
+                  - definition [ref=f4e71]: "yes"
+            - generic [ref=f4e72]:
+              - generic [ref=f4e73]: a Mac mini
+              - generic [ref=f4e78]:
+                - generic [ref=f4e79]:
+                  - term [ref=f4e80]: OS / arch
+                  - definition [ref=f4e81]: Darwin / arm64
+                - generic [ref=f4e82]:
+                  - term [ref=f4e83]: Accelerator
+                  - definition [ref=f4e84]: metal — Apple M4
+                - generic [ref=f4e85]:
+                  - term [ref=f4e86]: Usable memory
+                  - definition [ref=f4e87]: 17.8 GB
+                - generic [ref=f4e88]:
+                  - term [ref=f4e89]: Can train
+                  - definition [ref=f4e90]: "no"
+  - alert [ref=f4e91]
