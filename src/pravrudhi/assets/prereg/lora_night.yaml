@@ -1,7 +1,7 @@
 # First-night constants for the LoRA target (frozen 2026-09-04). Changes only by ADR. Read by the engine, never by kernel functions.
-version: 1
-model: Qwen/Qwen3-4B
-bench: gsm8k-test
+version: 2               # 2026-09-05: ADR-0007 decision B+C and ADR-0009 (operator goal: a converging system)
+model: Qwen/Qwen3-1.7B   # trainee with headroom; Qwen/Qwen3-4B stays on disk as the distillation teacher
+bench: gsm8k-trainB      # 3500 fresh items (train rows 3500-6999); gsm8k-test retired to confirmation-only
 proposer:
   gguf: Qwen3-30B-A3B-Q4_K_M.gguf
   k_candidates: 12
@@ -22,7 +22,7 @@ anchors:
   n: 200
 evaluation:
   k_items: 100
-  exposure_cap: 3
+  exposure_cap: 4
   temperature: 0.7
   max_new_tokens: 512
   batch_size: 32

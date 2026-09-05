@@ -204,7 +204,7 @@ def ensure_samples(ctx: NightContext, w: LedgerWriter, teacher: str = "incumbent
         epoch=0,
         night=ctx.night,
     )
-    ctx.log(f"sampling: {len(kept)}/{n_total} verified-correct samples kept")
+    ctx.log(f"sampling ({teacher}): {len(kept)}/{n_total} verified-correct samples kept")
     ctx.kept_samples[teacher] = kept
     return kept
 
