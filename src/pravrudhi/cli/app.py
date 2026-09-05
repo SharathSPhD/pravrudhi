@@ -430,3 +430,66 @@ def agents_cmd(
         return
     for r in rows:
         typer.echo(f"{r.name:16} {'ready' if r.available else 'unavailable':12} {r.reason}")
+
+
+hosts_app = typer.Typer(help="Machines this engine can place work on. A single machine needs no configuration.")
+app.add_typer(hosts_app, name="hosts")
+
+
+@hosts_app.command("list")
+def hosts_list_cmd(
+    root: Path = ROOT_OPT,
+    json_out: bool = typer.Option(False, "--json", help="machine-readable output"),
+) -> None:
+    """Probe every enrolled machine and report what it can actually do."""
+    from pravrudhi.hosts.fleet import fleet_report, render_fleet
+
+    typer.echo(json.dumps(fleet_report(root), indent=2) if json_out else render_fleet(root))
+
+
+@hosts_app.command("add")
+def hosts_add_cmd(
+    name: str = typer.Argument(..., help="short name for the machine, e.g. mac-mini"),
+    address: str = typer.Option("", "--address", help="hostname or IP for the ssh transport"),
+    user: str = typer.Option("", "--user", help="ssh user"),
+    transport: str = typer.Option("ssh", "--transport", help="local | ssh | orca"),
+    orca_host_id: str = typer.Option("", "--orca-host-id", help="host id when transport is orca"),
+    workdir: str = typer.Option("~/pravrudhi", "--workdir"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """Enrol a machine, probe it immediately, and refuse to record one that does not answer."""
+    from pravrudhi.hosts.base import HostSpec
+    from pravrudhi.hosts.fleet import probe_host, save_host
+
+    spec = HostSpec(name=name, transport=transport, address=address, user=user, workdir=workdir, orca_host_id=orca_host_id)
+    cap = probe_host(spec)
+    if not cap.reachable:
+        typer.echo(f"not enrolled: {name} did not answer the probe ({cap.error})", err=True)
+        raise typer.Exit(code=1)
+    save_host(root, spec)
+    typer.echo(json.dumps({"enrolled": name, "capabilities": cap.to_dict()}, indent=2))
+
+
+@hosts_app.command("place")
+def hosts_place_cmd(
+    job: str = typer.Argument("train", help="train | serve | agent | any"),
+    min_vram_gb: float = typer.Option(0.0, "--min-vram-gb"),
+    needs_agent: str = typer.Option("", "--needs-agent"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """Say which machine would take a job, and why each other machine would not."""
+    from pravrudhi.hosts.base import Requirement
+    from pravrudhi.hosts.fleet import place, survey_fleet
+
+    presets = {
+        "train": Requirement(needs_cuda=True, needs_docker=True, min_vram_gb=max(min_vram_gb, 8.0)),
+        "serve": Requirement(needs_accelerator=True, min_vram_gb=min_vram_gb),
+        "agent": Requirement(needs_agent=needs_agent or "claude"),
+        "any": Requirement(min_vram_gb=min_vram_gb),
+    }
+    req = presets.get(job)
+    if req is None:
+        typer.echo(f"unknown job {job!r}; expected one of {', '.join(presets)}", err=True)
+        raise typer.Exit(code=2)
+    chosen, why = place(survey_fleet(root), req)
+    typer.echo(json.dumps({"job": job, "chosen": chosen.name if chosen else None, "rejected": why}, indent=2))
