@@ -157,6 +157,7 @@ def propose_generic(
     surface: str = "W3.adapter",
     op: str = "adapter",
     json_schema: dict[str, Any] | None = None,
+    extra_context: str = "",
 ) -> list[tuple[str, Any]]:
     summary, inc_strategy, consecutive = ledger_summary(root / "research" / "ledger.jsonl", incumbent_id)
     inc_strategy = inc_strategy or "none"
@@ -190,7 +191,8 @@ def propose_generic(
             model=model,
             grammar=grammar_doc,
             state_summary=summary + f"\n\nMeasured noise floor: sigma_seed={sigma_seed:.4f} "
-            f"(pass-rate units, 100 items). Incumbent: {incumbent_id} (strategy {inc_strategy}).",
+            f"(pass-rate units, 100 items). Incumbent: {incumbent_id} (strategy {inc_strategy})."
+            + (f"\n\n{extra_context}" if extra_context else ""),
             k=k,
             incumbent_strategy=inc_strategy,
             rethink_note=rethink_note,

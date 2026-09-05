@@ -426,6 +426,8 @@ def run_harness_night(
                 surface="H3.prompt",
                 op="harness",
                 json_schema=harness_array_schema(kk),
+                extra_context="Incumbent harness (the reference every candidate is paired against):\n"
+                + json.dumps(ctx.incumbent.harness_json(), indent=1, sort_keys=True),
             )
             recipes = dict(acc)
         finally:

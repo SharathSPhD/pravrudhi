@@ -4,6 +4,8 @@ Strategy level (ADR-0005): prompt_only | retry_policy | sampling_policy. Everyth
 
 from __future__ import annotations
 
+import re
+
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -40,6 +42,13 @@ class HarnessRecipe(BaseModel):
             raise ValueError("template must contain {question}")
         if "{feedback}" not in self.feedback_template:
             raise ValueError("feedback_template must contain {feedback}")
+        for field, required in (("template", "{question}"), ("feedback_template", "{feedback}")):
+            text = getattr(self, field)
+            if required not in text:
+                raise ValueError(f"{field} must contain {required}")
+            others = sorted(set(re.findall(r"\{[a-zA-Z_]+\}", text)) - {required})
+            if others:
+                raise ValueError(f"{field} has unsupported placeholders {others}; only {required} is substituted")
         if self.strategy == "prompt_only" and (self.retries or self.n_samples > 1):
             raise ValueError("prompt_only recipes may not set retries or n_samples")
         return self

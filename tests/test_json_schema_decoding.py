@@ -41,3 +41,17 @@ def test_harness_array_schema_is_closed_and_bounded():
     assert set(item["required"]) == set(HarnessRecipe.model_json_schema()["properties"])
     assert item["properties"]["strategy"]["enum"] == ["prompt_only", "retry_policy", "sampling_policy"]
     assert "maximum" not in item["properties"]["retries"] and item["properties"]["retries"]["type"] == "integer"
+
+
+def test_harness_template_placeholders_are_validated():
+    from pravrudhi.targets.harness_grammar import parse_harness
+
+    base = {"strategy": "prompt_only", "execution_family": "template"}
+    ok = parse_harness({**base, "template": "Task:\n{question}\nReturn one ```python block."})
+    assert not isinstance(ok, str)
+    bad = parse_harness({**base, "template": "Solve {question}\nExample: assert {example}"})
+    assert isinstance(bad, str) and "unsupported placeholders" in bad
+    missing = parse_harness({**base, "template": "Write the function in one block."})
+    assert isinstance(missing, str) and "{question}" in missing
+    fb = parse_harness({**base, "feedback_template": "Try again."})
+    assert isinstance(fb, str) and "{feedback}" in fb
