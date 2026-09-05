@@ -111,7 +111,7 @@ def next_candidate_id(ledger: Path) -> str:
     return f"c-{n:04d}"
 
 
-def propose(
+def propose_generic(
     root: Path,
     w: LedgerWriter,
     client: ChatClient,
@@ -128,7 +128,12 @@ def propose(
     max_tokens: int,
     rethink_m: int,
     log: Any = print,
-) -> list[tuple[str, LoraRecipe]]:
+    grammar_doc: str = GRAMMAR_DOC,
+    parse_fn: Any = parse_recipe,
+    prompt_file: str = "proposer/v1.md",
+    surface: str = "W3.adapter",
+    op: str = "adapter",
+) -> list[tuple[str, Any]]:
     summary, inc_strategy, consecutive = ledger_summary(root / "research" / "ledger.jsonl", incumbent_id)
     inc_strategy = inc_strategy or "none"
     rethink = consecutive >= rethink_m
@@ -197,7 +202,7 @@ def propose(
     accepted: list[tuple[str, LoraRecipe]] = []
     seen: set[str] = set()
     for obj in raw[: 2 * k]:
-        rec = parse_recipe(obj)
+        rec = parse_fn(obj)
         if isinstance(rec, str):
             w.append(
                 "audit",
@@ -217,7 +222,7 @@ def propose(
             "propose",
             "proposer",
             {
-                "op": "adapter",
+                "op": op,
                 "recipe": rec.model_dump(),
                 "strategy": rec.strategy,
                 "edit_family": rec.execution_family,
@@ -230,7 +235,7 @@ def propose(
             night=night,
             cycle=len(accepted) + 1,
             candidate_id=cid,
-            surface="W3.adapter",
+            surface=surface,
             bucket=bucket,
             provenance="agama",
         )
@@ -268,7 +273,7 @@ def propose(
     return accepted
 
 
-def _predict(
+def _predict(  # noqa: PLR0913
     w: LedgerWriter,
     client: ChatClient,
     accepted: list[tuple[str, LoraRecipe]],
@@ -280,6 +285,7 @@ def _predict(
     temperature: float,
     max_tokens: int,
     log: Any,
+    surface: str = "W3.adapter",
 ) -> None:
     listing = "\n".join(f"{i}: {json.dumps(r.model_dump())}" for i, (_, r) in enumerate(accepted))
     prompt = _fill((prompts_dir / "predictor" / "v1.md").read_text(), sigma_seed=f"{sigma_seed:.4f}", candidates=listing)
@@ -317,7 +323,7 @@ def _predict(
                 epoch=0,
                 night=night,
                 candidate_id=cid,
-                surface="W3.adapter",
+                surface=surface,
                 bucket=bucket,
                 provenance="agama",
             )
@@ -340,3 +346,8 @@ def strategy_switch_rate(ledger: Path) -> tuple[int, int, tuple[float, float]]:
                 switches += int(s != last)
             last = s
     return switches, n, wilson_ci(switches, n) if n else (0.0, 0.0)
+
+
+def propose(*args: Any, **kwargs: Any) -> list[tuple[str, LoraRecipe]]:
+    """LoRA-track proposer (the original entry point)."""
+    return propose_generic(*args, **kwargs)

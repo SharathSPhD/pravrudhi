@@ -58,10 +58,15 @@ def paired_confirm(root: Path, *, night: int, candidate_id: str | None, seed: in
     if inc is None or not inc.get("adapter"):
         raise FileNotFoundError("no adapter to confirm for this candidate")
     adapter = Path(inc["adapter"])
-    snap = resolve_model_snapshot(str(cfg["model"]))
+    model_name = str(cfg["model"])
+    if candidate_id:  # the candidate's own trainee, not whatever the config points at today
+        for ev in iter_events(root / "research" / "ledger.jsonl"):
+            if ev.kind == "propose" and ev.candidate_id == candidate_id and ev.bucket is not None:
+                model_name = ev.bucket.target_model
+    snap = resolve_model_snapshot(model_name)
     pool_dir = root / ".pravrudhi" / "kernel" / "pools" / str(cfg["bench"])
     w = LedgerWriter.open(root / "research" / "ledger.jsonl", "0.1.0")
-    bucket = {"task_family": str(cfg["bench"]), "target_model": str(cfg["model"]), "corpus": f"{cfg['bench']}-train"}
+    bucket = {"task_family": str(cfg["bench"]), "target_model": model_name, "corpus": f"{cfg['bench']}-train"}
     e = cfg["evaluation"]
     rot = draw_rotation(
         pool_dir, night, f"confirm-{inc['candidate_id']}-s{seed}", read_secret(state), k=k, exposure_cap=int(e["exposure_cap"])
