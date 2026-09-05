@@ -436,6 +436,27 @@ def objective_progress(objective_id: str, root: Path = ROOT_OPT) -> None:
             typer.echo(f"    target   {p.target_delta:+.4f}  met={p.met}")
 
 
+@app.command("routing")
+def routing_cmd(root: Path = ROOT_OPT, as_json: bool = typer.Option(False, "--json")) -> None:
+    """Which agent and model each difficulty tier would use now, and why, from measured outcomes."""
+    from pravrudhi.application.routing import report
+
+    rows = report(root)
+    if as_json:
+        typer.echo(json.dumps(rows, indent=2, sort_keys=True))
+        return
+    for r in rows:
+        if "error" in r:
+            typer.echo(f"{r['tier']:11s} ! {r['error']}")
+            continue
+        typer.echo(f"{r['tier']:11s} -> {r['agent']}/{r['model']}  (relative cost {r['relative_cost']:g})")
+        typer.echo(f"    {r['reason']}")
+        for rec in r["records"]:
+            if rec["trials"]:
+                typer.echo(f"      {rec['route_id']:12s} {rec['successes']}/{rec['trials']} accepted "
+                           f"[{rec['lo']:.2f}, {rec['hi']:.2f}]  mean {rec['mean_wall_s']:.0f}s")
+
+
 @app.command("recipes")
 def recipes_cmd(
     capability: str | None = typer.Option(None, "--capability"),

@@ -8,10 +8,22 @@
 // has not yet run.
 
 import { useCallback, useEffect, useState } from "react";
-import { Target, Plus, CircleDashed, Minus, TrendingUp, TrendingDown, Package } from "lucide-react";
+import {
+  Target,
+  Plus,
+  CircleDashed,
+  Minus,
+  TrendingUp,
+  TrendingDown,
+  Package,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import {
   objectives as fetchObjectives,
+  objectivePlan,
   recipeLibrary,
+  type Plan,
   type BenchmarkProgress,
   type Objective,
   type Recipe,
@@ -141,6 +153,88 @@ function BenchmarkCard({ p }: { p: BenchmarkProgress }) {
   );
 }
 
+
+function PlanView({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open || plan) return;
+    objectivePlan(id)
+      .then(setPlan)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [open, plan, id]);
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text)]"
+      >
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        How this intent becomes work
+      </button>
+
+      {open && (
+        <div className="mt-3">
+          <p className="mb-3 text-[11px] leading-4 text-[var(--color-text-dim)]">
+            A proposed decomposition, not a record. Nothing below has run, and a quantity the objective does not
+            supply is named rather than guessed.
+          </p>
+          {error && <p className="text-xs text-[var(--color-danger)]">{error}</p>}
+          {!plan && !error && <p className="text-xs text-[var(--color-text-dim)]">Loading…</p>}
+          {plan && (
+            <ol className="space-y-2">
+              {plan.steps.map((s, i) => (
+                <li key={s.id} className="flex gap-3">
+                  <span className="mt-0.5 w-4 shrink-0 text-right font-mono text-[11px] text-[var(--color-text-dim)]">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1 rounded border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-xs text-[var(--color-text)]">{s.id}</span>
+                      <span className="font-mono text-[11px] text-[var(--color-text-dim)]">{s.capability}</span>
+                      <span
+                        className={`ml-auto text-[11px] ${
+                          s.availability === "available"
+                            ? "text-[var(--color-accent)]"
+                            : "text-[var(--color-danger)]"
+                        }`}
+                      >
+                        {s.availability === "available"
+                          ? "recipe available"
+                          : s.availability === "uninstalled"
+                            ? "recipe not installed"
+                            : "no recipe for this"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-4 text-[var(--color-text-dim)]">{s.check.criterion}</p>
+                    {s.quantities.length > 0 && (
+                      <p className="mt-1 text-[11px] text-[var(--color-text-dim)]">
+                        unspecified: {s.quantities.map((q) => q.name).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+          {plan?.assumptions && plan.assumptions.length > 0 && (
+            <div className="mt-3">
+              {plan.assumptions.map((a) => (
+                <p key={a} className="text-[11px] leading-4 text-[var(--color-text-dim)]">
+                  Assumed: {a}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ObjectiveCard({ o }: { o: Objective }) {
   return (
     <article className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
@@ -168,6 +262,8 @@ function ObjectiveCard({ o }: { o: Objective }) {
           {o.notes}
         </p>
       )}
+
+      <PlanView id={o.id} />
 
       {o.recipes.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-1.5">

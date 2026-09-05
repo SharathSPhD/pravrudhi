@@ -792,6 +792,572 @@
     ],
     "problems": []
   },
+  "plans": {
+    "code-harness": {
+      "assumptions": [],
+      "external_inputs": [
+        "objective",
+        "benchmarks",
+        "base_model"
+      ],
+      "objective": "code-harness",
+      "provenance": "agama",
+      "review_required": [
+        "Review every clause of the verbatim intent against this decomposition; recipe matching is not semantics.",
+        "Specify checks for intent requirements the declared benchmarks do not measure; preserve the objective notes.",
+        "Resolve unspecified quantities, resource inputs and recipe installation before execution."
+      ],
+      "steps": [
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "humaneval-plus",
+                "metric": "humaneval+ pass@1",
+                "tool": "evalplus"
+              }
+            ],
+            "criterion": "Obtain a baseline result from each declared external tool reporting its exact metric on this track.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "base_model"
+          ],
+          "id": "baseline-evaluation",
+          "produces": [
+            "baseline_results"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "Candidate improvement needs a baseline; this proposal does not assert one is absent from the ledger.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "sandboxed-agents"
+          ],
+          "capability": "agents",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Check the harness obeys the intent's constraints and validate outputs with independent task checks.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "base_model"
+          ],
+          "id": "agents",
+          "produces": [
+            "agents_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "execution_budget",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "sandboxed-agents"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "humaneval-plus",
+                "metric": "humaneval+ pass@1",
+                "tool": "evalplus"
+              }
+            ],
+            "criterion": "Compare external candidate and baseline results using each declared metric and direction; apply the supplied target, if any, and the objective's existing uncertainty rule.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "baseline_results",
+            "agents_candidate"
+          ],
+          "id": "candidate-evaluation",
+          "produces": [
+            "candidate_comparison"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "The declared benchmarks are instruments, not proof of complete intent coverage.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        }
+      ],
+      "unknown_recipe_ids": []
+    },
+    "math-reasoning": {
+      "assumptions": [
+        "No usable corpus declared for this domain; propose acquiring or curating one first."
+      ],
+      "external_inputs": [
+        "objective",
+        "benchmarks",
+        "base_model"
+      ],
+      "objective": "math-reasoning",
+      "provenance": "agama",
+      "review_required": [
+        "Review every clause of the verbatim intent against this decomposition; recipe matching is not semantics.",
+        "Specify checks for intent requirements the declared benchmarks do not measure; preserve the objective notes.",
+        "Resolve unspecified quantities, resource inputs and recipe installation before execution."
+      ],
+      "steps": [
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "gsm8k",
+                "metric": "gsm8k exact_match,strict-match",
+                "tool": "lm-eval"
+              }
+            ],
+            "criterion": "Obtain a baseline result from each declared external tool reporting its exact metric on this track.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "base_model"
+          ],
+          "id": "baseline-evaluation",
+          "produces": [
+            "baseline_results"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "Candidate improvement needs a baseline; this proposal does not assert one is absent from the ledger.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "corpus-curation",
+            "corpus-synthesis"
+          ],
+          "capability": "corpus",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Review source provenance, domain coverage, deduplication and separation from held-out evaluation.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective"
+          ],
+          "id": "corpus",
+          "produces": [
+            "prepared_corpus"
+          ],
+          "quantities": [
+            {
+              "name": "corpus_size",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "corpus-curation",
+            "corpus-synthesis"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "sft-lora"
+          ],
+          "capability": "finetune",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Check the adapter loads and compare held-out domain and retention results with the baseline.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "base_model",
+            "prepared_corpus"
+          ],
+          "id": "finetune",
+          "produces": [
+            "finetune_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "training_steps",
+              "value": null
+            },
+            {
+              "name": "compute_budget",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "sft-lora"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "rl-post-training"
+          ],
+          "capability": "rl",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Audit the reward against the intent and compare held-out results independently of the training reward.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "finetune_candidate",
+            "prepared_corpus"
+          ],
+          "id": "rl",
+          "produces": [
+            "rl_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "rollout_count",
+              "value": null
+            },
+            {
+              "name": "compute_budget",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "rl-post-training"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "gsm8k",
+                "metric": "gsm8k exact_match,strict-match",
+                "tool": "lm-eval"
+              }
+            ],
+            "criterion": "Compare external candidate and baseline results using each declared metric and direction; apply the supplied target, if any, and the objective's existing uncertainty rule.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "baseline_results",
+            "rl_candidate"
+          ],
+          "id": "candidate-evaluation",
+          "produces": [
+            "candidate_comparison"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "The declared benchmarks are instruments, not proof of complete intent coverage.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        }
+      ],
+      "unknown_recipe_ids": []
+    },
+    "prabhasa-nyaya": {
+      "assumptions": [
+        "No usable corpus declared for this domain; propose acquiring or curating one first."
+      ],
+      "external_inputs": [
+        "objective",
+        "benchmarks",
+        "base_model"
+      ],
+      "objective": "prabhasa-nyaya",
+      "provenance": "agama",
+      "review_required": [
+        "Review every clause of the verbatim intent against this decomposition; recipe matching is not semantics.",
+        "Specify checks for intent requirements the declared benchmarks do not measure; preserve the objective notes.",
+        "Resolve unspecified quantities, resource inputs and recipe installation before execution."
+      ],
+      "steps": [
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "professional-law",
+                "metric": "mmlu_professional_law acc,none",
+                "tool": "lm-eval"
+              },
+              {
+                "direction": "up",
+                "id": "jurisprudence",
+                "metric": "mmlu_jurisprudence acc,none",
+                "tool": "lm-eval"
+              }
+            ],
+            "criterion": "Obtain a baseline result from each declared external tool reporting its exact metric on this track.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "base_model"
+          ],
+          "id": "baseline-evaluation",
+          "produces": [
+            "baseline_results"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "Candidate improvement needs a baseline; this proposal does not assert one is absent from the ledger.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "corpus-curation",
+            "corpus-synthesis"
+          ],
+          "capability": "corpus",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Review source provenance, domain coverage, deduplication and separation from held-out evaluation.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective"
+          ],
+          "id": "corpus",
+          "produces": [
+            "prepared_corpus"
+          ],
+          "quantities": [
+            {
+              "name": "corpus_size",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "corpus-curation",
+            "corpus-synthesis"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "sft-lora"
+          ],
+          "capability": "finetune",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Check the adapter loads and compare held-out domain and retention results with the baseline.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "base_model",
+            "prepared_corpus"
+          ],
+          "id": "finetune",
+          "produces": [
+            "finetune_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "training_steps",
+              "value": null
+            },
+            {
+              "name": "compute_budget",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "sft-lora"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "rl-post-training"
+          ],
+          "capability": "rl",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Audit the reward against the intent and compare held-out results independently of the training reward.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "finetune_candidate",
+            "prepared_corpus"
+          ],
+          "id": "rl",
+          "produces": [
+            "rl_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "rollout_count",
+              "value": null
+            },
+            {
+              "name": "compute_budget",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "rl-post-training"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "retrieval"
+          ],
+          "capability": "retrieval",
+          "check": {
+            "benchmarks": [],
+            "criterion": "Check retrieved source identifiers resolve and cited passages support answers on held-out queries.",
+            "target_delta": null
+          },
+          "consumes": [
+            "objective",
+            "rl_candidate",
+            "prepared_corpus"
+          ],
+          "id": "retrieval",
+          "produces": [
+            "retrieval_candidate"
+          ],
+          "quantities": [
+            {
+              "name": "retrieval_count",
+              "value": null
+            }
+          ],
+          "reason": "Required by declared recipes or their data prerequisites; alternatives remain proposals.",
+          "recipe_ids": [
+            "retrieval"
+          ]
+        },
+        {
+          "availability": "available",
+          "available_recipe_ids": [
+            "evaluation"
+          ],
+          "capability": "evaluate",
+          "check": {
+            "benchmarks": [
+              {
+                "direction": "up",
+                "id": "professional-law",
+                "metric": "mmlu_professional_law acc,none",
+                "tool": "lm-eval"
+              },
+              {
+                "direction": "up",
+                "id": "jurisprudence",
+                "metric": "mmlu_jurisprudence acc,none",
+                "tool": "lm-eval"
+              }
+            ],
+            "criterion": "Compare external candidate and baseline results using each declared metric and direction; apply the supplied target, if any, and the objective's existing uncertainty rule.",
+            "target_delta": 0.03
+          },
+          "consumes": [
+            "objective",
+            "benchmarks",
+            "baseline_results",
+            "retrieval_candidate"
+          ],
+          "id": "candidate-evaluation",
+          "produces": [
+            "candidate_comparison"
+          ],
+          "quantities": [
+            {
+              "name": "evaluation_sample_count",
+              "value": null
+            }
+          ],
+          "reason": "The declared benchmarks are instruments, not proof of complete intent coverage.",
+          "recipe_ids": [
+            "evaluation"
+          ]
+        }
+      ],
+      "unknown_recipe_ids": []
+    }
+  },
   "recipes": [
     {
       "available": true,

@@ -13,15 +13,18 @@ sequence of a real run as it happened.
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from pravrudhi.api.runs import models_listing
 from pravrudhi.application.external import external_rows
+from pravrudhi.application.intent import compile_intent
 from pravrudhi.application.objectives import load_all
 from pravrudhi.application.objectives import problems as objective_problems
 from pravrudhi.application.objectives import summary as objective_summary
-from pravrudhi.application.recipes import availability
+from pravrudhi.application.recipes import availability, library
+from pravrudhi.application.recipes import installed as installed_skills
 from pravrudhi.application.status import status
 from pravrudhi_kernel.ledger import replay
 from pravrudhi_kernel.ledger.verify import iter_events
@@ -115,6 +118,15 @@ def build_demo(root: Path) -> dict[str, Any]:
             "problems": [{"file": f, "reason": r} for f, r in objective_problems(root)],
         },
         "recipes": availability(),
+        "plans": {
+            o.id: {
+                "objective": o.id,
+                **{k: v for k, v in asdict(
+                    compile_intent(o, tuple(library()), installed_skills=frozenset(installed_skills()))
+                ).items() if k != "objective"},
+            }
+            for o in load_all(root)
+        },
         "featured_run": {
             "id": f"n{featured['night']}-{featured['track']}" if featured else "",
             "night": featured["night"] if featured else 0,

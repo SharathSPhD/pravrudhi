@@ -18,12 +18,33 @@ def test_disjoint_tasks_share_a_wave_and_conflicts_are_deferred_not_dropped():
 
 
 def test_every_tier_routes_and_the_expensive_model_is_reserved():
+    """The two rules here were both learned by measurement, and the earlier version of this test encoded the
+    opposite of each.
+
+    It asserted that mechanical work runs on a local model. It does not: a local open-weight model produced no
+    change at all, twice, on tasks a hosted agent finished in minutes.
+
+    It asserted that ordinary work should take the agent's default model. On this account that default is the most
+    expensive model available, so naming nothing meant paying the top rate for everything: twenty sessions in one
+    day cost seven million input tokens. Every tier now names its model, and only `critical` names the top one.
+    """
     assert set(TIERS) == set(ROUTES)
     assert ROUTES["critical"] == ("codex", "gpt-6-astra")
-    assert ROUTES["mechanical"][0].startswith("orca:"), "mechanical work runs on hardware already paid for"
-    assert ROUTES["standard"][1] is None, "ordinary work uses the agent's default model"
+    assert all(model for _, model in ROUTES.values()), "every tier names its model; a default is a silent bill"
+    top = ROUTES["critical"][1]
+    cheaper = [tier for tier, (_, model) in ROUTES.items() if tier != "critical" and model == top]
+    assert not cheaper, f"the most expensive model is reserved for critical work, not {cheaper}"
     with pytest.raises(ValueError):
         SwarmTask(TaskSpec("x", "p", ("a",)), "urgent").route()
+
+
+def test_dispatch_tells_the_agent_not_to_survey_the_repository():
+    """Measured cost was about 355,000 input tokens per session, most of it an agent orienting itself rather than
+    reading the files its task named."""
+    from pravrudhi.application.swarm import SCOPE_PREAMBLE
+
+    assert "Do not survey" in SCOPE_PREAMBLE
+    assert SCOPE_PREAMBLE.endswith("\n\n"), "it is prepended to a prompt, so it must not run into it"
 
 
 class OkAgent:

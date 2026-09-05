@@ -441,3 +441,37 @@ export async function postObjective(body: ObjectiveInput): Promise<Objective> {
   if (IS_DEMO) throw new ApiError(501, "/api/objectives");
   return postJSON<Objective>("/api/objectives", body);
 }
+
+// The compiled plan: an intent turned into ordered work. A proposal, never evidence.
+
+export interface PlanStep {
+  id: string;
+  capability: string;
+  recipe_ids: string[];
+  available_recipe_ids: string[];
+  availability: "available" | "uninstalled" | "no_recipe";
+  consumes: string[];
+  produces: string[];
+  check: { criterion: string; benchmarks: BenchmarkSpec[]; target_delta: number | null };
+  quantities: { name: string; value: number | null }[];
+  reason: string;
+}
+
+export interface Plan {
+  objective: string;
+  steps: PlanStep[];
+  external_inputs?: string[];
+  unknown_recipes?: string[];
+  assumptions?: string[];
+  review_notes?: string[];
+}
+
+export async function objectivePlan(id: string): Promise<Plan> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    const found = (d.plans ?? {})[id];
+    if (!found) throw new ApiError(404, `/api/objectives/${id}/plan`);
+    return found;
+  }
+  return getJSON<Plan>(`/api/objectives/${encodeURIComponent(id)}/plan`);
+}

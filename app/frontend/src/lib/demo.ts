@@ -8,6 +8,7 @@
 import type {
   AgentStatus,
   ObjectivesResponse,
+  Plan,
   Recipe,
   Candidate,
   ExternalRow,
@@ -38,6 +39,7 @@ export interface DemoBundle {
   // Added after the first recordings, so an older snapshot may not carry them.
   objectives?: ObjectivesResponse;
   recipes?: Recipe[];
+  plans?: Record<string, Plan>;
 }
 
 export { IS_DEMO as DEMO } from "./api";

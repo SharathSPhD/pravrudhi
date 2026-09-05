@@ -22,15 +22,38 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from pravrudhi.application import routing
 from pravrudhi.application.delegate import TaskSpec, Verdict, dispatch, overlapping
 
-# tier -> (agent name, model or None for the agent's default). Cost rises with tier; so should difficulty.
+# tier -> (agent name, model). Cost rises with tier; so should difficulty.
+#
+# Two corrections, both from measurement rather than from taste.
+#
+# The mechanical tier used to route to a local open-weight model. It produced no change at all, twice, on tasks a
+# hosted agent completed in minutes. Serving text and driving an agentic tool-calling loop are different
+# capabilities, and a 1.7B model has the first and not the second. The tier now routes to the cheapest hosted
+# model instead, and local models are used for what they are good at.
+#
+# The standard tier used to pass model=None, which takes the agent's default. On this account that default is the
+# most expensive model available, so three of the four tiers were silently spending the top rate: twenty sessions
+# in one day consumed seven million input tokens, nearly all of it on work that did not need that model. Naming a
+# model explicitly at every tier is the fix, and the top model is now reserved for the tier that says critical.
 ROUTES: dict[str, tuple[str, str | None]] = {
-    "mechanical": ("orca:local", "glm-4.7-flash"),
-    "standard": ("codex", None),
+    "mechanical": ("codex", "gpt-6-astra-mini"),
+    "standard": ("codex", "gpt-6-mini"),
     "design": ("claude-code", "sonnet"),
     "critical": ("codex", "gpt-6-astra"),
 }
+
+# Prepended to every dispatched prompt. Measured cost per session was about 355,000 input tokens, and most of that
+# was an agent reading the repository to orient itself rather than reading the files its task named. An agent that
+# is told what to read does not have to go looking.
+SCOPE_PREAMBLE = """Work only within the files this task names, plus whatever they import. Do not survey the
+repository, do not read directories that the task does not mention, and do not run repository-wide searches to
+orient yourself: the task below already names what you need. If you genuinely cannot proceed without reading
+something unnamed, read that one thing and say in your final message what it was and why.
+
+"""
 TIERS = tuple(ROUTES)
 
 
@@ -41,6 +64,8 @@ class SwarmTask:
     why: str = ""
 
     def route(self) -> tuple[str, str | None]:
+        """The static fallback. `run_wave` prefers the router, which chooses from measured outcomes; this is what
+        remains when no routing configuration can be read."""
         if self.tier not in ROUTES:
             raise ValueError(f"unknown tier {self.tier!r}; expected one of {', '.join(TIERS)}")
         return ROUTES[self.tier]
@@ -82,13 +107,38 @@ def plan(tasks: list[SwarmTask]) -> tuple[list[list[SwarmTask]], list[tuple[str,
     return [w for w in waves if w], sorted(set(conflicts))
 
 
-def run_wave(build_agent: Any, wave: list[SwarmTask], *, log: Any = print) -> list[Verdict]:
-    """Dispatch one wave in parallel. Each task gets its own agent instance and its own worktree."""
+def run_wave(
+    build_agent: Any, wave: list[SwarmTask], *, log: Any = print, root: Path | None = None
+) -> list[Verdict]:
+    """Dispatch one wave in parallel. Each task gets its own agent instance and its own worktree.
+
+    When a workspace root is given, the route for each task is chosen by `application/routing.py` from the outcomes
+    already recorded there, and this wave's outcomes are appended to that log. Without a root the static ROUTES
+    table decides and nothing is recorded, which is what keeps the function usable in a test.
+    """
     results: list[Verdict] = []
+    chosen: dict[str, str] = {}
+    table = None
+    rows: list[Any] = []
+    if root is not None:
+        try:
+            table = routing.load_table()
+            rows = routing.outcomes(root)
+        except (OSError, routing.RoutingError) as e:  # a bad table must not stop the work
+            log(f"routing table unavailable ({e}); falling back to the static table")
+            table = None
     with ThreadPoolExecutor(max_workers=max(1, len(wave))) as pool:
         futures = {}
         for t in wave:
-            agent_name, model = t.route()
+            agent_name: str
+            model: str | None
+            if table is not None:
+                choice = routing.choose(table, rows, t.tier)
+                agent_name, model = choice.route.pair()
+                chosen[t.spec.task_id] = choice.route.id
+                log(f"route {t.spec.task_id} [{t.tier}] -> {choice.route.id}: {choice.reason}")
+            else:
+                agent_name, model = t.route()
             agent = build_agent(agent_name, model)
             if agent is None:
                 results.append(
@@ -96,12 +146,20 @@ def run_wave(build_agent: Any, wave: list[SwarmTask], *, log: Any = print) -> li
                             reasons=[f"no agent available for tier {t.tier} ({agent_name})"])
                 )
                 continue
-            log(f"dispatch {t.spec.task_id} -> {agent.name} [{t.tier}]{' ' + t.why if t.why else ''}")
-            futures[pool.submit(dispatch, agent, t.spec, log=log)] = t
+            log(f"dispatch {t.spec.task_id} -> {agent.name} [{t.tier}] {model or 'default'}"
+                f"{' ' + t.why if t.why else ''}")
+            scoped = replace(t.spec, prompt=SCOPE_PREAMBLE + t.spec.prompt)
+            futures[pool.submit(dispatch, agent, scoped, log=log)] = t
         for fut in as_completed(futures):
             t = futures[fut]
             try:
-                results.append(fut.result())
+                verdict = fut.result()
+                results.append(verdict)
+                if root is not None and (rid := chosen.get(t.spec.task_id)) is not None:
+                    routing.record_outcome(root, routing.Outcome(
+                        tier=t.tier, route_id=rid, task_id=t.spec.task_id,
+                        accepted=verdict.accepted, wall_s=verdict.wall_s,
+                    ))
             except Exception as e:  # an agent crashing must not take the wave with it
                 results.append(
                     Verdict(task_id=t.spec.task_id, agent=t.route()[0], accepted=False, reasons=[f"dispatch raised: {e}"])
