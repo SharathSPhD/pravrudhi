@@ -44,6 +44,7 @@ class ChatClient:
         max_tokens: int = 2048,
         seed: int | None = None,
         json_mode: bool = False,
+        json_schema: dict[str, Any] | None = None,
     ) -> ChatResult:
         body: dict[str, Any] = {
             "model": self.model,
@@ -53,7 +54,10 @@ class ChatClient:
         }
         if seed is not None:
             body["seed"] = seed
-        if json_mode:
+        if json_schema is not None:
+            # llama.cpp compiles the schema to a grammar: the sampler cannot emit EOS before the array closes
+            body["response_format"] = {"type": "json_schema", "json_schema": {"name": "out", "schema": json_schema}}
+        elif json_mode:
             body["response_format"] = {"type": "json_object"}
         if self.thinking is not None:
             body["chat_template_kwargs"] = {"enable_thinking": self.thinking}

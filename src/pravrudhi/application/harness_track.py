@@ -16,7 +16,7 @@ from pravrudhi.application.deliberate import DecorativeAbort, deliberate
 from pravrudhi.application.propose import propose_generic, strategy_switch_rate
 from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
 from pravrudhi.models.llama_server import LlamaServer
-from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, parse_harness
+from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, harness_array_schema, parse_harness
 from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.metrics import PoolExhausted, Rotation, draw_rotation, record_exposure
 from pravrudhi_kernel.metrics.pool import read_item
@@ -425,6 +425,7 @@ def run_harness_night(
                 prompt_file="harness_proposer/v1.md",
                 surface="H3.prompt",
                 op="harness",
+                json_schema=harness_array_schema(kk),
             )
             recipes = dict(acc)
         finally:

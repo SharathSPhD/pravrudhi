@@ -155,6 +155,7 @@ def propose_generic(
     prompt_file: str = "proposer/v1.md",
     surface: str = "W3.adapter",
     op: str = "adapter",
+    json_schema: dict[str, Any] | None = None,
 ) -> list[tuple[str, Any]]:
     summary, inc_strategy, consecutive = ledger_summary(root / "research" / "ledger.jsonl", incumbent_id)
     inc_strategy = inc_strategy or "none"
@@ -194,7 +195,13 @@ def propose_generic(
             rethink_note=rethink_note,
         )
     )
-    res = client.chat([{"role": "user", "content": prompt}], temperature=temperature, max_tokens=max_tokens, seed=night)
+    res = client.chat(
+        [{"role": "user", "content": prompt}],
+        temperature=temperature,
+        max_tokens=max_tokens,
+        seed=night,
+        json_schema=json_schema,
+    )
     w.append(
         "audit",
         "proposer",

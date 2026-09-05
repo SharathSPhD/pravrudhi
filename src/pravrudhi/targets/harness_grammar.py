@@ -77,3 +77,13 @@ H_GRAMMAR_DOC = """{
   "rationale": "<= 400 chars"
 }
 Constraints: prompt_only may not set retries or n_samples > 1. Omitted fields take the baseline harness values."""
+
+
+def harness_array_schema(k: int) -> dict:
+    """JSON schema for exactly k HarnessRecipe objects, reduced to what a grammar compiler needs (types, enums,
+    required keys, closed objects). Bounds and lengths stay with Pydantic validation after parsing."""
+    props = {}
+    for name, spec in HarnessRecipe.model_json_schema()["properties"].items():
+        props[name] = {k2: v for k2, v in spec.items() if k2 in ("type", "enum")}
+    item = {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
+    return {"type": "array", "items": item, "minItems": k, "maxItems": k}
