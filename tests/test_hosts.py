@@ -1,5 +1,4 @@
 """The fleet layer: capabilities, placement, enrolment and the zero-config default."""
-from pathlib import Path
 
 import pytest
 import yaml

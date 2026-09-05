@@ -29,7 +29,9 @@ def test_inherits_promoted_adapter_for_same_trainee(tmp_path):
 def test_other_trainee_or_missing_adapter_falls_back_to_base(tmp_path):
     _ledger(tmp_path, promote_model="Qwen/Qwen3-0.6B")
     jobs = tmp_path / "jobs"
-    assert inherit_incumbent(tmp_path, SimpleNamespace(jobs_dir=str(jobs)), "Qwen/Qwen3-1.7B", log=lambda s: None) == ("c-0000", None)
+    assert inherit_incumbent(tmp_path, SimpleNamespace(jobs_dir=str(jobs)), "Qwen/Qwen3-1.7B",
+        log=lambda s: None) == ("c-0000", None)
     msgs = []
-    assert inherit_incumbent(tmp_path, SimpleNamespace(jobs_dir=str(jobs)), "Qwen/Qwen3-0.6B", log=msgs.append) == ("c-0000", None)
+    assert inherit_incumbent(tmp_path, SimpleNamespace(jobs_dir=str(jobs)), "Qwen/Qwen3-0.6B", log=msgs.append) == ("c-0000",
+        None)
     assert any("missing" in m for m in msgs)

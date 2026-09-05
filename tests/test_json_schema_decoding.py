@@ -29,7 +29,10 @@ def test_chat_sends_json_schema_response_format():
     with mock.patch("urllib.request.urlopen", fake_open):
         r = c.chat([{"role": "user", "content": "hi"}], json_schema={"type": "array"})
     assert r.text == "[]" and r.finish_reason == "stop"
-    assert captured["body"]["response_format"] == {"type": "json_schema", "json_schema": {"name": "out", "schema": {"type": "array"}}}
+    assert captured["body"]["response_format"] == {
+        "type": "json_schema",
+        "json_schema": {"name": "out", "schema": {"type": "array"}},
+    }
     assert captured["body"]["chat_template_kwargs"] == {"enable_thinking": False}
 
 

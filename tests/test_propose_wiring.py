@@ -1,5 +1,4 @@
 """propose_generic must use the prompt file and grammar it is handed (the harness track passes its own)."""
-from pathlib import Path
 
 from pravrudhi.application import propose as P
 

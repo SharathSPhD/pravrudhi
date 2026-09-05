@@ -26,7 +26,8 @@ def test_greedy_ranks_by_posterior_mean():
 
 def test_thompson_can_prefer_a_wide_posterior_and_is_seeded():
     pool = ["a", "b", "c"]
-    picks = [sorted(rank_scores("thompson", _citta(), pool, np.random.default_rng(i)), key=lambda c: -rank_scores("thompson", _citta(), pool, np.random.default_rng(i))[c])[0] for i in range(40)]
+    picks = [sorted(rank_scores("thompson", _citta(), pool, np.random.default_rng(i)), key=lambda c: -rank_scores("thompson",
+        _citta(), pool, np.random.default_rng(i))[c])[0] for i in range(40)]
     assert "b" in picks, "a wide posterior should sometimes win under Thompson sampling"
     r1 = rank_scores("thompson", _citta(), pool, np.random.default_rng(7))
     r2 = rank_scores("thompson", _citta(), pool, np.random.default_rng(7))
@@ -35,7 +36,8 @@ def test_thompson_can_prefer_a_wide_posterior_and_is_seeded():
 
 def test_random_ignores_the_evidence():
     c = Citta({"a": B(10.0, 0.001), "b": B(-10.0, 0.001)})
-    wins = sum(1 for i in range(60) if max(rank_scores("random", c, ["a", "b"], np.random.default_rng(i)).items(), key=lambda kv: kv[1])[0] == "b")
+    wins = sum(1 for i in range(60) if max(rank_scores("random", c, ["a", "b"], np.random.default_rng(i)).items(),
+        key=lambda kv: kv[1])[0] == "b")
     assert 10 < wins < 50
 
 

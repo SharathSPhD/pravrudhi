@@ -56,4 +56,22 @@ def survey(root: Path, *, include_orca: bool = True) -> list[AgentStatus]:
     return out
 
 
-__all__ = ["AgentStatus", "build_registry", "survey"]
+def build_agent(root: Path, name: str, model: str | None = None) -> Any | None:
+    """One agent by name and model, or None when it cannot run here.
+
+    The swarm asks for an agent by route; returning None rather than raising lets a wave continue with the agents
+    that are available and record the rest as unrouted, which is more useful than failing the whole wave.
+    """
+    if name == "codex":
+        a: Any = CodexAgent(root, model=model)
+        return a if a.available() and a.logged_in() else None
+    if name == "claude-code":
+        a = ClaudeCodeAgent(root, model=model)
+        return a if a.available() else None
+    if name.startswith("orca:"):
+        a = OrcaAgent(root, agent_id=name.split(":", 1)[1], model=model)
+        return a if a.available() else None
+    return None
+
+
+__all__ = ["AgentStatus", "build_registry", "survey", "build_agent"]

@@ -1,6 +1,4 @@
 """Delegation guarantees: disjoint ownership, declared scope, validation before merge."""
-import subprocess
-from pathlib import Path
 
 from pravrudhi.agents.base import Diff
 from pravrudhi.application.delegate import TaskSpec, dispatch, overlapping, validate_in
