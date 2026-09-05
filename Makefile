@@ -29,6 +29,8 @@ ledger-replay:   ## rebuild state.json from the ledger and verify the chain and 
 reproduce:       ## regenerate docs/evidence from the ledger; diff must be empty
 	$(UV) run pravrudhi evidence noise_floor --check
 	$(UV) run pravrudhi evidence night1 --check
+	$(UV) run pravrudhi evidence night2 --check
+	$(UV) run pravrudhi evidence summary --check
 decorative-check:  ## decorative-controller check on the last select batch (research/last_select.json)
 	$(UV) run python scripts/decorative_check.py --batch research/last_select.json
 glossary-lint:
