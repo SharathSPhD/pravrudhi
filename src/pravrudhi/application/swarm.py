@@ -16,6 +16,7 @@ declared paths cannot collide, which is checked before anything is dispatched ra
 from __future__ import annotations
 
 import json
+import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -43,6 +44,15 @@ class SwarmTask:
         if self.tier not in ROUTES:
             raise ValueError(f"unknown tier {self.tier!r}; expected one of {', '.join(TIERS)}")
         return ROUTES[self.tier]
+
+
+def uncommitted(root: Path) -> list[str]:
+    """Files changed but not committed. An agent's worktree branches from HEAD, not from the working tree, so a
+    task that depends on uncommitted work is dispatched against a base where that work does not exist. This cost a
+    real task once: a module was committed moments after the swarm launched, and the agent that imported it failed
+    validation through no fault of its own."""
+    p = subprocess.run(["git", "status", "--porcelain"], cwd=root, capture_output=True, text=True)
+    return [ln[3:] for ln in p.stdout.splitlines() if ln.strip() and not ln.startswith("??")]
 
 
 def plan(tasks: list[SwarmTask]) -> tuple[list[list[SwarmTask]], list[tuple[str, str]]]:
@@ -99,7 +109,16 @@ def run_wave(build_agent: Any, wave: list[SwarmTask], *, log: Any = print) -> li
     return results
 
 
-def run_swarm(build_agent: Any, tasks: list[SwarmTask], *, log: Any = print) -> dict[str, Any]:
+def run_swarm(
+    build_agent: Any, tasks: list[SwarmTask], *, root: Path | None = None, log: Any = print
+) -> dict[str, Any]:
+    if root is not None:
+        dirty = uncommitted(root)
+        if dirty:
+            log(
+                f"swarm: WARNING {len(dirty)} uncommitted file(s); agent worktrees branch from HEAD, so a task "
+                f"depending on them will fail against a base that lacks them: {', '.join(dirty[:5])}"
+            )
     waves, conflicts = plan(tasks)
     log(f"swarm: {len(tasks)} tasks in {len(waves)} wave(s); {len(conflicts)} conflict pair(s) deferred")
     verdicts: list[Verdict] = []
@@ -125,4 +144,5 @@ def render_swarm(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["ROUTES", "TIERS", "SwarmTask", "plan", "run_wave", "run_swarm", "render_swarm", "TaskSpec", "json", "replace"]
+__all__ = ["uncommitted", "ROUTES", "TIERS", "SwarmTask", "plan", "run_wave", "run_swarm", "render_swarm", "TaskSpec",
+    "json", "replace"]

@@ -74,3 +74,23 @@ def test_render_is_readable():
         Verdict("a", "codex", True, [], ["src/a.py"], "", 1.0).to_dict()], "rejected": [
         Verdict("b", "claude", False, ["validation failed"], [], "", 2.0).to_dict()]})
     assert "ok    a" in text and "FAIL  b" in text and "validation failed" in text
+
+
+def test_uncommitted_work_is_warned_about_because_worktrees_branch_from_head(tmp_path):
+    """The base a worktree branches from is HEAD, not the working tree; a task needing uncommitted work fails."""
+    import subprocess
+
+    from pravrudhi.application.swarm import run_swarm, uncommitted
+
+    for c in (["init", "-q", "-b", "main"], ["config", "user.email", "t@e"], ["config", "user.name", "t"]):
+        subprocess.run(["git", *c], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / "a.py").write_text("x = 1\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True, capture_output=True)
+    assert uncommitted(tmp_path) == []
+    (tmp_path / "a.py").write_text("x = 2\n")
+    assert uncommitted(tmp_path) == ["a.py"]
+
+    said = []
+    run_swarm(lambda n, m: None, [A], root=tmp_path, log=said.append)
+    assert any("uncommitted" in s for s in said)
