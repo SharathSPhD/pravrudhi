@@ -7,12 +7,14 @@ import json
 import os
 import time
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 import yaml
 
 from pravrudhi.application.deliberate import DecorativeAbort, deliberate
+from pravrudhi.application.discordance import discordance
 from pravrudhi.application.propose import propose_generic, strategy_switch_rate
 from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
 from pravrudhi.models.proposer import proposer_client
@@ -227,6 +229,7 @@ def admit_candidate(
     iv: float,
     br: Any,
     extra: dict[str, Any],
+    incumbent_scores: dict[str, int],
 ) -> None:
     cscores, cref, csres, cmeta, cjd = cjd_scores
     ch = _hashes(ctx, cjd, cand)
@@ -255,6 +258,7 @@ def admit_candidate(
         extra={
             "arm": "candidate",
             "track": "harness",
+            "discordance": asdict(discordance(incumbent_scores, cscores)),
             "stats": {
                 "boundary": br.decision,
                 "e_value": br.e_value,
@@ -610,6 +614,7 @@ def _execute_one(ctx: HarnessContext, w: LedgerWriter, cid: str, rec: HarnessRec
         iv,
         br,
         {"predicted": predicted, "brier": brier, "wall_s_candidate": cres.wall_s, "harness": rec.harness_json()},
+        incumbent_scores=iscores,
     )
     ctx.log(
         f"{cid}: seed {seed} incumbent={iv:.3f} candidate={cv:.3f} delta={delta:+.3f} "

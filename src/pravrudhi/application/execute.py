@@ -7,9 +7,11 @@ import json
 import os
 import time
 from collections.abc import Callable
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from pravrudhi.application.discordance import discordance
 from pravrudhi.application.spine import IMAGE, expected_hashes, run_eval_job, score_job, write_job_inputs
 from pravrudhi.targets import LoraRecipe
 from pravrudhi_kernel.ledger import LedgerWriter, replay
@@ -546,6 +548,7 @@ def evaluate_and_dispose(ctx: NightContext, w: LedgerWriter, cid: str, recipe: L
             "incumbent_run_id": inc_dir.name,
             "predicted": predicted,
             "brier": brier,
+            "discordance": asdict(discordance(inc_scores, can_scores)),
             "stats": {
                 "boundary": br.decision,
                 "e_value": br.e_value,

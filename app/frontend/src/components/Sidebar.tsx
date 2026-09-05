@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, History, Package, Server, Settings } from "lucide-react";
+import { Sparkles, History, Package, Server, Settings, Download } from "lucide-react";
 import type { ComponentType } from "react";
 
 interface NavItem {
@@ -17,6 +17,7 @@ const NAV: NavItem[] = [
   { href: "/models", label: "Models", icon: Package },
   { href: "/machines", label: "Machines", icon: Server },
   { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/install", label: "Install", icon: Download },
 ];
 
 export function Sidebar() {
