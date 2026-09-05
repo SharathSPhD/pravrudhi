@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "note": "A catalogue, not an execution layer. Presence in this file is not a claim that a tool has been invoked, and nothing here calls anything. Each entry names how its presence is detected on this machine; a tool with no honest detector is not listed.",
+  "tools": [
+    {"id": "agent-claude-code", "category": "agent", "title": "Claude Code", "provides": "Drives a coding-agent loop to make scoped code changes in a worktree.", "detect": {"kind": "path", "value": "claude"}},
+    {"id": "agent-codex", "category": "agent", "title": "Codex CLI", "provides": "Non-interactive coding agent (codex exec).", "detect": {"kind": "path", "value": "codex"}},
+    {"id": "agent-orca", "category": "agent", "title": "Orca ADE", "provides": "Session machinery for driving agents in isolated worktrees.", "detect": {"kind": "path", "value": "orca-ide"}},
+    {"id": "model-llamacpp", "category": "model-server", "title": "llama.cpp server", "provides": "Serves an open-weight GGUF model over an OpenAI-compatible endpoint, e.g. for the proposer.", "detect": {"kind": "path", "value": "llama-server"}},
+    {"id": "runtime-docker", "category": "connector", "title": "Docker", "provides": "The container isolation the kernel requires for a real GPU run.", "detect": {"kind": "path", "value": "docker"}},
+    {"id": "runtime-uv", "category": "connector", "title": "uv", "provides": "The Python toolchain the engine and its jobs run under.", "detect": {"kind": "path", "value": "uv"}},
+    {"id": "runtime-gpu", "category": "connector", "title": "NVIDIA GPU", "provides": "The accelerator a training or eval night runs on.", "detect": {"kind": "path", "value": "nvidia-smi"}},
+    {"id": "mcp-playwright", "category": "mcp", "title": "Playwright (browser automation)", "provides": "Drives a real browser for end-to-end checks of the interface.", "detect": {"kind": "path", "value": "npx"}},
+    {"id": "mcp-supabase", "category": "mcp", "title": "Supabase", "provides": "Auth and per-user storage for the multi-tenant surface.", "detect": {"kind": "env", "value": "SUPABASE_URL"}},
+    {"id": "mcp-vercel", "category": "mcp", "title": "Vercel", "provides": "Deploys the public recorded site.", "detect": {"kind": "path", "value": "vercel"}},
+    {"id": "mcp-huggingface", "category": "mcp", "title": "Hugging Face Hub", "provides": "Model and dataset discovery and download.", "detect": {"kind": "env", "value": "HF_HOME"}},
+    {"id": "mcp-git", "category": "mcp", "title": "Git", "provides": "Version control the swarm branches worktrees from.", "detect": {"kind": "path", "value": "git"}}
+  ]
+}

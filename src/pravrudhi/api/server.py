@@ -39,6 +39,7 @@ from pravrudhi.api.schemas import (
     SignResponse,
     StatusResponse,
     TokenResponse,
+    ToolsResponse,
 )
 from pravrudhi.application.doctor import run_doctor
 from pravrudhi.application.evidence import render_h1
@@ -254,6 +255,14 @@ def create_app(root: Path) -> FastAPI:
                 out["objective"] = o.id  # the full objective is already available at /api/objectives/{oid}
                 return out
         raise HTTPException(404, "no such objective")
+
+    @api.get("/tools", response_model=ToolsResponse)
+    def tools_ep() -> dict[str, Any]:
+        """The tools, connectors and plugins this engine can draw on, each marked available or not on this machine.
+        A catalogue, not an execution layer: listing a tool is not a claim it has been invoked."""
+        from pravrudhi.application.tools import availability
+
+        return {"tools": availability()}
 
     @api.get("/recipes")
     def recipes_ep() -> RecipesResponse:

@@ -429,3 +429,20 @@ class PlanResponse(BaseModel):
     unknown_recipes: list[str] = []
     assumptions: list[str] = []
     review_notes: list[str] = []
+
+
+class ToolResponse(BaseModel):
+    """One catalogued tool, connector or plugin, marked available or not on this machine."""
+
+    id: str
+    category: str
+    title: str
+    provides: str
+    detect: dict[str, str]
+    available: bool
+
+
+class ToolsResponse(BaseModel):
+    """The tool catalogue. Not evidence: listing a tool is not a claim it has been invoked."""
+
+    tools: list[ToolResponse]

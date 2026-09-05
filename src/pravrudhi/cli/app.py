@@ -457,6 +457,19 @@ def routing_cmd(root: Path = ROOT_OPT, as_json: bool = typer.Option(False, "--js
                            f"[{rec['lo']:.2f}, {rec['hi']:.2f}]  mean {rec['mean_wall_s']:.0f}s")
 
 
+@app.command("tools")
+def tools_cmd(category: str | None = typer.Option(None, "--category"), root: Path = ROOT_OPT) -> None:
+    """Tools, connectors and plugins this engine can draw on, and which are installed here."""
+    from pravrudhi.application.tools import availability
+
+    rows = availability()
+    if category:
+        rows = [r for r in rows if r["category"] == category]
+    for r in rows:
+        mark = "available" if r["available"] else "not present"
+        typer.echo(f"{r['id']:22s} {r['category']:13s} {mark:12s} {r['title']}")
+
+
 @app.command("recipes")
 def recipes_cmd(
     capability: str | None = typer.Option(None, "--capability"),
