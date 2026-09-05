@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -65,8 +66,11 @@ def create_app(root: Path) -> FastAPI:
 
     @app.get("/evidence/{name}")
     def evidence(name: str) -> dict[str, str]:
-        p = root / "docs" / "evidence" / f"{name}.md"
-        if not p.exists() or ".." in name:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", name):
+            raise HTTPException(404, "no such evidence document")
+        base = (root / "docs" / "evidence").resolve()
+        p = (base / f"{name}.md").resolve()
+        if p.parent != base or not p.is_file():
             raise HTTPException(404, "no such evidence document")
         return {"name": name, "markdown": p.read_text()}
 

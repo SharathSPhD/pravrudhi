@@ -119,3 +119,14 @@ def test_api_reads_ledger_and_sign_is_a_human_act(tmp_path: Path) -> None:
     assert r.status_code == 200 and r.json()["by"] == "Sharath"
     assert c.get("/inbox").json()[0]["signed"] is True
     assert verify(root / "research" / "ledger.jsonl").ok
+
+
+def test_evidence_endpoint_refuses_traversal_and_serves_only_evidence_files(tmp_path: Path) -> None:
+    root = _promoted_ledger(tmp_path)
+    (root / "docs" / "evidence").mkdir(parents=True, exist_ok=True)
+    (root / "docs" / "evidence" / "L3_noise_floor.md").write_text("# ok\n")
+    (root / "secret.md").write_text("no\n")
+    c = TestClient(create_app(root))
+    assert c.get("/evidence/L3_noise_floor").json()["markdown"] == "# ok\n"
+    for bad in ("..%2Fsecret", "../secret", "%2e%2e/secret", "L3_noise_floor/../../secret", "a" * 65, "x.y"):
+        assert c.get(f"/evidence/{bad}").status_code == 404, bad
