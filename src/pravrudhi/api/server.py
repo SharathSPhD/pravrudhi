@@ -29,6 +29,8 @@ from pravrudhi.api.schemas import (
     HealthResponse,
     InboxListingResponse,
     MarkdownResponse,
+    MemoryNoteResponse,
+    MemoryResponse,
     NightsResponse,
     ObjectiveDetailResponse,
     ObjectiveResponse,
@@ -71,6 +73,13 @@ class ObjectiveRequest(BaseModel):
     recipes: list[str] = []
     target_delta: float | None = None
     notes: str = ""
+
+
+class RememberRequest(BaseModel):
+    """A durable fact to store, with where it came from."""
+
+    text: str
+    source: str = ""
 
 
 class SignRequest(BaseModel):
@@ -255,6 +264,33 @@ def create_app(root: Path) -> FastAPI:
                 out["objective"] = o.id  # the full objective is already available at /api/objectives/{oid}
                 return out
         raise HTTPException(404, "no such objective")
+
+    @api.get("/memory", response_model=MemoryResponse)
+    def memory_ep() -> dict[str, Any]:
+        """What belongs to the user in this workspace. Kept apart from the ledger, which owns what the loop learned."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.memory import preferences, recall, threads
+
+        return {
+            "preferences": [{"key": k, **{kk: vv for kk, vv in asdict(p).items() if kk != "key"}}
+                            for k, p in preferences(root).items()],
+            "notes": [asdict(n) for n in recall(root, "", limit=50)],
+            "threads": [t.id for t in threads(root)],
+        }
+
+    @api.post("/memory/notes", response_model=MemoryNoteResponse)
+    def remember_ep(req: RememberRequest) -> dict[str, Any]:
+        """Record a durable fact. Refused if it reads as a bare numeric claim about a result."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.memory import MemoryError as MemErr
+        from pravrudhi.application.memory import remember
+
+        try:
+            return asdict(remember(root, req.text, source=req.source or "api"))
+        except MemErr as e:
+            raise HTTPException(422, str(e)) from e
 
     @api.get("/tools", response_model=ToolsResponse)
     def tools_ep() -> dict[str, Any]:

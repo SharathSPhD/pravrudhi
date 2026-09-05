@@ -446,3 +446,36 @@ class ToolsResponse(BaseModel):
     """The tool catalogue. Not evidence: listing a tool is not a claim it has been invoked."""
 
     tools: list[ToolResponse]
+
+
+class PreferenceResponse(BaseModel):
+    """A key/value the user set, with the provenance of when and how."""
+
+    key: str
+    value: JsonValue
+    source: str
+    set_at: str
+
+
+class MemoryNoteResponse(BaseModel):
+    """A durable fact the user asked to remember. Never a benchmark number: that belongs to the ledger."""
+
+    id: str
+    text: str
+    source: str
+    created: str
+
+
+class ChatThreadResponse(BaseModel):
+    """A conversation thread's turns."""
+
+    thread_id: str
+    turns: list[dict[str, str]]
+
+
+class MemoryResponse(BaseModel):
+    """What belongs to the user in this workspace: preferences, notes, and chat threads. Not the ledger."""
+
+    preferences: list[PreferenceResponse]
+    notes: list[MemoryNoteResponse]
+    threads: list[str]
