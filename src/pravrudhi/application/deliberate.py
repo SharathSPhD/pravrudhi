@@ -10,6 +10,7 @@ import numpy as np
 import yaml
 
 from pravrudhi.application.citta_view import build_citta, keys_for
+from pravrudhi.application.policies import POLICIES, fill_budget, rank_scores, selection_weights
 from pravrudhi_kernel.efe import (
     BeliefKeys,
     PrecisionView,
@@ -66,6 +67,7 @@ def deliberate(
     surface: str | None = None,
     target_model: str | None = None,
     round_index: int = 0,
+    selection_policy: str = "efe",
 ) -> list[str]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "controller.yaml").read_text())
     night_yaml = root / "research" / "prereg" / "lora_night.yaml"
@@ -101,6 +103,7 @@ def deliberate(
                          "sequential_stage": n_obs},
                 "decorative": {"cv_G": None, "mi_bits": None, "verdict": "not_applicable", "reason": "single live candidate"},
                 "night_mode": "continuation",
+                "policy": selection_policy,
                 "harness_hash": harness_hash,
                 "model_hash": model_hash,
                 "epistemic": False,
@@ -179,36 +182,55 @@ def deliberate(
             keys=k,
         )
         habits[cid] = habit_prior(citta, k, float(cfg["tau0_2"]))
+    if selection_policy not in POLICIES:
+        raise ValueError(f"unknown selection_policy {selection_policy!r}; expected one of {POLICIES}")
     G = {c: t.G for c, t in terms.items()}
-    Q = selection_probabilities(G, habits)
-    # C2 bootstrap: before any candidate in the pool has a kernel observation, near-uniform selection is the expected
-    # behaviour, not a decorative controller; the identical-score and CV criteria still apply, the MI floor does not.
+    rng = np.random.default_rng(rng_seed)
     bootstrap = not any((st.candidates[c].n_obs if c in st.candidates else 0) > 0 for c in pool)
-    # ADR-0012: the information floor applies only in a night's first round; after that the survivors' posteriors
-    # have been observed and a near-uniform choice among near-equals is the calibrated output, not a decorative one.
-    mi_min = mi_floor(float(cfg["decorative"]["mi_min_bits"]), bootstrap=bootstrap, round_index=round_index)
-    verdict = decorative_check(G, Q, float(cfg["decorative"]["cv_min"]), mi_min)
+    if selection_policy == "efe":
+        Q = selection_probabilities(G, habits)
+        # C2 bootstrap: before any candidate in the pool has a kernel observation, near-uniform selection is the
+        # expected behaviour, not a decorative controller; the identical-score and CV criteria still apply, the MI
+        # floor does not. ADR-0012: the information floor applies only in a night's first round.
+        mi_min = mi_floor(float(cfg["decorative"]["mi_min_bits"]), bootstrap=bootstrap, round_index=round_index)
+        verdict = decorative_check(G, Q, float(cfg["decorative"]["cv_min"]), mi_min)
+        decorative = verdict.model_dump()
+    else:
+        # A baseline arm of H1: rank by the arm's own rule and fill the budget in that order. The decorative check
+        # tests whether the EFE scores condition on the action; a baseline does not compute those scores, and the
+        # random arm is decorative by construction, which is the point of having it.
+        scores = rank_scores(selection_policy, citta, pool, rng)
+        baseline_order = fill_budget(scores, {c: cands[c].cost_est_gpu_h for c in pool}, budget_gpu_h)
+        Q = selection_weights(scores, baseline_order)
+        decorative = {"cv_G": None, "mi_bits": None, "verdict": "not_applicable", "reason": f"baseline arm {selection_policy}"}
     (root / "research" / "last_select.json").write_text(
         json.dumps(
-            {"night": night, "scores": G, "selection": Q, "verdict": verdict.model_dump()},
+            {"night": night, "policy": selection_policy, "scores": G, "selection": Q, "verdict": decorative},
             indent=2,
             sort_keys=True,
         )
         + "\n"
     )
-    if verdict.verdict == "fail":
-        w.append(
-            "audit",
-            "controller",
-            {"kind": "decorative_controller", "severity": "high", "detail": verdict.model_dump()},
-            epoch=0,
-            night=night,
+    if selection_policy == "efe":
+        if verdict.verdict == "fail":
+            w.append(
+                "audit",
+                "controller",
+                {"kind": "decorative_controller", "severity": "high", "detail": verdict.model_dump()},
+                epoch=0,
+                night=night,
+            )
+            raise DecorativeAbort(verdict.reason or "decorative")
+        shares = Shares(
+            planted=float(cfg["shares"]["planted"]), sensors=float(cfg["shares"]["sensors"]), f_epi=float(cfg["f_epi"])
         )
-        raise DecorativeAbort(verdict.reason or "decorative")
-    shares = Shares(planted=float(cfg["shares"]["planted"]), sensors=float(cfg["shares"]["sensors"]), f_epi=float(cfg["f_epi"]))
-    batch = knapsack_batch(Q, cands, {c: t.EIG for c, t in terms.items()}, budget_gpu_h, shares, np.random.default_rng(rng_seed))
-    chosen = batch.deliberation + batch.execution
-    order = sorted(chosen, key=lambda c: -Q[c])
+        batch = knapsack_batch(Q, cands, {c: t.EIG for c, t in terms.items()}, budget_gpu_h, shares, rng)
+        chosen = batch.deliberation + batch.execution
+        order = sorted(chosen, key=lambda c: -Q[c])
+        epistemic_ids, budget_effective, spent_planned = batch.epistemic_ids, batch.budget_effective, batch.spent_gpu_h
+    else:
+        order = baseline_order
+        epistemic_ids, budget_effective, spent_planned = set(), budget_gpu_h, sum(cands[c].cost_est_gpu_h for c in order)
     for i, cid in enumerate(order):
         t = terms[cid]
         w.append(
@@ -231,14 +253,15 @@ def deliberate(
                     "stage": "screen",
                     "sequential_stage": st.candidates[cid].n_obs if cid in st.candidates else 0,
                 },
-                "decorative": {"cv_G": verdict.cv_G, "mi_bits": verdict.mi_bits, "verdict": "pass"},
+                "decorative": decorative,
+                "policy": selection_policy,
                 "night_mode": "bootstrap" if bootstrap else "exploit",
                 "harness_hash": harness_hash,
                 "model_hash": model_hash,
-                "epistemic": cid in batch.epistemic_ids,
+                "epistemic": cid in epistemic_ids,
                 "rank": i,
-                "budget_effective": batch.budget_effective,
-                "spent_planned": batch.spent_gpu_h,
+                "budget_effective": budget_effective,
+                "spent_planned": spent_planned,
             },
             epoch=0,
             night=night,
@@ -247,10 +270,10 @@ def deliberate(
             surface=meta[cid]["surface"],
             bucket=meta[cid]["bucket"],
         )
-    log(
-        f"deliberate: pool={len(pool)} selected={len(order)} "
-        f"gamma={gamma.model_dump()} cv_G={verdict.cv_G:.3f} mi={verdict.mi_bits:.3f}"
-    )
+    cv = decorative.get("cv_G")
+    mi = decorative.get("mi_bits")
+    detail = f"cv_G={cv:.3f} mi={mi:.3f}" if cv is not None and mi is not None else "decorative=n/a"
+    log(f"deliberate[{selection_policy}]: pool={len(pool)} selected={len(order)} gamma={gamma.model_dump()} {detail}")
     return order
 
 

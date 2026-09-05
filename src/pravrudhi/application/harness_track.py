@@ -362,7 +362,8 @@ def harness_noise_floor(root: Path, *, rotations: int, seeds: int, k: int, night
 
 
 def run_harness_night(
-    root: Path, *, night: int, k: int | None, budget_gpu_h: float | None, gguf: Path, log: Log = print
+    root: Path, *, night: int, k: int | None, budget_gpu_h: float | None, gguf: Path, log: Log = print,
+    selection_policy: str | None = None,
 ) -> dict[str, Any]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
     ctx = HarnessContext(root, cfg, night, log)
@@ -370,6 +371,7 @@ def run_harness_night(
         raise RuntimeError("run the harness noise floor first (research/prereg/variance_harness.json)")
     budget = float(budget_gpu_h if budget_gpu_h is not None else cfg["budget"]["night_gpu_h"])
     kk = int(k if k is not None else cfg["proposer"]["k_candidates"])
+    policy = str(selection_policy or cfg.get("selection_policy", "efe"))
     ledger = root / "research" / "ledger.jsonl"
     w = LedgerWriter.open(ledger, "0.1.0")
     from pravrudhi_kernel.ledger.verify import iter_events
@@ -390,6 +392,7 @@ def run_harness_night(
             "kind": "night_start",
             "severity": "info",
             "track": "harness",
+            "selection_policy": policy,
             "budget_gpu_h": budget,
             "k": kk,
             "incumbent": ctx.incumbent_id,
@@ -457,6 +460,7 @@ def run_harness_night(
                 rng_seed=night * 100 + rnd,
                 log=log,
                 round_index=rnd,
+                selection_policy=policy,
                 surface="H3.prompt",
                 target_model=str(cfg["model"]),
             )

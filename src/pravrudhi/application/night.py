@@ -36,8 +36,10 @@ def run_night(
     train_parquet: Path,
     gguf: Path,
     log: Callable[[str], None] = print,
+    selection_policy: str | None = None,
 ) -> dict[str, Any]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "lora_night.yaml").read_text())
+    policy = str(selection_policy or cfg.get("selection_policy", "efe"))
     var = json.loads((root / "research" / "prereg" / "variance.json").read_text())
     budget = float(budget_gpu_h if budget_gpu_h is not None else cfg["budget"]["night_gpu_h"])
     k = int(k if k is not None else cfg["proposer"]["k_candidates"])
@@ -61,6 +63,7 @@ def run_night(
             "kind": "night_start",
             "severity": "info",
             "track": "lora",
+            "selection_policy": policy,
             "budget_gpu_h": budget,
             "k": k,
             "incumbent": ctx.incumbent_id,
@@ -128,6 +131,7 @@ def run_night(
                 rng_seed=night * 100 + rnd,
                 log=log,
                 round_index=rnd,
+                selection_policy=policy,
             )
         except DecorativeAbort as e:
             log(f"night aborted: decorative controller ({e})")

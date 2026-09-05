@@ -18,6 +18,9 @@ VERSION_OPT = typer.Option(False, "--version")
 EVIDENCE_OPT = typer.Option(..., "--evidence")
 BY_OPT = typer.Option(..., "--by")
 NOTE_OPT = typer.Option("", "--note")
+POLICY_OPT = typer.Option(
+    None, "--policy", help="selection arm for H1: efe (default, from prereg) | greedy | thompson | random"
+)
 NIGHT_OPT = typer.Option(1, "--night")
 BUDGET_OPT = typer.Option(None, "--budget", help="GPU-hours; default from research/prereg/lora_night.yaml")
 K_OPT = typer.Option(None, "--k")
@@ -252,6 +255,7 @@ def night_cmd(
     night: int = NIGHT_OPT,
     budget: float | None = BUDGET_OPT,
     k: int | None = K_OPT,
+    policy: str | None = POLICY_OPT,
     root: Path = ROOT_OPT,
     train_parquet: Path = TRAIN_PARQUET_OPT,
     gguf: Path | None = GGUF_OPT,
@@ -265,7 +269,10 @@ def night_cmd(
 
         cfg = yaml.safe_load((root / "research" / "prereg" / "lora_night.yaml").read_text())
         gguf = resolve_model_snapshot("Qwen/Qwen3-30B-A3B-GGUF") / str(cfg["proposer"]["gguf"])
-    out = run_night(root, night=night, budget_gpu_h=budget, k=k, train_parquet=train_parquet, gguf=gguf, log=typer.echo)
+    out = run_night(
+        root, night=night, budget_gpu_h=budget, k=k, train_parquet=train_parquet, gguf=gguf,
+        log=typer.echo, selection_policy=policy,
+    )
     typer.echo(json.dumps(out, indent=2))
 
 
@@ -353,6 +360,7 @@ def harness_night_cmd(
     night: int = NIGHT_OPT,
     budget: float | None = BUDGET_OPT,
     k: int | None = K_OPT,
+    policy: str | None = POLICY_OPT,
     root: Path = ROOT_OPT,
     gguf: Path | None = GGUF_OPT,
 ) -> None:
@@ -365,7 +373,14 @@ def harness_night_cmd(
 
         cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
         gguf = resolve_model_snapshot("Qwen/Qwen3-30B-A3B-GGUF") / str(cfg["proposer"]["gguf"])
-    typer.echo(json.dumps(run_harness_night(root, night=night, k=k, budget_gpu_h=budget, gguf=gguf, log=typer.echo), indent=2))
+    typer.echo(
+        json.dumps(
+            run_harness_night(
+                root, night=night, k=k, budget_gpu_h=budget, gguf=gguf, log=typer.echo, selection_policy=policy
+            ),
+            indent=2,
+        )
+    )
 
 
 def main() -> None:
