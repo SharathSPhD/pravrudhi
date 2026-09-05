@@ -189,11 +189,14 @@ def evidence_cmd(
     check: bool = typer.Option(False, "--check", help="Compare with the committed document; exit 1 on any difference."),
 ) -> None:
     """Render docs/evidence/<name>.md from the ledger alone (make reproduce)."""
-    from pravrudhi.application.evidence import render_first_night, render_noise_floor
+    from pravrudhi.application.evidence import render_first_night, render_nights_summary, render_noise_floor
 
     if name == "noise_floor":
         text = render_noise_floor(root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json")
         dest = root / "docs" / "evidence" / "L3_noise_floor.md"
+    elif name == "summary":
+        text = render_nights_summary(root / "research" / "ledger.jsonl", (1, 2))
+        dest = root / "docs" / "evidence" / "L4_summary.json"
     elif name.startswith("night"):
         text = render_first_night(root / "research" / "ledger.jsonl", int(name.removeprefix("night") or "1"))
         dest = root / "docs" / "evidence" / f"L4_{name}.md"

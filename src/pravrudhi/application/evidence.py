@@ -174,3 +174,69 @@ def render_first_night(ledger: Path, night: int) -> str:
     for a in audits:
         lines.append("- " + ", ".join(f"{k}={v}" for k, v in a.items()))
     return "\n".join(lines) + "\n"
+
+
+def render_nights_summary(ledger: Path, nights: tuple[int, ...]) -> str:
+    """The numbers a gate cites for a set of nights, as JSON keyed so each can be cited `L4_summary.json:<key>`.
+
+    Every value is computed from ledger rows of the given nights; nothing is hand-entered."""
+    import math
+    from collections import Counter
+
+    rows = [ev for ev in iter_events(ledger) if ev.night in nights]
+    prop = [r for r in rows if r.kind == "propose" and r.candidate_id != "c-0000"]
+    obs_c = [r for r in rows if r.kind == "observe" and r.payload.get("arm") == "candidate"]
+    obs_i = [r for r in rows if r.kind == "observe" and r.payload.get("arm") == "incumbent"]
+    xs: dict[str, list[float]] = {}
+    for r in obs_c:
+        xs.setdefault(str(r.candidate_id), []).append(float(r.payload["observed"]["delta_in"]))
+    prunes = [r for r in rows if r.kind == "prune"]
+    pruned_ids = {r.candidate_id for r in prunes}
+    all_d = [x for v in xs.values() for x in v]
+    mean = sum(all_d) / len(all_d) if all_d else 0.0
+    sd = math.sqrt(sum((x - mean) ** 2 for x in all_d) / (len(all_d) - 1)) if len(all_d) > 1 else 0.0
+    briers = [float(r.payload["brier"]) for r in obs_c if r.payload.get("brier") is not None]
+    gammas = [r.payload["gamma"] for r in rows if r.kind == "select"]
+    sw = [r.payload for r in rows if r.kind == "audit" and r.payload.get("kind") == "strategy_switch_rate"]
+    dec = [r.payload["decorative"] for r in rows if r.kind == "select"]
+    out = {
+        "nights": list(nights),
+        "ledger_seq_range": [rows[0].seq, rows[-1].seq] if rows else None,
+        "proposed": len(prop),
+        "proposed_by_strategy": dict(Counter(str(r.payload.get("strategy")) for r in prop)),
+        "candidates_observed": len(xs),
+        "candidate_observe_rows": len(obs_c),
+        "incumbent_observe_rows": len(obs_i),
+        "observe_rows_all_kernel_pratyaksha_container": all(
+            r.actor == "kernel" and r.provenance == "pratyaksha" and r.payload.get("isolation") == "container"
+            for r in obs_c + obs_i
+        ),
+        "paired_delta_n": len(all_d),
+        "paired_delta_mean": round(mean, 4),
+        "paired_delta_sd": round(sd, 4),
+        "paired_delta_min": min(all_d) if all_d else None,
+        "paired_delta_max": max(all_d) if all_d else None,
+        "pruned": len(prunes),
+        "pruned_by_hetvabhasa": dict(Counter(str(r.payload.get("hetvabhasa")) for r in prunes)),
+        "confirmed": sum(1 for r in obs_c if (r.payload.get("stats") or {}).get("boundary") == "confirm"),
+        "promoted": sum(1 for r in rows if r.kind == "promote"),
+        "continuing_at_close": {
+            c: {"deltas": v, "mean": round(sum(v) / len(v), 4), "n": len(v)} for c, v in xs.items() if c not in pruned_ids
+        },
+        "job_failed": sum(1 for r in rows if r.kind == "audit" and r.payload.get("kind") == "job_failed"),
+        "pool_exhausted": sum(1 for r in rows if r.kind == "audit" and r.payload.get("kind") == "pool_exhausted"),
+        "gpu_h_spend_rows": round(sum(float(r.payload.get("gpu_h") or 0.0) for r in rows if r.kind == "spend"), 3),
+        "brier_n": len(briers),
+        "brier_mean": round(sum(briers) / len(briers), 3) if briers else None,
+        "gamma_first": gammas[0] if gammas else None,
+        "gamma_last": gammas[-1] if gammas else None,
+        "decorative_cv_G_min": min(float(d["cv_G"]) for d in dec) if dec else None,
+        "decorative_cv_G_max": max(float(d["cv_G"]) for d in dec) if dec else None,
+        "decorative_mi_bits_max": max(float(d["mi_bits"]) for d in dec) if dec else None,
+        "strategy_switch_rate_last": sw[-1] if sw else None,
+        "rethink_checkpoints": sum(1 for r in rows if r.kind == "audit" and r.payload.get("kind") == "rethink_checkpoint"),
+        "night_start_prereg_sha256": [
+            r.payload.get("prereg_sha256") for r in rows if r.kind == "audit" and r.payload.get("kind") == "night_start"
+        ][-1:],
+    }
+    return json.dumps(out, indent=2, sort_keys=True) + "\n"

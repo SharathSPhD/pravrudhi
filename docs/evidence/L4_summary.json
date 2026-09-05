@@ -1,0 +1,97 @@
+{
+  "brier_mean": 0.195,
+  "brier_n": 22,
+  "candidate_observe_rows": 29,
+  "candidates_observed": 18,
+  "confirmed": 0,
+  "continuing_at_close": {
+    "c-0006": {
+      "deltas": [
+        0.0
+      ],
+      "mean": 0.0,
+      "n": 1
+    },
+    "c-0007": {
+      "deltas": [
+        0.050000000000000044,
+        0.0,
+        0.0
+      ],
+      "mean": 0.0167,
+      "n": 3
+    },
+    "c-0011": {
+      "deltas": [
+        0.040000000000000036,
+        -0.029999999999999916
+      ],
+      "mean": 0.005,
+      "n": 2
+    },
+    "c-0016": {
+      "deltas": [
+        0.0
+      ],
+      "mean": 0.0,
+      "n": 1
+    }
+  },
+  "decorative_cv_G_max": 1.037544134213578,
+  "decorative_cv_G_min": 0.21177243360231135,
+  "decorative_mi_bits_max": 0.20012152348058887,
+  "gamma_first": {
+    "epi": 0.75654143743373,
+    "prag": 0.05
+  },
+  "gamma_last": {
+    "epi": 0.4700870999622921,
+    "prag": 0.8963217700087178
+  },
+  "gpu_h_spend_rows": 1.804,
+  "incumbent_observe_rows": 29,
+  "job_failed": 2,
+  "ledger_seq_range": [
+    64,
+    348
+  ],
+  "night_start_prereg_sha256": [
+    {
+      "canaries": "6c636ec0e0c62740f73cbf0209ed05237241313e62bf624fd12072992da2a7e7",
+      "lora_night": "044cc47fe2a8be2ce49d029cc53c8687e1ef864d6cd2f872914a9ff061735541",
+      "variance": "9808a203d0b28f64da03611d228a7b5234b8729f90f8fcbcef6e0701d6c76dca"
+    }
+  ],
+  "nights": [
+    1,
+    2
+  ],
+  "observe_rows_all_kernel_pratyaksha_container": true,
+  "paired_delta_max": 0.050000000000000044,
+  "paired_delta_mean": 0.001,
+  "paired_delta_min": -0.040000000000000036,
+  "paired_delta_n": 29,
+  "paired_delta_sd": 0.0201,
+  "pool_exhausted": 1,
+  "promoted": 0,
+  "proposed": 29,
+  "proposed_by_strategy": {
+    "grpo_verifiable": 14,
+    "sft_rejection": 15
+  },
+  "pruned": 14,
+  "pruned_by_hetvabhasa": {
+    "asiddha": 14
+  },
+  "rethink_checkpoints": 0,
+  "strategy_switch_rate_last": {
+    "kind": "strategy_switch_rate",
+    "n": 54,
+    "severity": "info",
+    "switches": 24,
+    "wilson": [
+      0.3200225687559781,
+      0.5762458608863554
+    ]
+  }
+}
