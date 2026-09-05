@@ -116,8 +116,14 @@ class CodexAgent(GitWorktreeMixin):
 
     name = "codex"
 
-    def __init__(self, root: Path, model: str | None = None, sandbox: str = "workspace-write") -> None:
+    def __init__(
+        self, root: Path, model: str | None = None, sandbox: str = "workspace-write", *, effort: str | None = None
+    ) -> None:
+        # `effort` maps to Codex's model_reasoning_effort. On this account only gpt-6-astra is available, and it is
+        # expensive; running it at "low" is the one lever left for spend on the tasks that do not need deep
+        # reasoning, so the default here is low and a caller raises it deliberately for hard work.
         self.root, self.model, self.sandbox = Path(root), model, sandbox
+        self.effort = effort or os.environ.get("PRAVRUDHI_CODEX_EFFORT", "low")
 
     def available(self) -> bool:
         return shutil.which("codex") is not None
@@ -133,6 +139,8 @@ class CodexAgent(GitWorktreeMixin):
         cmd = ["codex", "exec", "--cd", str(workspace), "--sandbox", self.sandbox, "--skip-git-repo-check"]
         if self.model:
             cmd += ["--model", self.model]
+        if self.effort:
+            cmd += ["-c", f"model_reasoning_effort={self.effort}"]
         cmd.append(prompt)
         code, out, err, wall = _run(cmd, workspace, timeout_s)
         return AgentRun(
