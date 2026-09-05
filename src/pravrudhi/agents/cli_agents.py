@@ -10,9 +10,11 @@ that is already signed in and report `available()` as false when it is not.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import time
 from pathlib import Path
@@ -20,17 +22,51 @@ from pathlib import Path
 from pravrudhi.agents.base import AgentRun, Diff, GitWorktreeMixin
 
 
+def _reap(proc: subprocess.Popen[str]) -> None:
+    """Kill the whole process group, not just the child we started.
+
+    A coding-agent CLI is a launcher: it spawns a sandbox helper, which spawns the work. `subprocess.run(timeout=)`
+    kills only the direct child, so the grandchildren survive, keep talking to the provider and keep billing. Eight
+    such orphans were found alive on this machine at once, the oldest three hours after its task had already
+    returned a verdict and had its work merged. Nothing in the logs showed it: a finished dispatch and a still-
+    running agent look identical from outside.
+    """
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError, OSError):
+        return
+    try:
+        proc.wait(timeout=5)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    with contextlib.suppress(subprocess.TimeoutExpired):
+        proc.wait(timeout=5)
+
+
 def _run(cmd: list[str], cwd: Path, timeout_s: int, env: dict[str, str] | None = None) -> tuple[int, str, str, float]:
     t0 = time.monotonic()
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env={**os.environ, **(env or {})},
+        start_new_session=True,  # its own process group, so the whole tree can be reaped together
+    )
     try:
-        p = subprocess.run(
-            cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout_s, env={**os.environ, **(env or {})}
-        )
-        return p.returncode, p.stdout, p.stderr, time.monotonic() - t0
-    except subprocess.TimeoutExpired as e:
-        out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
-        err = (e.stderr or b"").decode() if isinstance(e.stderr, bytes) else (e.stderr or "")
-        return 124, out, err + f"\ntimeout after {timeout_s}s", time.monotonic() - t0
+        out, err = proc.communicate(timeout=timeout_s)
+        return proc.returncode, out, err, time.monotonic() - t0
+    except subprocess.TimeoutExpired:
+        _reap(proc)
+        out, err = proc.communicate()
+        return 124, out or "", (err or "") + f"\ntimeout after {timeout_s}s", time.monotonic() - t0
+    except BaseException:
+        _reap(proc)  # an interrupt must not leave an agent running either
+        raise
 
 
 class ClaudeCodeAgent(GitWorktreeMixin):
