@@ -51,11 +51,30 @@ def app_token(root: Path) -> str:
     return token
 
 
+def hostname_of(value: str) -> str:
+    """The bare hostname of a Host header or an origin URL, lowercased, without port or scheme.
+
+    Both sides of the comparison go through this, so a Host header is never matched against a URL by substring.
+    An earlier version asked whether any allowed origin *ended with* the requested host, which let a Host of
+    "app" match an allowed origin of "https://pravrudhi.vercel.app". Only exact hostname equality is accepted now.
+    """
+    v = (value or "").strip().lower()
+    if "://" in v:
+        v = v.split("://", 1)[1]
+    v = v.split("/", 1)[0]
+    if v.startswith("["):  # bracketed IPv6, e.g. [::1]:8008
+        return v.split("]", 1)[0] + "]"
+    return v.split(":", 1)[0]
+
+
 def _host_is_local(host_header: str) -> bool:
-    host = host_header.split(":")[0].strip().lower() if host_header else ""
-    if host_header.startswith("["):  # bracketed IPv6, e.g. [::1]:8008
-        host = host_header.split("]")[0] + "]"
+    host = hostname_of(host_header)
     return host in LOCAL_HOSTS or host == ""
+
+
+def permitted_hostnames() -> set[str]:
+    """Exact hostnames drawn from the operator's allowed origins."""
+    return {hostname_of(o) for o in allowed_origins() if hostname_of(o)}
 
 
 def allowed_origins() -> list[str]:
@@ -78,7 +97,7 @@ class LocalGuard(BaseHTTPMiddleware):
         host = request.headers.get("host", "")
         origin = request.headers.get("origin", "")
         permitted = allowed_origins()
-        if not _host_is_local(host) and host not in permitted and not any(o.endswith(host) for o in permitted):
+        if not _host_is_local(host) and hostname_of(host) not in permitted_hostnames():
             return JSONResponse(
                 {"detail": "refused: the Host header is not a loopback address (DNS-rebinding guard)"}, status_code=421
             )

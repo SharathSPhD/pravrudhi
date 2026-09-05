@@ -61,3 +61,19 @@ def test_an_operator_can_name_origins_when_they_mean_to(tmp_path, monkeypatch):
     assert r.headers.get("access-control-allow-origin") == "https://pravrudhi.vercel.app"
     assert client.post("/runs", json={"target": "model"},
                        headers={"origin": "https://pravrudhi.vercel.app", TOKEN_HEADER: app_token(root)}).status_code != 403
+
+
+def test_the_host_allowlist_matches_whole_names_not_substrings(tmp_path, monkeypatch):
+    """An allowed origin of https://pravrudhi.vercel.app must not admit a Host of 'app' or 'vercel.app'."""
+    from pravrudhi.api.localguard import hostname_of, permitted_hostnames
+
+    monkeypatch.setenv("PRAVRUDHI_ALLOWED_ORIGINS", "https://pravrudhi.vercel.app")
+    client, _ = _client(tmp_path)
+    for spoof in ("app", "vercel.app", "p", "pravrudhi.vercel.app.evil.example"):
+        assert client.get("/health", headers={"host": spoof}).status_code == 421, spoof
+    assert client.get("/health", headers={"host": "pravrudhi.vercel.app"}).status_code == 200
+    assert client.get("/health", headers={"host": "pravrudhi.vercel.app:443"}).status_code == 200
+    assert permitted_hostnames() == {"pravrudhi.vercel.app"}
+    assert hostname_of("https://example.com:8443/x") == "example.com"
+    assert hostname_of("[::1]:8008") == "[::1]"
+    assert hostname_of("127.0.0.1:8008") == "127.0.0.1"
