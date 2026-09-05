@@ -184,19 +184,17 @@ def propose_generic(
         if rethink
         else ""
     )
-    prompt = (
-        (prompts_dir / prompt_file)
-        .read_text()
-        .format(
-            model=model,
-            grammar=grammar_doc,
-            state_summary=summary + f"\n\nMeasured noise floor: sigma_seed={sigma_seed:.4f} "
-            f"(pass-rate units, 100 items). Incumbent: {incumbent_id} (strategy {inc_strategy})."
-            + (f"\n\n{extra_context}" if extra_context else ""),
-            k=k,
-            incumbent_strategy=inc_strategy,
-            rethink_note=rethink_note,
-        )
+    prompt = _fill(
+        (prompts_dir / prompt_file).read_text(),
+        model=model,
+        grammar=grammar_doc,
+        state_summary=summary
+        + f"\n\nMeasured noise floor: sigma_seed={sigma_seed:.4f} "
+        + f"(pass-rate units, 100 items). Incumbent: {incumbent_id} (strategy {inc_strategy})."
+        + (f"\n\n{extra_context}" if extra_context else ""),
+        k=str(k),
+        incumbent_strategy=inc_strategy,
+        rethink_note=rethink_note,
     )
     res = client.chat(
         [{"role": "user", "content": prompt}],

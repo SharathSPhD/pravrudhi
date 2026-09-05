@@ -7,6 +7,9 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 HFH="${HF_HOME:-$HOME/.cache/huggingface}"
 SNAP="$(ls -d "$HFH/hub/models--${MODEL//\//--}/snapshots/"*/ | head -1)"; REL="/models/${SNAP#$HFH/}"
 mkdir -p "$OUT/in" "$OUT/out"
+# EvalPlus reuses *_eval_results.json when present: a stale file silently reports a previous harness's score for
+# freshly generated samples. Remove any prior result and sample files so every run measures what it just produced.
+rm -f "$OUT/out/"*_eval_results.json "$OUT/out/samples.jsonl" "$OUT/out/evalplus_samples.jsonl" "$OUT/out/job_meta.json"
 python3 - "$ROOT/.pravrudhi/ext_cache/humanevalplus.jsonl" "$OUT/in/items.jsonl" <<'PY'
 import json, sys
 rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
@@ -23,4 +26,9 @@ open(sys.argv[2], "w").write("".join(json.dumps({"task_id": r["id"], "solution":
 PY
 docker run --rm --network none --user "$(id -u):$(id -g)" -v "$OUT/out:/work:rw" -v "$ROOT/.pravrudhi/ext_cache:/cache:rw" -e HOME=/cache -e HF_HOME=/cache \
   pravrudhi/ext-scorers:latest bash -c "cd /work && evalplus.evaluate --dataset humaneval --samples evalplus_samples.jsonl --parallel 8 2>&1 | grep -vE 'Warning|warn' | tail -6"
-ls "$OUT/out"/*eval_results.json 2>/dev/null | head -1
+RES="$(ls "$OUT/out"/*eval_results.json 2>/dev/null | head -1)"
+# the results must be newer than the samples they claim to score
+if [[ -n "$RES" ]] && [[ "$OUT/out/evalplus_samples.jsonl" -nt "$RES" ]]; then
+  echo "REFUSED: $RES is older than the samples it reports on" >&2; exit 3
+fi
+echo "$RES"
