@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pravrudhi_kernel.ledger.replay import withdrawn_observations
 from pravrudhi_kernel.ledger.verify import iter_events
 from pravrudhi_kernel.stats import wilson_ci
 
@@ -18,12 +19,17 @@ def track_events(ledger: Path, track: str = "lora"):
     rows on the H3.prompt surface and audit rows tagged track H/harness belong to the harness track, rows on
     W3.adapter to the LoRA track, and untagged rows to the block they sit in (LoRA outside any harness block)."""
     in_harness = False
+    withdrawn = withdrawn_observations(ledger)
+    # candidates proposed on the harness surface belong to the harness track whatever surface a later row carries
+    harness_cids = {ev.candidate_id for ev in iter_events(ledger) if ev.kind == "propose" and ev.surface == "H3.prompt"}
     for ev in iter_events(ledger):
         p = ev.payload
+        if ev.kind == "observe" and ev.seq in withdrawn:
+            continue  # ADR-0015: withdrawn by a sublate row; the row stays in the chain, not in the evidence
         if ev.kind == "audit" and p.get("kind") == "night_start":
             in_harness = p.get("track") == "harness"
-        tagged_h = ev.surface == "H3.prompt" or p.get("track") in ("H", "harness")
-        if ev.surface == "W3.adapter":
+        tagged_h = ev.surface == "H3.prompt" or p.get("track") in ("H", "harness") or ev.candidate_id in harness_cids
+        if ev.surface == "W3.adapter" and not tagged_h:
             row_track = "lora"
         elif tagged_h or in_harness:
             row_track = "harness"

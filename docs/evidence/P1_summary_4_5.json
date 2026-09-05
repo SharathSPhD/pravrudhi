@@ -1,0 +1,83 @@
+{
+  "brier_mean": 0.404,
+  "brier_n": 10,
+  "candidate_observe_rows": 23,
+  "candidates_observed": 16,
+  "confirmed": 1,
+  "continuing_at_close": {
+    "c-0045": {
+      "deltas": [
+        0.09000000000000008,
+        0.040000000000000036
+      ],
+      "mean": 0.065,
+      "n": 2
+    },
+    "c-0051": {
+      "deltas": [
+        0.025000000000000022,
+        -0.010000000000000009
+      ],
+      "mean": 0.0075,
+      "n": 2
+    }
+  },
+  "decorative_cv_G_max": 1.104325038533354,
+  "decorative_cv_G_min": 0.7762779914955246,
+  "decorative_mi_bits_max": 0.5184445166429477,
+  "gamma_first": {
+    "epi": 0.19563572598586532,
+    "prag": 0.705778755777057
+  },
+  "gamma_last": {
+    "epi": 0.15,
+    "prag": 0.7183041332188295
+  },
+  "gpu_h_spend_rows": 1.707,
+  "incumbent_observe_rows": 23,
+  "job_failed": 0,
+  "ledger_seq_range": [
+    546,
+    837
+  ],
+  "night_start_prereg_sha256": [
+    {
+      "canaries": "6c636ec0e0c62740f73cbf0209ed05237241313e62bf624fd12072992da2a7e7",
+      "lora_night": "c748fbc97c04ff3a40591a51da9a5b20d61b25be6366ce33883e7879e27696d0",
+      "variance": "a7c3bc909f231d59f7a020b554e8a7a271ca0b0da0a9f8d85ef60e9d1b10d917"
+    }
+  ],
+  "nights": [
+    4,
+    5
+  ],
+  "observe_rows_all_kernel_pratyaksha_container": true,
+  "paired_confirm_studies": 1,
+  "paired_delta_max": 0.09000000000000008,
+  "paired_delta_mean": -0.0285,
+  "paired_delta_min": -0.14500000000000002,
+  "paired_delta_n": 23,
+  "paired_delta_sd": 0.0574,
+  "pool_exhausted": 0,
+  "promoted": 1,
+  "proposed": 16,
+  "proposed_by_strategy": {
+    "grpo_verifiable": 9,
+    "sft_rejection": 7
+  },
+  "pruned": 14,
+  "pruned_by_hetvabhasa": {
+    "asiddha": 14
+  },
+  "rethink_checkpoints": 0,
+  "strategy_switch_rate_last": {
+    "kind": "strategy_switch_rate",
+    "n": 97,
+    "severity": "info",
+    "switches": 48,
+    "wilson": [
+      0.3974565165320967,
+      0.5926269410885678
+    ]
+  }
+}

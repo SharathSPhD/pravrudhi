@@ -300,6 +300,7 @@ def propose_generic(
             temperature,
             max_tokens,
             log,
+            surface=surface,
         )
     return accepted
 
