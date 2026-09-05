@@ -83,10 +83,21 @@ class NightContext:
         timeout_s: int = 5400,
     ) -> tuple[Any, dict[str, Any] | None]:
         cont_model = "/models/" + str(self.snapshot.relative_to(self.hf_home))
+        return self.run_raw(job, ["--model-dir", cont_model, *args], job_dir, extra_mounts, timeout_s)
+
+    def run_raw(
+        self,
+        job: str,
+        args: list[str],
+        job_dir: Path,
+        extra_mounts: dict[str, str] | None = None,
+        timeout_s: int = 5400,
+    ) -> tuple[Any, dict[str, Any] | None]:
+        """Like run, but the caller supplies --model-dir (teacher sampling uses a different model)."""
         mounts = {str(job_dir / "in"): "/in", str(self.hf_home): "/models", **(extra_mounts or {})}
         spec = JobSpec(
             image=IMAGE,
-            command=[job, "--model-dir", cont_model, *args],
+            command=[job, *args],
             mounts_ro=mounts,
             output_dir=str(job_dir / "out"),
             gpu=True,
