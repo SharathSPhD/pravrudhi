@@ -91,7 +91,23 @@ class LedgerWriter:
         )
         return w
 
-    def append(
+    def _tail(self) -> tuple[int, str, str] | None:
+        """(seq, this_hash, t) of the last line on disk, or None for an empty file."""
+        try:
+            size = self.path.stat().st_size
+        except FileNotFoundError:
+            return None
+        if size == 0:
+            return None
+        with self.path.open("rb") as fh:
+            back = min(size, 65536)
+            fh.seek(size - back)
+            chunk = fh.read(back)
+        line = chunk.rstrip(b"\n").rsplit(b"\n", 1)[-1]
+        last = json.loads(line)
+        return int(last["seq"]), str(last["this_hash"]), str(last["t"])
+
+    def _build(
         self,
         kind: str,
         actor: str,
@@ -99,11 +115,11 @@ class LedgerWriter:
         *,
         epoch: int,
         night: int,
-        cycle: int | None = None,
-        candidate_id: str | None = None,
-        surface: str | Surface | None = None,
-        bucket: dict[str, str] | Bucket | None = None,
-        provenance: str | Pramana | None = None,
+        cycle: int | None,
+        candidate_id: str | None,
+        surface: str | Surface | None,
+        bucket: dict[str, str] | Bucket | None,
+        provenance: str | Pramana | None,
     ) -> LedgerEvent:
         t = self._clock()
         if self.t_last and t < self.t_last:
@@ -128,12 +144,47 @@ class LedgerWriter:
         probe = LedgerEvent.model_validate(body | {"this_hash": "0" * 64})
         canonical_body = json.loads(probe.model_dump_json(exclude={"this_hash"}))
         this_hash = chain_hash(self.head_hash, canonical_body)
-        ev = LedgerEvent.model_validate(canonical_body | {"this_hash": this_hash})
-        line = ev.model_dump_json() + "\n"
+        return LedgerEvent.model_validate(canonical_body | {"this_hash": this_hash})
+
+    def append(
+        self,
+        kind: str,
+        actor: str,
+        payload: dict[str, Any],
+        *,
+        epoch: int,
+        night: int,
+        cycle: int | None = None,
+        candidate_id: str | None = None,
+        surface: str | Surface | None = None,
+        bucket: dict[str, str] | Bucket | None = None,
+        provenance: str | Pramana | None = None,
+    ) -> LedgerEvent:
+        """Append under an exclusive file lock. If another writer advanced the file since this writer last
+        touched it, the head is taken from the file's last line and an audit{kind: head_resync} row is written
+        first (ADR-0013): concurrent writers interleave, never fork the chain."""
         fd = os.open(self.path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o640)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX)
-            os.write(fd, line.encode("utf-8"))
+            lines: list[LedgerEvent] = []
+            tail = self._tail()
+            if tail is not None and tail[1] != self.head_hash:
+                stale = {"seq": self.seq, "head_hash": self.head_hash}
+                self.seq, self.head_hash, self.t_last = tail[0], tail[1], max(tail[2], self.t_last)
+                resync = self._build(
+                    "audit",
+                    "kernel",
+                    {"kind": "head_resync", "severity": "info", "stale": stale, "file_seq": tail[0], "file_hash": tail[1]},
+                    epoch=epoch, night=night, cycle=None, candidate_id=None, surface=None, bucket=None, provenance=None,
+                )
+                lines.append(resync)
+                self.seq, self.head_hash, self.t_last = resync.seq, resync.this_hash, resync.t
+            ev = self._build(
+                kind, actor, payload, epoch=epoch, night=night, cycle=cycle, candidate_id=candidate_id,
+                surface=surface, bucket=bucket, provenance=provenance,
+            )
+            lines.append(ev)
+            os.write(fd, "".join(e.model_dump_json() + "\n" for e in lines).encode("utf-8"))
             os.fsync(fd)
         finally:
             fcntl.flock(fd, fcntl.LOCK_UN)
