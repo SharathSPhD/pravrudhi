@@ -23,14 +23,24 @@ routes:
     agent: claude-code
     model: haiku
     relative_cost: 1.0
-    tiers: [mechanical, standard]
-    note: Cheapest route that can actually drive an agent loop.
+    tiers: []
+    note: >-
+      Cheapest route that can drive an agent loop, and demoted to no tier on the operator's instruction of
+      2026-09-06 ("don't go to too basic models"): it produced nothing on the tool-registry task that sonnet's
+      sibling tasks completed. Kept in the table so the router can be told to try it again deliberately.
 
   - id: sonnet
     agent: claude-code
     model: sonnet
     relative_cost: 2.9
     tiers: [mechanical, standard, design, critical]
+
+  - id: opus
+    agent: claude-code
+    model: opus
+    relative_cost: 6.9
+    tiers: [design, critical]
+    note: Measured 0.4951 on the same trivial prompt that cost sonnet 0.2117.
 
   - id: astra
     agent: codex
@@ -53,7 +63,7 @@ routes:
       Permitted at no tier until that is disproved by a trial the router will never run on its own.
 
 declared:
-  mechanical: [haiku, sonnet]
-  standard: [haiku, sonnet]
-  design: [sonnet, astra]
-  critical: [sonnet, astra]
+  mechanical: [sonnet]
+  standard: [sonnet]
+  design: [sonnet, opus, astra]
+  critical: [opus, sonnet, astra]
