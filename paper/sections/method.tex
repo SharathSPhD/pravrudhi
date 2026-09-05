@@ -28,6 +28,27 @@ For a candidate $a$ with evidence plan $\pi$, the controller scores the expected
 \subsection{Typed evidence and sublation}
 Every ledger row carries a provenance tag from the set of kernel-executed measurement, surrogate inference, transfer analogy, and model testimony. A stored claim is replaced only when the replacing evidence has strictly higher precision on a common scale or an arbitration rule applies: specific over general, stronger provenance over weaker, later measurement over earlier inference. Refusals are logged.
 
+\subsection{Selection arms}
+The controller's value is a comparative claim, so the engine implements the arms it is compared against rather than
+only the arm it advocates. A selection policy decides two things and nothing else: the order in which live
+candidates are considered, and how the night's budget is filled. Everything downstream is held identical across
+arms, including the pairing of candidate and incumbent on the same held-out rotation and sampling seed, the
+sequential boundary, the canaries and the shape of every ledger row, so a difference between arms can only come
+from selection. The expected-free-energy arm keeps the full apparatus: the habit prior, the sampling over the
+softmax of the negative free energy, the reservation of budget for the highest-information candidate and the
+planted and sensor shares. The baselines deliberately receive none of it. A greedy ratchet ranks by the posterior
+mean, which is the best estimate of a candidate's effect the loop holds at that moment, and takes what currently
+looks best; a ratchet that reserved budget for the most informative candidate would not be a ratchet. A lineage
+Thompson sampler draws once from each candidate's posterior and ranks by the draw, so a wide posterior can win. A
+random arm ignores the evidence entirely and is the null. Because the baselines run behind the same sequential
+gate, the comparison isolates selection from gating, which is the arm the pre-registration names for that purpose.
+
+The decorative-controller check, which asks whether the scores condition on the action at all, applies only to the
+expected-free-energy arm and is recorded as inapplicable for the others: a baseline computes no such scores, and
+the random arm is decorative by construction, which is precisely why it is included. Every selection row and every
+night's opening row records the arm that produced it, so a ledger containing several arms remains analysable, and
+the rendered comparison refuses to report a result at all when any arm received no paired evaluation.
+
 \subsection{Recursion}
 A night does not start from the base model. The night's reference is the latest promoted candidate for the trainee, read from the ledger's promotion rows and located through the training row that produced its adapter; every paired comparison of the night is against that incumbent, and the night's opening row records which one. Two channels carry the incumbent into the next generation on the weight target. In the first, the incumbent is the sampling teacher: it generates completions for training questions, the kernel's checker keeps the verified ones, and the candidate is fine-tuned on that set. In the second, a candidate continues the incumbent's adapter with its own data and optimiser settings rather than starting from the base weights; the adapter shape then follows the incumbent, and the recipe's shape parameters are recorded but not applied. A candidate that asks to continue the incumbent when the incumbent is the base model falls back to the base with an audit row, so lineage is never implicit. On the harness target the same rule holds with the promoted scaffold as reference. Merging a promoted adapter into the base checkpoint remains a human act through the inbox.
 
