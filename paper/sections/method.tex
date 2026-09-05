@@ -30,3 +30,7 @@ Every ledger row carries a provenance tag from the set of kernel-executed measur
 
 \subsection{Kernel isolation}
 The kernel is a separate package with no model client and no network access. Observations are admissible only after the kernel verifies the hashes of the held-out items, the pool manifest, the scorer, the artefact under test, and the model weights inside the execution container. The isolation level that produced an observation, whether a separate process, a container, or a separate operating-system user, is recorded on the row.
+
+\subsection{Product surface}
+The engine is operated through six commands. \texttt{init} creates the kernel state directory with a private secret, installs the pre-registration files and prompt templates, and writes the genesis row of the ledger. \texttt{preflight} and \texttt{study noise-floor} measure the card and the unmodified model before any candidate exists. \texttt{night} runs one budgeted cycle of proposal, deliberation, execution and disposal. \texttt{inbox} lists what the night promoted, each entry carrying a badge derived by replaying the ledger, and \texttt{export} copies the promoted adapter with a provenance manifest that names the candidate, the ledger head and the adapter hash; it refuses any candidate whose badge is not green. \texttt{serve} exposes the same views over HTTP, and its only write, the operator's sign-off, refuses agent identities. A Claude Code plugin wraps these commands as skills so that an agent session can drive a project while the decision to promote stays with a person.
+
