@@ -82,5 +82,121 @@ def replay_cmd(ledger: Path = LEDGER_OPT, state: Path = STATE_OPT, verify: bool 
         raise typer.Exit(code=code)
 
 
+study_app = typer.Typer(help="Pre-registered studies that write real observe rows.")
+pool_app = typer.Typer(help="Seal benchmark pools into the kernel state directory.")
+app.add_typer(study_app, name="study")
+app.add_typer(pool_app, name="pool")
+MODEL_OPT = typer.Option("Qwen/Qwen3-4B", "--model")
+POOL_OPT = typer.Option("gsm8k-test", "--bench")
+TEMPLATE_OPT = typer.Option(Path("harness/prompts/eval/gsm8k_v1.md"), "--template")
+
+
+@pool_app.command("seal-gsm8k")
+def pool_seal(parquet: Path, bench: str = POOL_OPT, root: Path = ROOT_OPT) -> None:
+    from pravrudhi.application.pool_admin import seal_gsm8k
+
+    m = seal_gsm8k(root, parquet, bench)
+    typer.echo(f"sealed {m['bench']}: {m['n_items']} items, pool_version {m['pool_version'][:16]}")
+
+
+@app.command("preflight")
+def preflight_cmd(
+    model: str = MODEL_OPT,
+    bench: str = POOL_OPT,
+    template: Path = TEMPLATE_OPT,
+    root: Path = ROOT_OPT,
+    n_items: int = typer.Option(32, "--n-items"),
+    batch_size: int = typer.Option(16, "--batch-size"),
+) -> None:
+    """Measure peak VRAM and tokens/s on this card with one real job; write
+    research/prereg/measured_stack.json."""
+    from pravrudhi.application.preflight import preflight
+
+    out = preflight(
+        root,
+        model=model,
+        bench_pool=root / ".pravrudhi" / "kernel" / "pools" / bench,
+        template=template,
+        n_items=n_items,
+        batch_size=batch_size,
+    )
+    for k in (
+        "gpu",
+        "image_digest",
+        "peak_gib_torch_allocated",
+        "peak_gib_nvidia_smi",
+        "tok_s_batched",
+        "load_s",
+        "gen_s",
+    ):
+        typer.echo(f"{k}: {out[k]}")
+
+
+@study_app.command("noise-floor")
+def study_noise_floor(
+    model: str = MODEL_OPT,
+    bench: str = POOL_OPT,
+    template: Path = TEMPLATE_OPT,
+    root: Path = ROOT_OPT,
+    rotations: int = typer.Option(10, "--rotations"),
+    seeds: int = typer.Option(3, "--seeds"),
+    k: int = typer.Option(100, "--k"),
+    exposure_cap: int = typer.Option(3, "--exposure-cap"),
+    temperature: float = typer.Option(0.7, "--temperature"),
+    max_new_tokens: int = typer.Option(512, "--max-new-tokens"),
+    batch_size: int = typer.Option(16, "--batch-size"),
+    night: int = typer.Option(0, "--night"),
+) -> None:
+    """R rotations x S seeds of the unmodified trainee, each a real kernel-scored observe row; writes
+    variance.json."""
+    from pravrudhi.application.noise_floor import noise_floor
+
+    var = noise_floor(
+        root,
+        model=model,
+        pool_dir=root / ".pravrudhi" / "kernel" / "pools" / bench,
+        template=template,
+        rotations=rotations,
+        seeds=seeds,
+        k=k,
+        exposure_cap=exposure_cap,
+        temperature=temperature,
+        max_new_tokens=max_new_tokens,
+        batch_size=batch_size,
+        night=night,
+        log=typer.echo,
+    )
+    typer.echo(
+        f"n_runs={var['n_runs']} mean={var['mean_pass_rate']:.4f} wilson={var['wilson_95']} "
+        f"sigma_seed={var['sigma_seed']:.4f} sigma_rot={var['sigma_rot']:.4f}"
+    )
+
+
+@app.command("evidence")
+def evidence_cmd(
+    name: str = typer.Argument("noise_floor"),
+    root: Path = ROOT_OPT,
+    check: bool = typer.Option(
+        False, "--check", help="Compare with the committed document; exit 1 on any difference."
+    ),
+) -> None:
+    """Render docs/evidence/<name>.md from the ledger alone (make reproduce)."""
+    from pravrudhi.application.evidence import render_noise_floor
+
+    text = render_noise_floor(
+        root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json"
+    )
+    dest = root / "docs" / "evidence" / f"L3_{name}.md"
+    if check:
+        if not dest.exists() or dest.read_text() != text:
+            typer.echo(f"DIFFERS: {dest}", err=True)
+            raise typer.Exit(code=1)
+        typer.echo(f"reproduced {dest} byte-identically")
+        return
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(text)
+    typer.echo(f"wrote {dest}")
+
+
 def main() -> None:
     app()

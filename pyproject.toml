@@ -24,6 +24,7 @@ dependencies = [
   "pyyaml>=6.0",
   "pydantic>=2.11",
   "numpy>=2.3",
+  "pyarrow>=17",
 ]
 
 [project.scripts]
@@ -68,3 +69,7 @@ python_version = "3.13"
 strict = true
 packages = ["pravrudhi_kernel", "pravrudhi"]
 mypy_path = "src:pravrudhi_kernel/src"
+
+[[tool.mypy.overrides]]
+module = ["pyarrow", "pyarrow.*"]
+ignore_missing_imports = true

@@ -26,8 +26,8 @@ paper:
 
 ledger-replay:   ## rebuild state.json from the ledger and verify the chain and byte-equality
 	$(UV) run pravrudhi replay --verify
-reproduce:
-	@echo "not implemented: L3" >&2; exit 2
+reproduce:       ## regenerate docs/evidence from the ledger; diff must be empty
+	$(UV) run pravrudhi evidence noise_floor --check
 decorative-check:  ## decorative-controller check on the last select batch (research/last_select.json)
 	$(UV) run python scripts/decorative_check.py --batch research/last_select.json
 glossary-lint:
@@ -36,5 +36,5 @@ headline-check:
 	@echo "not implemented: L5" >&2; exit 2
 kernel-image:
 	@echo "not implemented: L3" >&2; exit 2
-exec-image:
-	@echo "not implemented: L3" >&2; exit 2
+exec-image:      ## build pravrudhi/exec-5090 from the local NVIDIA 25.06 lineage (ADR-0003)
+	docker build -f docker/exec-5090.Dockerfile -t pravrudhi/exec-5090:$$(git describe --always --dirty) -t pravrudhi/exec-5090:latest .
