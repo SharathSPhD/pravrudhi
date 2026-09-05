@@ -10,10 +10,68 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
+from pravrudhi.application import objectives
 from pravrudhi_kernel.ledger.replay import withdrawn_observations
 from pravrudhi_kernel.ledger.verify import iter_events
 from pravrudhi_kernel.schema import LedgerEvent
 from pravrudhi_kernel.stats import wilson_ci
+
+
+def render_objectives(root: Path) -> str:
+    """The formal record said what was measured without saying what the user was trying to achieve.
+
+    Missing comparisons could read as no effect if absent measurements were collapsed to zero. The objective's
+    progress is the sole source of numeric evidence here, so this account cannot invent a different comparison.
+    """
+    ledger = Path(root) / "research" / "ledger.jsonl"
+    declared = objectives.load_all(root)
+    lines: list[str] = [
+        "# Objectives",
+        "",
+        "Intent is quoted verbatim from the workspace objectives. Benchmark evidence is rendered through objective "
+        "progress from the ledger's `audit{kind: external_eval}` rows alone (tier: external).",
+        "",
+    ]
+    if not declared:
+        lines += ["No objectives are declared in this workspace.", ""]
+    for obj in declared:
+        lines += [f"## {obj.id}", "", obj.intent, "", f"Track: `{obj.track}`", ""]
+        if not ledger.exists():
+            lines += [f"- {b.metric}: unmeasured — this workspace has no ledger yet." for b in obj.benchmarks]
+            lines.append("")
+            continue
+        rows = objectives.progress(obj, ledger)
+        measured: list[str] = []
+        for row in rows:
+            if row.state == "unmeasured":
+                lines.append(f"- {row.benchmark}: unmeasured — {row.reason}.")
+            elif row.state == "baseline_only":
+                assert row.baseline is not None
+                lines.append(f"- {row.benchmark}: baseline {row.baseline.value:.4f}; {row.reason}.")
+            else:
+                assert row.baseline is not None and row.latest is not None
+                assert row.delta is not None and row.delta_lo is not None and row.delta_hi is not None
+                measured.append(
+                    f"| {row.benchmark} | {row.baseline.value:.4f} | {row.latest.value:.4f} | "
+                    f"{row.delta:+.4f} | [{row.delta_lo:+.4f}, {row.delta_hi:+.4f}] |"
+                )
+        if measured:
+            lines += [
+                "",
+                "| benchmark | baseline | current | difference | interval |",
+                "|---|---|---|---|---|",
+                *measured,
+            ]
+        lines.append("")
+    lines += [
+        "## Tensions",
+        "",
+        "External results are scored outside the kernel. A difference whose interval spans zero is not evidence "
+        "of improvement. Objectives sharing a track share its evidence; the track does not identify which intent "
+        "produced a result.",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def track_events(ledger: Path, track: str = "lora") -> Iterator[LedgerEvent]:

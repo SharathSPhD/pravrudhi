@@ -1,0 +1,36 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - complementary [ref=f2e3]:
+      - generic [ref=f2e4]:
+        - generic [ref=f2e5]: Pravrudhi
+        - paragraph [ref=f2e6]: Improve your model or your agent harness, on your hardware, while you watch.
+      - navigation [ref=f2e7]:
+        - link "Improve" [ref=f2e8] [cursor=pointer]:
+          - /url: /
+        - link "Objectives" [ref=f2e12] [cursor=pointer]:
+          - /url: /objectives
+        - link "Runs" [ref=f2e17] [cursor=pointer]:
+          - /url: /runs
+        - link "Models" [ref=f2e22] [cursor=pointer]:
+          - /url: /models
+        - link "Machines" [ref=f2e27] [cursor=pointer]:
+          - /url: /machines
+        - link "Settings" [ref=f2e31] [cursor=pointer]:
+          - /url: /settings
+        - link "Install" [ref=f2e35] [cursor=pointer]:
+          - /url: /install
+    - generic [ref=f2e39]:
+      - generic [ref=f2e44]:
+        - text: Recorded demo — real runs from an RTX 5090. To improve your own model,
+        - link "install the engine" [ref=f2e45] [cursor=pointer]:
+          - /url: /install
+        - text: and open it locally.
+      - main [ref=f2e46]:
+        - generic [ref=f2e47]:
+          - generic [ref=f2e48]:
+            - heading "Objectives" [level=1] [ref=f2e49]
+            - paragraph [ref=f2e50]: What you want, and whether it is happening. Every number here comes from a benchmark scored outside the engine.
+          - generic [ref=f2e51]:
+            - button "State an objective" [disabled] [ref=f2e52]
+            - paragraph [ref=f2e54]: Loading…
+  - alert [ref=f2e55]
