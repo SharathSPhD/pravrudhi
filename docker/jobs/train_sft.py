@@ -19,6 +19,7 @@ def main() -> int:
     ap.add_argument("--recipe", default="/in/recipe.json")
     ap.add_argument("--out", default="/out")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--init-adapter", default=None, help="continue training from this LoRA adapter (ADR-0016)")
     a = ap.parse_args()
     import torch
     from datasets import Dataset
@@ -65,7 +66,17 @@ def main() -> int:
         dataloader_num_workers=0,
         assistant_only_loss=False,
     )
-    trainer = SFTTrainer(model=a.model_dir, args=cfg, train_dataset=ds, processing_class=tok, peft_config=peft_cfg)
+    if a.init_adapter:
+        # recursion: the candidate starts from the incumbent's adapter and keeps its LoRA shape; the recipe's `lora`
+        # block is recorded but not applied (ADR-0016)
+        from peft import PeftModel
+        from transformers import AutoModelForCausalLM
+
+        base = AutoModelForCausalLM.from_pretrained(a.model_dir, dtype=torch.bfloat16, device_map="cuda", attn_implementation="sdpa")
+        model = PeftModel.from_pretrained(base, a.init_adapter, is_trainable=True)
+        trainer = SFTTrainer(model=model, args=cfg, train_dataset=ds, processing_class=tok)
+    else:
+        trainer = SFTTrainer(model=a.model_dir, args=cfg, train_dataset=ds, processing_class=tok, peft_config=peft_cfg)
     trainer.model.config.use_cache = False
     result = trainer.train()
     trainer.model.save_pretrained(str(out / "adapter"))
@@ -83,6 +94,7 @@ def main() -> int:
         "peak_gib_torch": torch.cuda.max_memory_allocated() / 2**30,
         "log_history": logs,
         "seed": a.seed,
+        "init_adapter_sha256": model_dir_hash(Path(a.init_adapter)) if a.init_adapter else None,
         "adapter_sha256": model_dir_hash(out / "adapter"),
     }
     (out / "job_meta.json").write_text(json.dumps(meta, indent=2, sort_keys=True) + "\n")

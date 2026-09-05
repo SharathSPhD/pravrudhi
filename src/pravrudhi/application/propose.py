@@ -21,6 +21,7 @@ GRAMMAR_DOC = """{
   "execution_family": "data_mixture" | "optimiser" | "adapter" | "grpo" | "template",
   "lora": {"r": 1..64, "alpha": 1..256, "dropout": 0..0.3, "target_modules": "all-linear"|"attention"|"mlp"},
   "sft":  {"n_kept": 32..4096, "teacher": "incumbent" | "Qwen/Qwen3-4B" (a stronger local model samples the data),
+           "init": "base" | "incumbent" (continue training the incumbent adapter instead of starting from the base),
            "filter": "all_correct"|"shortest_correct"|"longest_correct"|"diverse_correct",
            "epochs": 1..3, "lr": 1e-6..5e-3, "warmup_ratio": 0..0.2, "max_seq_len": 256..2048, "batch_size": 1..32},
   "grpo": {"steps": 5..60, "group_size": 2..4, "prompts_per_step": 1..2, "max_completion_tokens": 64..192,
@@ -29,7 +30,7 @@ GRAMMAR_DOC = """{
   "rationale": "<= 400 chars"
 }
 Constraints: execution_family "grpo" requires strategy "grpo_verifiable"; "data_mixture" requires "sft_rejection".
-Omitted sub-objects take defaults (lora r=8 alpha=16; sft n_kept=512 lr=1e-4 epochs=1;
+Omitted sub-objects take defaults (lora r=8 alpha=16; sft n_kept=512 lr=1e-4 epochs=1 init=base;
 grpo steps=20 group_size=4 prompts_per_step=1 max_completion_tokens=128 beta_kl=0)."""
 
 

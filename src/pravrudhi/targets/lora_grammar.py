@@ -28,6 +28,7 @@ class SftParams(BaseModel):
         "incumbent"  # who samples: the trainee itself, or a stronger local model (distillation)
     )
     filter: Literal["all_correct", "shortest_correct", "longest_correct", "diverse_correct"] = "all_correct"
+    init: Literal["base", "incumbent"] = "base"  # ADR-0016: start from the base model or continue the incumbent adapter
     epochs: int = Field(default=1, ge=1, le=3)
     lr: float = Field(default=1e-4, ge=1e-6, le=5e-3)
     warmup_ratio: float = Field(default=0.03, ge=0.0, le=0.2)

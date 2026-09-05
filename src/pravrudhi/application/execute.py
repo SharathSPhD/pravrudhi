@@ -270,6 +270,25 @@ def inherit_incumbent(root: Path, state: KernelState, model: str, log: Any = pri
     return last, adapter
 
 
+def init_args(ctx: NightContext, w: LedgerWriter, cid: str, recipe: LoraRecipe) -> tuple[list[str], dict[str, str] | None]:
+    """ADR-0016: an SFT recipe with `init: incumbent` continues the incumbent adapter. When the incumbent is the base
+    model there is nothing to continue; the fallback to base is audited so the candidate's lineage is explicit."""
+    if recipe.strategy != "sft_rejection" or recipe.sft.init != "incumbent":
+        return [], None
+    if ctx.incumbent_adapter is None:
+        w.append(
+            "audit",
+            "kernel",
+            {"kind": "init_fallback", "severity": "info", "detail": "init=incumbent but the incumbent is the base model"},
+            epoch=0,
+            night=ctx.night,
+            candidate_id=cid,
+            surface="W3.adapter",
+        )
+        return [], None
+    return ["--init-adapter", "/init"], {str(ctx.incumbent_adapter): "/init"}
+
+
 def find_adapter(ctx: NightContext, cid: str) -> Path | None:
     """An adapter already trained for this candidate (any night), located through its spend row's run_id."""
     from pravrudhi_kernel.ledger.verify import iter_events
@@ -293,7 +312,8 @@ def train(ctx: NightContext, w: LedgerWriter, cid: str, recipe: LoraRecipe) -> P
         kept = ensure_samples(ctx, w, recipe.sft.teacher)
         rows = _select_samples(kept, recipe, seed=int(cid[2:]))
         (jd / "in" / "train.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
-        res, meta = ctx.run("train_sft", ["--seed", str(ctx.night)], jd)
+        args, mounts = init_args(ctx, w, cid, recipe)
+        res, meta = ctx.run("train_sft", ["--seed", str(ctx.night), *args], jd, extra_mounts=mounts)
     else:
         g = ctx.cfg["grpo_prompts"]
         rows_g = ctx.train_rows[int(g["prompts_offset"]) : int(g["prompts_offset"]) + int(g["n_prompts"])]
