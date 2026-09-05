@@ -211,3 +211,30 @@ def test_mi_floor_applies_only_in_first_round_after_bootstrap() -> None:
     assert mi_floor(0.05, bootstrap=True, round_index=0) == 0.0
     assert mi_floor(0.05, bootstrap=False, round_index=0) == 0.05
     assert mi_floor(0.05, bootstrap=False, round_index=1) == 0.0  # ADR-0012
+
+
+def test_single_live_candidate_continues_without_decorative_check(tmp_path: Path) -> None:
+    root, w = _root(tmp_path)
+    rec = {
+        "strategy": "sft_rejection",
+        "execution_family": "optimiser",
+        "lora": {"r": 8, "alpha": 16, "dropout": 0.0, "target_modules": "all-linear"},
+        "sft": {"n_kept": 512, "filter": "all_correct", "epochs": 1, "lr": 1e-4, "warmup_ratio": 0.03, "max_seq_len": 1024, "batch_size": 8},
+        "grpo": {"steps": 20, "group_size": 4, "prompts_per_step": 4, "max_completion_tokens": 256, "lr": 5e-6, "beta_kl": 0.04},
+        "eval_template": "gsm8k_v1",
+        "rationale": "",
+    }
+    w.append(
+        "propose", "proposer", {"op": "adapter", "recipe": rec, "strategy": "sft_rejection", "edit_family": "optimiser"},
+        epoch=0, night=1, cycle=1, candidate_id="c-0001", surface="W3.adapter", bucket=BUCKET, provenance="agama",
+    )
+    order = deliberate(
+        root, w, night=1, budget_gpu_h=3.0, sigma_seed=0.03, incumbent_id="c-0000",
+        harness_hash="h" * 64, model_hash="m" * 64, rng_seed=1, log=lambda s: None,
+    )
+    assert order == ["c-0001"]
+    rows = [json.loads(line) for line in (root / "research" / "ledger.jsonl").read_text().splitlines()]
+    sel = [r for r in rows if r["kind"] == "select"]
+    assert len(sel) == 1 and sel[0]["payload"]["night_mode"] == "continuation"
+    assert sel[0]["payload"]["decorative"]["verdict"] == "not_applicable"
+    assert not any(r["payload"].get("kind") == "decorative_controller" for r in rows)

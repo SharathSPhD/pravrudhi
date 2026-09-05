@@ -86,6 +86,35 @@ def deliberate(
     if not pool:
         log("deliberate: no live candidates")
         return []
+    if len(pool) == 1:
+        # A choice among one is no choice: the decorative check does not apply (it would rightly fail), and the
+        # survivor receives its next seed so the boundary can decide it (night 5 aborted here with 2.4 GPU-h unspent).
+        cid = pool[0]
+        n_obs = st.candidates[cid].n_obs if cid in st.candidates else 0
+        w.append(
+            "select",
+            "controller",
+            {
+                "Q": 1.0,
+                "strategy": meta[cid]["strategy"],
+                "plan": {"seeds": [n_obs], "heldout_rotation_id": None, "sensors_to_read": [], "stage": "screen",
+                         "sequential_stage": n_obs},
+                "decorative": {"cv_G": None, "mi_bits": None, "verdict": "not_applicable", "reason": "single live candidate"},
+                "night_mode": "continuation",
+                "harness_hash": harness_hash,
+                "model_hash": model_hash,
+                "epistemic": False,
+                "rank": 0,
+            },
+            epoch=0,
+            night=night,
+            cycle=1,
+            candidate_id=cid,
+            surface=meta[cid]["surface"],
+            bucket=meta[cid]["bucket"],
+        )
+        log(f"deliberate: single live candidate {cid} continues (n_obs={n_obs}); decorative check not applicable")
+        return [cid]
     prefs = Preferences.model_validate(
         {
             "beta": float(cfg["preferences"]["beta"]),
