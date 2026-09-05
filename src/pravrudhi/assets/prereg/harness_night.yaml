@@ -1,10 +1,11 @@
 # Track H pre-registration (2026-09-05): fixed model, mutable harness, MBPP+ hidden tests in the sandbox.
-version: 1
+version: 4               # packaged default: ADR-0018 min_n_confirm, ADR-0019 selection_policy
 model: Qwen/Qwen3-1.7B        # fixed; Qwen/Qwen3-4B is the transfer model (H5) later
 bench: mbppplus
-proposer: {gguf: Qwen3-30B-A3B-Q4_K_M.gguf, k_candidates: 8, temperature: 0.7, max_tokens: 4096, prompt_version: v1}
-evaluation: {k_items: 100, exposure_cap: 4}
-boundary: {alpha_eff: 0.05, alpha_fut: 0.20, k_max: 4, sigma_mode: adaptive, n0: 3, delta_min_floor: 0.02}
+proposer: {gguf: Qwen3-30B-A3B-Q4_K_M.gguf, k_candidates: 8, temperature: 0.7, max_tokens: 8192, prompt_version: v1}
+evaluation: {k_items: 100, exposure_cap: 4}   # the pre-registered cap; raising it is an ADR, not a default
+selection_policy: efe        # H1 arm: efe | greedy | thompson | random
+boundary: {alpha_eff: 0.05, alpha_fut: 0.20, k_max: 4, sigma_mode: adaptive, n0: 3, delta_min_floor: 0.02, min_n_confirm: 2}  # ADR-0018
 budget: {night_gpu_h: 2.0, shares: {planted: 0.0, sensors: 0.0, f_epi: 0.15}, gpu_cost_per_hour: 1.0}
 rethink_m: 6
 max_rounds: 4

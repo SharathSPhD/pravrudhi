@@ -500,3 +500,20 @@ def hosts_place_cmd(
         raise typer.Exit(code=2)
     chosen, why = place(survey_fleet(root), req)
     typer.echo(json.dumps({"job": job, "chosen": chosen.name if chosen else None, "rejected": why}, indent=2))
+
+
+@app.command("doctor")
+def doctor_cmd(
+    root: Path = ROOT_OPT,
+    json_out: bool = typer.Option(False, "--json", help="machine-readable output"),
+) -> None:
+    """Is this installation ready to run? Reports every check and exits non-zero if any failed."""
+    from pravrudhi.application.doctor import run_doctor
+
+    report = run_doctor(root)
+    if json_out:
+        typer.echo(json.dumps(report, indent=2))
+    else:
+        for c in report["checks"]:
+            typer.echo(f"{'ok ' if c['ok'] else 'FAIL'}  {c['name']:12} {c['detail']}")
+    raise typer.Exit(code=0 if report["ok"] else 1)

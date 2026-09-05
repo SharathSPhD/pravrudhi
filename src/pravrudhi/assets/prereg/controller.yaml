@@ -12,7 +12,7 @@ shares:
   sensors: 0.10         # sensor-read cap (05 §3)
 decorative:
   cv_min: 0.05          # PROVISIONAL until C16 measures the bootstrap nights' dispersion
-  mi_min_bits: 0.05     # PROVISIONAL until C16
+  mi_min_bits: 0.05     # PROVISIONAL until C16; ADR-0012: applies in a night's first deliberation round only
 preferences:            # 02-efe-controller-spec §1.3; PROVISIONAL scale: one sigma_eval of delta_out ~ 1 nat (L3 sets sigma_eval)
   beta: 40.0
   lambda: 80.0          # lambda > beta: regressions dispreferred more than gains preferred

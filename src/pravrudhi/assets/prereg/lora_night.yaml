@@ -1,7 +1,7 @@
 # First-night constants for the LoRA target (frozen 2026-09-04). Changes only by ADR. Read by the engine, never by kernel functions.
-version: 2               # 2026-09-05: ADR-0007 decision B+C and ADR-0009 (operator goal: a converging system)
-model: Qwen/Qwen3-1.7B   # trainee with headroom; Qwen/Qwen3-4B stays on disk as the distillation teacher
-bench: gsm8k-trainB      # 3500 fresh items (train rows 3500-6999); gsm8k-test retired to confirmation-only
+version: 7               # packaged default: ADR-0016 sft.init, ADR-0018 min_n_confirm, ADR-0019 selection_policy
+model: Qwen/Qwen3-0.6B   # trainee with large headroom; Qwen/Qwen3-4B stays on disk as the distillation teacher
+bench: gsm8k-test        # the pool `pravrudhi pool seal-gsm8k` creates by default; seal it before the first night
 proposer:
   gguf: Qwen3-30B-A3B-Q4_K_M.gguf
   k_candidates: 12
@@ -21,15 +21,17 @@ anchors:
   train_offset: 7000
   n: 200
 evaluation:
-  k_items: 100
+  k_items: 200             # halves the per-rotation noise of the 100-item design
   exposure_cap: 4
   temperature: 0.7
   max_new_tokens: 512
   batch_size: 32
+selection_policy: efe        # H1 arm: efe | greedy | thompson | random (baselines per CHARTER §2 H1)
 boundary:                 # 06 §4 with L3's measured sigma_seed; tau = delta_min = max(2*sigma_seed, 0.01)
   alpha_eff: 0.05
   alpha_fut: 0.20
   k_max: 4
+  min_n_confirm: 2         # ADR-0018: two seeds before an efficacy crossing may confirm
   sigma_mode: adaptive
   n0: 3
   delta_min_floor: 0.01
