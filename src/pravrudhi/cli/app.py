@@ -1,5 +1,7 @@
 import json
 from pathlib import Path
+from typing import Any
+
 
 import typer
 
@@ -318,6 +320,138 @@ def init_cmd(root: Path = ROOT_OPT, model: str | None = typer.Option(None, "--mo
     typer.echo(f"initialised {out['root']} (isolation {out['isolation']}); created {len(out['created'])} files")
     for c in out["created"]:
         typer.echo(f"  {c}")
+
+
+objective_app = typer.Typer(help="What you are trying to achieve, and whether it is happening.")
+app.add_typer(objective_app, name="objective")
+
+FROM_OPT = typer.Option(None, "--from", help="copy a packaged example objective instead of writing one by hand")
+INTENT_OPT = typer.Option(None, "--intent", help="what you want, in your own words")
+TRACK_OPT = typer.Option(None, "--track", help="ledger track this objective's evidence accumulates under")
+METRIC_OPT = typer.Option(None, "--metric", help="benchmark metric, named as the evidence document names it")
+TOOL_OPT = typer.Option("lm-eval", "--tool", help="lm-eval | evalplus")
+DOMAIN_OPT = typer.Option("", "--domain")
+TARGET_OPT = typer.Option(None, "--target-delta", help="how much improvement counts as success; omit for 'better is better'")
+
+
+def _objective_or_exit(root: Path, oid: str) -> Any:
+    from pravrudhi.application.objectives import load_all
+
+    for o in load_all(root):
+        if o.id == oid:
+            return o
+    typer.echo(f"no objective {oid!r} in {root}", err=True)
+    raise typer.Exit(1)
+
+
+@objective_app.command("new")
+def objective_new(
+    objective_id: str = typer.Argument(..., help="short id, lowercase and hyphens"),
+    source: str | None = FROM_OPT,
+    intent: str | None = INTENT_OPT,
+    track: str | None = TRACK_OPT,
+    metric: str | None = METRIC_OPT,
+    tool: str = TOOL_OPT,
+    domain: str = DOMAIN_OPT,
+    target_delta: float | None = TARGET_OPT,
+    root: Path = ROOT_OPT,
+) -> None:
+    """State what you want the loop to achieve. An objective with no benchmark is refused."""
+    from pravrudhi.application.objectives import Benchmark, Objective, ObjectiveError, copy_example, examples, write
+
+    try:
+        if source:
+            path = copy_example(root, source)
+            typer.echo(f"wrote {path} from the packaged example {source!r}; edit the intent to your own")
+            return
+        if not (intent and track and metric):
+            typer.echo(
+                "give --intent, --track and --metric, or --from one of: " + (", ".join(examples()) or "none"), err=True
+            )
+            raise typer.Exit(2)
+        obj = Objective(
+            id=objective_id,
+            intent=intent,
+            track=track,
+            benchmarks=(Benchmark(id=metric.split()[0], tool=tool, metric=metric),),
+            domain=domain,
+            target_delta=target_delta,
+        )
+        typer.echo(f"wrote {write(root, obj)}")
+    except ObjectiveError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1) from e
+
+
+@objective_app.command("list")
+def objective_list(root: Path = ROOT_OPT) -> None:
+    """Every objective in this workspace, with how far along it is."""
+    from pravrudhi.application.objectives import load_all, problems, progress
+
+    ledger = root / "research" / "ledger.jsonl"
+    objs = load_all(root)
+    if not objs:
+        typer.echo("no objectives yet; try: pravrudhi objective new my-goal --from prabhasa-nyaya")
+    for o in objs:
+        rows = progress(o, ledger) if ledger.exists() else []
+        states = ", ".join(f"{p.benchmark}: {p.state}" for p in rows) or "no ledger yet"
+        typer.echo(f"{o.id}  [{o.track}]  {states}")
+        typer.echo(f"    {o.intent.strip().splitlines()[0][:100]}")
+    for name, why in problems(root):
+        typer.echo(f"! {name} will not load: {why}", err=True)
+
+
+@objective_app.command("show")
+def objective_show(objective_id: str, root: Path = ROOT_OPT) -> None:
+    """The objective and its standing, as JSON. Every number comes from the ledger."""
+    from pravrudhi.application.objectives import summary
+
+    typer.echo(json.dumps(summary(root, _objective_or_exit(root, objective_id)), indent=2, sort_keys=True))
+
+
+@objective_app.command("progress")
+def objective_progress(objective_id: str, root: Path = ROOT_OPT) -> None:
+    """Baseline, current and the difference, per benchmark."""
+    from pravrudhi.application.objectives import progress
+
+    obj = _objective_or_exit(root, objective_id)
+    typer.echo(obj.intent.strip())
+    typer.echo("")
+    for p in progress(obj, root / "research" / "ledger.jsonl"):
+        typer.echo(f"{p.benchmark}  [{p.state}]")
+        if p.state == "unmeasured":
+            typer.echo(f"    {p.reason}")
+            continue
+        assert p.baseline is not None
+        typer.echo(f"    baseline {p.baseline.value:.4f} +/-{p.baseline.stderr:.4f}  n={p.baseline.n}  {p.baseline.model}")
+        if p.latest is None:
+            typer.echo(f"    {p.reason}")
+            continue
+        typer.echo(f"    current  {p.latest.value:.4f} +/-{p.latest.stderr:.4f}  n={p.latest.n}")
+        assert p.delta is not None and p.delta_lo is not None and p.delta_hi is not None
+        verdict = "improvement" if p.significant and p.delta > 0 else (
+            "regression" if p.significant else "not distinguishable from no change"
+        )
+        typer.echo(f"    change   {p.delta:+.4f}  [{p.delta_lo:+.4f}, {p.delta_hi:+.4f}]  {verdict}")
+        if p.target_delta is not None:
+            typer.echo(f"    target   {p.target_delta:+.4f}  met={p.met}")
+
+
+@app.command("recipes")
+def recipes_cmd(
+    capability: str | None = typer.Option(None, "--capability"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """Published training and evaluation recipes an objective may draw on, and which are installed here."""
+    from pravrudhi.application.recipes import availability
+
+    rows = availability()
+    if capability:
+        rows = [r for r in rows if r["capability"] == capability]
+    for r in rows:
+        mark = "available" if r["available"] else "not installed"
+        typer.echo(f"{r['id']:22s} {r['capability']:12s} {mark:14s} {r['title']}")
+        typer.echo(f"    skill {r['skill']} - {r['source']}")
 
 
 @app.command("status")

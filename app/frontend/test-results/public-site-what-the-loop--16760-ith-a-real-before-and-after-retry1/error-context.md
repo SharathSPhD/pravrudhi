@@ -17,7 +17,7 @@ Error: expect(received).toMatch(expected)
 Expected pattern: /c-0045|adapter|harness/i
 Received string:  "Models·
 What the loop has promoted so far.·
-engine does not report candidates yet."
+Nothing promoted yet. Start a run from Improve and it will land here."
 ```
 
 # Page snapshot
@@ -41,17 +41,18 @@ engine does not report candidates yet."
         - link "Settings" [ref=e26] [cursor=pointer]:
           - /url: /settings
     - generic [ref=e30]:
-      - generic [ref=e34]:
-        - text: No engine reachable at http://localhost:8008. Start one with
-        - code [ref=e35]: pravrudhi app
-        - text: .
-      - main [ref=e36]:
-        - generic [ref=e37]:
-          - generic [ref=e38]:
-            - heading "Models" [level=1] [ref=e39]
-            - paragraph [ref=e40]: What the loop has promoted so far.
-          - paragraph [ref=e42]: engine does not report candidates yet.
-  - alert [ref=e43]
+      - generic [ref=e35]:
+        - text: Recorded demo — real runs from an RTX 5090. To improve your own model,
+        - link "install the engine" [ref=e36] [cursor=pointer]:
+          - /url: /install
+        - text: and open it locally.
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Models" [level=1] [ref=e40]
+            - paragraph [ref=e41]: What the loop has promoted so far.
+          - paragraph [ref=e43]: Nothing promoted yet. Start a run from Improve and it will land here.
+  - alert [ref=e44]
 ```
 
 # Test source

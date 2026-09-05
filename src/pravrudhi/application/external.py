@@ -91,13 +91,25 @@ def external_rows(ledger: Path) -> list[dict[str, Any]]:
     return out
 
 
+def stderr_key(key: str) -> str:
+    """lm-eval names a metric `<name>,<filter>` and its standard error `<name>_stderr,<filter>`.
+
+    The earlier form of this substituted the literal string `exact_match`, which is correct for GSM8K and wrong for
+    every other task: for `acc,none` the substitution matched nothing, the lookup fell back to the metric key
+    itself, and the rendered ± column printed the value a second time. Any objective on a task that is not scored
+    by exact match would have inherited that.
+    """
+    head, sep, tail = key.partition(",")
+    return f"{head}_stderr{sep}{tail}"
+
+
 def _headline(row: dict[str, Any]) -> tuple[str, float, float, int]:
     m = row["metrics"]
     if row["tool"] == "lm-eval":
         task = next(iter(m))
         key = "exact_match,strict-match" if "exact_match,strict-match" in m[task] else next(iter(m[task]))
         n = int((row.get("n_samples") or {}).get(task) or 0)
-        return f"{task} {key}", m[task][key], m[task].get(key.replace("exact_match", "exact_match_stderr"), 0.0), n
+        return f"{task} {key}", m[task][key], m[task].get(stderr_key(key), 0.0), n
     ds = row["dataset"]
     n = m[f"{ds}_counts"]["n"]
     p = m[ds]["pass@1_plus"]

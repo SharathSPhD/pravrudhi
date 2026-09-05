@@ -24,6 +24,7 @@ import os
 import secrets
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -72,6 +73,21 @@ def _host_is_local(host_header: str) -> bool:
     return host in LOCAL_HOSTS or host == ""
 
 
+def same_origin(origin: str, host_header: str) -> bool:
+    """Whether this request came from the page this engine itself served.
+
+    A browser sends `Origin` on every request whose method is not GET or HEAD, same-origin ones included. The
+    earlier form of the check refused any POST carrying an Origin that was not in the operator's allowlist, and
+    that allowlist is empty by default — so the engine refused every state change made from its own interface,
+    including starting a run. Comparing the origin's authority against the Host header restores that without
+    relaxing anything: a cross-site page cannot forge Origin, and the local token is still required.
+    """
+    if not origin:
+        return True
+    o = urlsplit(origin)
+    return o.scheme in ("http", "https") and o.netloc == host_header
+
+
 def permitted_hostnames() -> set[str]:
     """Exact hostnames drawn from the operator's allowed origins."""
     return {hostname_of(o) for o in allowed_origins() if hostname_of(o)}
@@ -102,7 +118,7 @@ class LocalGuard(BaseHTTPMiddleware):
                 {"detail": "refused: the Host header is not a loopback address (DNS-rebinding guard)"}, status_code=421
             )
         if request.method not in ("GET", "HEAD", "OPTIONS"):
-            if origin and origin not in permitted:
+            if origin and origin not in permitted and not same_origin(origin, host):
                 return JSONResponse({"detail": "refused: cross-origin state change"}, status_code=403)
             supplied = request.headers.get(TOKEN_HEADER, "")
             if not secrets.compare_digest(supplied, app_token(self.root)):
@@ -124,10 +140,11 @@ def install(app: FastAPI, root: Path, *, enforce: bool = True) -> None:
     )
     app.add_middleware(LocalGuard, root=root, enforce=enforce)  # type: ignore[arg-type]
 
-    @app.get("/app-token")
+    @app.get("/api/app-token")
     def token(request: Request) -> Response:
         """The local token, for the interface this engine serves. Same-origin callers only."""
         origin = request.headers.get("origin", "")
-        if origin and origin not in allowed_origins():
+        host = request.headers.get("host", "")
+        if origin and origin not in allowed_origins() and not same_origin(origin, host):
             raise HTTPException(status_code=403, detail="cross-origin callers cannot read the local token")
         return JSONResponse({"token": app_token(root)})

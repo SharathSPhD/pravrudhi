@@ -14,8 +14,10 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import signal
 import subprocess
+import sys
 import threading
 import time
 import uuid
@@ -110,12 +112,21 @@ class RunManager:
         self.runs: dict[str, Run] = {}
         self._lock = threading.Lock()
 
+    def _cli(self) -> list[str]:
+        override = os.environ.get("PRAVRUDHI_CLI")
+        if override:
+            return shlex.split(override)
+        return [sys.executable, "-m", "pravrudhi"]
+
     def _command(self, req: RunRequest, night: int) -> list[str]:
         if req.target == "model":
-            cmd = ["uv", "run", "pravrudhi", "night", "--night", str(night), "--k", str(req.k), "--policy", req.policy,
-                   "--root", str(self.root), "--train-parquet", ".pravrudhi/data/gsm8k-train.parquet"]
+            cmd = self._cli() + ["night", "--night", str(night), "--k", str(req.k), "--policy", req.policy,
+                                 "--root", str(self.root)]
+            train_parquet = (self.root / ".pravrudhi" / "data" / "gsm8k-train.parquet").resolve()
+            if train_parquet.exists():
+                cmd += ["--train-parquet", str(train_parquet)]
         else:
-            cmd = ["uv", "run", "pravrudhi", "harness-night", "--night", str(night), "--k", str(req.k),
+            cmd = self._cli() + ["harness-night", "--night", str(night), "--k", str(req.k),
                    "--policy", req.policy, "--root", str(self.root)]
         if req.budget_gpu_h:
             cmd += ["--budget", str(req.budget_gpu_h)]
@@ -222,7 +233,7 @@ def models_listing(root: Path) -> list[dict[str, Any]]:
 
 def build_router(root: Path) -> APIRouter:
     mgr = RunManager(root)
-    r = APIRouter()
+    r = APIRouter(prefix="/api")
 
     @r.post("/runs")
     def start(req: RunRequest) -> dict[str, Any]:

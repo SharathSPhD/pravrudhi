@@ -17,7 +17,7 @@ Error: expect(received).toMatch(expected)
 Expected pattern: /cuda|metal/i
 Received string:  "Machines·
 This machine, and any others enrolled to run work.·
-engine does not report machines yet."
+Loading…"
 ```
 
 # Page snapshot
@@ -41,17 +41,48 @@ engine does not report machines yet."
         - link "Settings" [ref=e26] [cursor=pointer]:
           - /url: /settings
     - generic [ref=e30]:
-      - generic [ref=e34]:
-        - text: No engine reachable at http://localhost:8008. Start one with
-        - code [ref=e35]: pravrudhi app
-        - text: .
-      - main [ref=e36]:
-        - generic [ref=e37]:
-          - generic [ref=e38]:
-            - heading "Machines" [level=1] [ref=e39]
-            - paragraph [ref=e40]: This machine, and any others enrolled to run work.
-          - paragraph [ref=e42]: engine does not report machines yet.
-  - alert [ref=e43]
+      - generic [ref=e35]:
+        - text: Recorded demo — real runs from an RTX 5090. To improve your own model,
+        - link "install the engine" [ref=e36] [cursor=pointer]:
+          - /url: /install
+        - text: and open it locally.
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Machines" [level=1] [ref=e40]
+            - paragraph [ref=e41]: This machine, and any others enrolled to run work.
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - generic [ref=e45]: the author's workstation
+              - generic [ref=e50]:
+                - generic [ref=e51]:
+                  - term [ref=e52]: OS / arch
+                  - definition [ref=e53]: Linux / x86_64
+                - generic [ref=e54]:
+                  - term [ref=e55]: Accelerator
+                  - definition [ref=e56]: cuda — NVIDIA GeForce RTX 5090
+                - generic [ref=e57]:
+                  - term [ref=e58]: Usable memory
+                  - definition [ref=e59]: 31.8 GB
+                - generic [ref=e60]:
+                  - term [ref=e61]: Can train
+                  - definition [ref=e62]: "yes"
+            - generic [ref=e63]:
+              - generic [ref=e64]: a Mac mini
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - term [ref=e71]: OS / arch
+                  - definition [ref=e72]: Darwin / arm64
+                - generic [ref=e73]:
+                  - term [ref=e74]: Accelerator
+                  - definition [ref=e75]: metal — Apple M4
+                - generic [ref=e76]:
+                  - term [ref=e77]: Usable memory
+                  - definition [ref=e78]: 17.8 GB
+                - generic [ref=e79]:
+                  - term [ref=e80]: Can train
+                  - definition [ref=e81]: "no"
+  - alert [ref=e82]
 ```
 
 # Test source

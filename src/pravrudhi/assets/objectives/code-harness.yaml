@@ -1,0 +1,18 @@
+# The second track, and the one worth reading if you want to know whether this engine tells the truth.
+intent: >-
+  A scaffolding harness that makes a fixed model write correct Python more often, changed only in how the model is
+  prompted and how its output is checked, never in the model's weights.
+domain: code
+track: H
+benchmarks:
+  - id: humaneval-plus
+    tool: evalplus
+    metric: humaneval+ pass@1
+    direction: up
+recipes:
+  - evaluation
+  - sandboxed-agents
+notes: >-
+  The internal pool selected a harness change that the external scorer then contradicted. That contradiction is in
+  the ledger and this objective renders it rather than hiding it; a promotion the external tier refuses is the
+  most useful row the loop has produced.

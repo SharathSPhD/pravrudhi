@@ -623,6 +623,330 @@
       "track": "lora"
     }
   ],
+  "objectives": {
+    "objectives": [
+      {
+        "benchmarks": [
+          {
+            "direction": "up",
+            "id": "humaneval-plus",
+            "metric": "humaneval+ pass@1",
+            "tool": "evalplus"
+          }
+        ],
+        "created": "",
+        "domain": "code",
+        "id": "code-harness",
+        "intent": "A scaffolding harness that makes a fixed model write correct Python more often, changed only in how the model is prompted and how its output is checked, never in the model's weights.",
+        "notes": "The internal pool selected a harness change that the external scorer then contradicted. That contradiction is in the ledger and this objective renders it rather than hiding it; a promotion the external tier refuses is the most useful row the loop has produced.",
+        "progress": [
+          {
+            "baseline": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 164,
+              "night": 1,
+              "seq": 719,
+              "sha256": "78e9c2b0dba677f6f347ea93e5ea87ad05e170d2190e6a285ffe4664558c2d50",
+              "stderr": 0.07439738782909844,
+              "value": 0.5914634146341463
+            },
+            "benchmark": "humaneval+ pass@1",
+            "delta": -0.5060975609756098,
+            "delta_hi": -0.3373540055349692,
+            "delta_lo": -0.6748411164162503,
+            "latest": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 164,
+              "night": 1,
+              "seq": 900,
+              "sha256": "e8c2b06f7b245d7b7eed308e5f3ed5ead6528030c7cc13fb07123f638e1f6c1d",
+              "stderr": 0.04332603583401614,
+              "value": 0.08536585365853659
+            },
+            "met": null,
+            "reason": "",
+            "significant": true,
+            "state": "measured",
+            "target_delta": null
+          }
+        ],
+        "recipes": [
+          "evaluation",
+          "sandboxed-agents"
+        ],
+        "target_delta": null,
+        "track": "H"
+      },
+      {
+        "benchmarks": [
+          {
+            "direction": "up",
+            "id": "gsm8k",
+            "metric": "gsm8k exact_match,strict-match",
+            "tool": "lm-eval"
+          }
+        ],
+        "created": "",
+        "domain": "reasoning",
+        "id": "math-reasoning",
+        "intent": "A small model that solves grade-school arithmetic word problems more reliably than the checkpoint it started from, without losing what it already knew.",
+        "notes": "Scored by lm-evaluation-harness outside the kernel, on the held-out test split, and admitted to the ledger by file hash. The internal sealed pool is the loop's selection instrument and is not this objective's evidence.",
+        "progress": [
+          {
+            "baseline": {
+              "model": "Qwen/Qwen3-0.6B",
+              "n": 1319,
+              "night": 4,
+              "seq": 717,
+              "sha256": "f5ec2ebf2ae4ec048f55d09238c45a3020b0fc10b2f478a38c6904daae36c6e6",
+              "stderr": 0.013540639733342434,
+              "value": 0.4086429112964367
+            },
+            "benchmark": "gsm8k exact_match,strict-match",
+            "delta": 0.0811220621683093,
+            "delta_hi": 0.11897345199984916,
+            "delta_lo": 0.043270672336769456,
+            "latest": {
+              "model": "Qwen/Qwen3-0.6B",
+              "n": 1319,
+              "night": 4,
+              "seq": 718,
+              "sha256": "dd9805e97e36f919a29796fc31ac2f0dd4586bb89c9fbcca3c4949d44749a589",
+              "stderr": 0.013769598923012391,
+              "value": 0.489764973464746
+            },
+            "met": null,
+            "reason": "",
+            "significant": true,
+            "state": "measured",
+            "target_delta": null
+          }
+        ],
+        "recipes": [
+          "sft-lora",
+          "rl-post-training",
+          "evaluation"
+        ],
+        "target_delta": null,
+        "track": "M"
+      },
+      {
+        "benchmarks": [
+          {
+            "direction": "up",
+            "id": "professional-law",
+            "metric": "mmlu_professional_law acc,none",
+            "tool": "lm-eval"
+          },
+          {
+            "direction": "up",
+            "id": "jurisprudence",
+            "metric": "mmlu_jurisprudence acc,none",
+            "tool": "lm-eval"
+          }
+        ],
+        "created": "",
+        "domain": "legal",
+        "id": "prabhasa-nyaya",
+        "intent": "A legal-reasoning assistant for Indian jurisprudence that answers a question of law with the statute or precedent it relied on, and that says it does not know rather than inventing a citation. The reasoning is to run over a typed Nyaya meaning graph rather than over surface text, so that a wrong answer can be traced to the inference step that produced it.",
+        "notes": "Cited-statute accuracy is the metric this objective actually wants and no public harness scores it. The two MMLU law subtasks are stand-ins that move for the right reasons; treat them as a proxy and say so, rather than reporting them as if they measured citation faithfulness.",
+        "progress": [
+          {
+            "baseline": null,
+            "benchmark": "mmlu_professional_law acc,none",
+            "delta": null,
+            "delta_hi": null,
+            "delta_lo": null,
+            "latest": null,
+            "met": null,
+            "reason": "no external result on track 'nyaya' reports 'mmlu_professional_law acc,none'",
+            "significant": false,
+            "state": "unmeasured",
+            "target_delta": 0.03
+          },
+          {
+            "baseline": null,
+            "benchmark": "mmlu_jurisprudence acc,none",
+            "delta": null,
+            "delta_hi": null,
+            "delta_lo": null,
+            "latest": null,
+            "met": null,
+            "reason": "no external result on track 'nyaya' reports 'mmlu_jurisprudence acc,none'",
+            "significant": false,
+            "state": "unmeasured",
+            "target_delta": 0.03
+          }
+        ],
+        "recipes": [
+          "corpus-curation",
+          "corpus-synthesis",
+          "sft-lora",
+          "rl-post-training",
+          "retrieval",
+          "evaluation"
+        ],
+        "target_delta": 0.03,
+        "track": "nyaya"
+      }
+    ],
+    "problems": []
+  },
+  "recipes": [
+    {
+      "available": true,
+      "capability": "corpus",
+      "id": "corpus-synthesis",
+      "skill": "data-designer",
+      "source": "NVIDIA NeMo Data Designer",
+      "summary": "Design a dataset and a generation pipeline for a domain that has no ready corpus.",
+      "title": "Synthetic corpus design"
+    },
+    {
+      "available": true,
+      "capability": "corpus",
+      "id": "corpus-curation",
+      "skill": "nemo-data-designer-plugin",
+      "source": "NVIDIA NeMo Data Designer plugin",
+      "summary": "Curate, filter and deduplicate a raw corpus into training shards.",
+      "title": "Corpus curation pipeline"
+    },
+    {
+      "available": true,
+      "capability": "finetune",
+      "id": "sft-lora",
+      "skill": "nemo-automodel-recipe-development",
+      "source": "NVIDIA NeMo AutoModel",
+      "summary": "Author and modify AutoModel training and evaluation recipes, including LoRA adapters.",
+      "title": "Supervised fine-tuning and LoRA"
+    },
+    {
+      "available": true,
+      "capability": "finetune",
+      "id": "distributed-training",
+      "skill": "nemo-automodel-distributed-training",
+      "source": "NVIDIA NeMo AutoModel",
+      "summary": "Scale a fine-tune across devices and nodes.",
+      "title": "Distributed training"
+    },
+    {
+      "available": true,
+      "capability": "finetune",
+      "id": "model-onboarding",
+      "skill": "nemo-automodel-model-onboarding",
+      "source": "NVIDIA NeMo AutoModel",
+      "summary": "Bring an unsupported architecture into the training stack.",
+      "title": "Onboard a new base model"
+    },
+    {
+      "available": true,
+      "capability": "pretrain",
+      "id": "megatron-pretrain",
+      "skill": "nemo-mbridge-mlm-bridge-training",
+      "source": "NVIDIA Megatron Bridge",
+      "summary": "Large-scale pretraining through the Megatron bridge.",
+      "title": "Megatron bridge pretraining"
+    },
+    {
+      "available": true,
+      "capability": "pretrain",
+      "id": "parallelism-strategy",
+      "skill": "nemo-mbridge-perf-parallelism-strategies",
+      "source": "NVIDIA Megatron Bridge",
+      "summary": "Choose tensor, pipeline, context and data parallel degrees for a target machine.",
+      "title": "Parallelism strategy selection"
+    },
+    {
+      "available": true,
+      "capability": "pretrain",
+      "id": "recipe-recommender",
+      "skill": "nemo-mbridge-recipe-recommender",
+      "source": "NVIDIA Megatron Bridge",
+      "summary": "Pick a starting recipe from model size and available hardware.",
+      "title": "Recipe recommender"
+    },
+    {
+      "available": true,
+      "capability": "performance",
+      "id": "memory-tuning",
+      "skill": "nemo-mbridge-perf-memory-tuning",
+      "source": "NVIDIA Megatron Bridge",
+      "summary": "Fit a training run into the memory a single card actually has.",
+      "title": "Memory tuning and activation recompute"
+    },
+    {
+      "available": true,
+      "capability": "performance",
+      "id": "sequence-packing",
+      "skill": "nemo-mbridge-perf-sequence-packing",
+      "source": "NVIDIA Megatron Bridge",
+      "summary": "Raise throughput by packing variable-length examples.",
+      "title": "Sequence packing"
+    },
+    {
+      "available": true,
+      "capability": "rl",
+      "id": "rl-post-training",
+      "skill": "launch-nemo-rl",
+      "source": "NVIDIA NeMo-RL",
+      "summary": "Launch, monitor and debug NeMo-RL recipes, including GRPO.",
+      "title": "Reinforcement learning post-training"
+    },
+    {
+      "available": true,
+      "capability": "evaluate",
+      "id": "evaluation",
+      "skill": "nemo-evaluator-plugin",
+      "source": "NVIDIA NeMo Evaluator",
+      "summary": "Run and score benchmark jobs against a served model.",
+      "title": "Benchmark evaluation"
+    },
+    {
+      "available": true,
+      "capability": "retrieval",
+      "id": "retrieval",
+      "skill": "nemo-retriever",
+      "source": "NVIDIA NeMo Retriever",
+      "summary": "Build the retrieval half of a domain assistant.",
+      "title": "Retrieval and RAG"
+    },
+    {
+      "available": true,
+      "capability": "retrieval",
+      "id": "retrieval-recipes",
+      "skill": "nemotron-retrieval-recipes",
+      "source": "NVIDIA Nemotron",
+      "summary": "Published retrieval configurations for Nemotron models.",
+      "title": "Nemotron retrieval recipes"
+    },
+    {
+      "available": true,
+      "capability": "safety",
+      "id": "policy-generation",
+      "skill": "nemotron-policy-generator",
+      "source": "NVIDIA Nemotron",
+      "summary": "Generate and manage a content or behaviour policy for a domain model.",
+      "title": "Policy generation"
+    },
+    {
+      "available": true,
+      "capability": "agents",
+      "id": "sandboxed-agents",
+      "skill": "nemoclaw-user-get-started",
+      "source": "NVIDIA NemoClaw",
+      "summary": "Run coding agents inside managed sandboxes with policy and inference routing.",
+      "title": "Sandboxed agent operation"
+    },
+    {
+      "available": true,
+      "capability": "agents",
+      "id": "sandbox-policy",
+      "skill": "nemoclaw-user-manage-policy",
+      "source": "NVIDIA NemoClaw",
+      "summary": "Constrain what a sandboxed agent may do.",
+      "title": "Sandbox policy management"
+    }
+  ],
   "recorded": true,
   "runs": [
     {

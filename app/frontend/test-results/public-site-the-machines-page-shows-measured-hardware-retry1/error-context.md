@@ -17,7 +17,7 @@ Error: expect(received).toMatch(expected)
 Expected pattern: /cuda|metal/i
 Received string:  "Machines·
 This machine, and any others enrolled to run work.·
-engine does not report machines yet."
+Loading…"
 ```
 
 # Page snapshot
@@ -41,17 +41,18 @@ engine does not report machines yet."
         - link "Settings" [ref=e26] [cursor=pointer]:
           - /url: /settings
     - generic [ref=e30]:
-      - generic [ref=e34]:
-        - text: No engine reachable at http://localhost:8008. Start one with
-        - code [ref=e35]: pravrudhi app
-        - text: .
-      - main [ref=e36]:
-        - generic [ref=e37]:
-          - generic [ref=e38]:
-            - heading "Machines" [level=1] [ref=e39]
-            - paragraph [ref=e40]: This machine, and any others enrolled to run work.
-          - paragraph [ref=e42]: engine does not report machines yet.
-  - alert [ref=e43]
+      - generic [ref=e35]:
+        - text: Recorded demo — real runs from an RTX 5090. To improve your own model,
+        - link "install the engine" [ref=e36] [cursor=pointer]:
+          - /url: /install
+        - text: and open it locally.
+      - main [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]:
+            - heading "Machines" [level=1] [ref=e40]
+            - paragraph [ref=e41]: This machine, and any others enrolled to run work.
+          - paragraph [ref=e43]: Loading…
+  - alert [ref=e44]
 ```
 
 # Test source

@@ -1,0 +1,155 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\froman\fcharset0 Times-Roman;\f1\froman\fcharset0 Times-Bold;\f2\froman\fcharset0 Times-Italic;
+\f3\fmodern\fcharset0 Courier;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;}
+{\*\listtable{\list\listtemplateid1\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid1\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid1}
+{\list\listtemplateid2\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid101\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid2}
+{\list\listtemplateid3\listhybrid{\listlevel\levelnfc23\levelnfcn23\leveljc0\leveljcn0\levelfollow0\levelstartat0\levelspace360\levelindent0{\*\levelmarker \{disc\}}{\leveltext\leveltemplateid201\'01\uc0\u8226 ;}{\levelnumbers;}\fi-360\li720\lin720 }{\listname ;}\listid3}
+{\list\listtemplateid4\listhybrid{\listlevel\levelnfc0\levelnfcn0\leveljc0\leveljcn0\levelfollow0\levelstartat1\levelspace360\levelindent0{\*\levelmarker \{decimal\}}{\leveltext\leveltemplateid301\'01\'00;}{\levelnumbers\'01;}\fi-360\li720\lin720 }{\listname ;}\listid4}}
+{\*\listoverridetable{\listoverride\listid1\listoverridecount0\ls1}{\listoverride\listid2\listoverridecount0\ls2}{\listoverride\listid3\listoverridecount0\ls3}{\listoverride\listid4\listoverridecount0\ls4}}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f0\fs24 \cf0 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 I've kicked off a 5-agent independent review of the live Pravrudhi project \'97 each agent reads the actual repo (charter, ADRs, ledger, code, running processes) with a different skeptical lens: statistical rigor, engineering quality, ambition-vs-reality, product-direction alignment, and hardware ceilings. This runs in the background; I'll synthesize into a plain-terms explanation and critique once it lands.\
+While that runs, here's what I can already tell you directly from reading the live repo myself:\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b \cf0 What's happening right now:
+\f0\b0  The other session is mid-flight on an autonomous RSI (recursive self-improvement) research system. It's actively running a GPU job this second \'97 harness-night 1, candidate c-0060, on Qwen3-1.7B, GPU at 92% utilization. There are two tracks: 
+\f1\b Track M
+\f0\b0  (fine-tune a model with LoRA) has real, externally-verified evidence \'97 GSM8K accuracy went from 0.4086 to 0.4898 on a held-out benchmark, which is genuine signal. 
+\f1\b Track H
+\f0\b0  (evolve the 
+\f2\i harness/scaffold
+\f0\i0  itself, not just the model) is still struggling \'97 its proposer model keeps generating broken candidate templates that get pruned every night.\
+
+\f1\b Signs of strain:
+\f0\b0  16 ADRs (architecture decision records) in about 36 hours, a ledger got corrupted by two concurrent writers and had to be repaired, and several "request-*" ADRs are the agent unilaterally deciding things the operator delegated away. That's a lot of firefighting for 1.5 days of work.\
+Waiting on the workflow now for the deeper, evidence-grounded critique.\
+Here's the independent read \'97 five separate reviewers, each given a different skeptical lens and told to ground every claim in an actual file/commit/ledger row rather than vibes. They converged strongly on several points, which is itself informative.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f1\b\fs36 \cf0 What Pravrudhi actually is, in plain terms\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f0\b0\fs24 \cf0 It's an experiment in making an AI improve itself, running solo on your one RTX 5090. Two tracks:\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls1\ilvl0
+\f1\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Track M
+\f0\b0  \'97 fine-tune the model's weights (LoRA) to get better at math problems.\
+\ls1\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Track H
+\f0\b0  \'97 let the system rewrite its own 
+\f2\i harness
+\f0\i0  (the scaffolding/prompts/tools around the model), not just the model.\
+\pard\pardeftab720\sa240\partightenfactor0
+\cf0 A "controller" (inspired by active-inference / expected-free-energy math) decides which candidate change to try next. Everything gets logged to a tamper-evident ledger so nothing can be claimed without a receipt. This is the ambitious part: the public charter says it's trying to beat 
+\f2\i published 2026 research
+\f0\i0  from well-funded labs (Darwin G\'f6del Machine, HyperAgents, AlphaEvolve, SEAL) \'97 on one gaming GPU.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f1\b\fs36 \cf0 Is it headed correctly toward its objectives? \'97 mixed, and the reviewers agree on why\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\fs24 \cf0 Genuinely solid:
+\f0\b0 \
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls2\ilvl0\cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 The plumbing works. Ledger, statistics (bootstrap confidence intervals, sequential testing), reproducibility, gates \'97 all real, tested, and honest about failures rather than hiding them.\
+\ls2\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Track M has one legitimate win: GSM8K accuracy went 0.4086 \uc0\u8594  0.4898 on an independent eval harness, on a real fine-tuned model. That's a genuine, externally-checked result.\
+\pard\pardeftab720\sa240\partightenfactor0
+
+\f1\b \cf0 Where it's faltering \'97 the biggest finding, and three reviewers hit it independently:
+\f0\b0 \
+The project's 
+\f2\i actual headline claim
+\f0\i0  \'97 "does this fancy controller pick better experiments than just being greedy?" (Hypothesis H1) \'97 
+\f1\b has never been tested.
+\f0\b0  No baseline (a simple greedy version) has been coded up at all. Everything running right now is a single arm with nothing to compare against. So even though the plumbing is real, the central scientific bet of the whole project hasn't started being examined yet, 36 hours in.\
+Separately, 
+\f1\b no result anywhere has cleared the project's own bar for "confirmed."
+\f0\b0  The one promoted model (c-0045) has a confidence interval that still touches zero (p=0.111) \'97 below its own pre-registered threshold for a real effect. It's honestly labeled as such internally, but it means: nothing is proven yet, only suggested.\
+
+\f1\b A concrete integrity flag worth checking today:
+\f0\b0  after a ledger got corrupted by two processes writing to it at once (repaired via ADR-0013), the reviewer found that 
+\f3\fs26 make ledger-replay
+\f0\fs24  now reports the saved 
+\f3\fs26 state.json
+\f0\fs24  doesn't match what replaying the ledger produces. The entire project's evidentiary discipline rests on "no number is stated that the ledger doesn't contain" \'97 this is exactly the invariant that would break. Worth having the other session verify/fix this before trusting further numbers.\
+
+\f1\b Identity crisis, not yet resolved:
+\f0\b0  
+\f3\fs26 CHARTER.md
+\f0\fs24  (public, in the repo) still reads as an academic paper gunning for SOTA. Your actual redirect on 09-04 \'97 "it's a product, not a science console, anyone should be able to install it" \'97 was never reconciled with that document. And the CLI still surfaces Sanskrit jargon (
+\f3\fs26 asiddha
+\f0\fs24 , 
+\f3\fs26 pram\uc0\u257 \u7751 a
+\f0\fs24 , 
+\f3\fs26 b\uc0\u257 dha
+\f0\fs24 ) directly to the user, which is the opposite of installable-by-a-stranger. Right now the project is quietly serving two masters and neither is fully being pursued.\
+
+\f1\b Operational churn:
+\f0\b0  16 ADRs in ~36 hours. Several are legitimate fast decisions, but a few are the integrity checks themselves getting loosened right after they fired (e.g., the "decorative controller" abort-check was relaxed in ADR-0012 immediately after it aborted a night). Individually defensible, but the pattern is the kind of thing that erodes trust in a self-graded system if it continues.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f1\b\fs36 \cf0 Unavoidable hardware limits \'97 this is the sharpest, least negotiable finding\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls3\ilvl0
+\f0\b0\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 One RTX 5090, 32 GB. The "proposer" model that writes new candidate harness code alone eats ~20\'9624 GB. Peak VRAM measured at 31.3/32 GB \'97 there have already been two out-of-memory crashes.\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 The charter's own target for a statistically "confirmed" H1 result is 
+\f1\b ~240 GPU-hours.
+\f0\b0  Measured burn rate so far: ~5.4 GPU-hours in the first 12 wall-clock hours (44% utilization \'97 the rest is deliberation/proposer overhead, not training). Extrapolated: 
+\f1\b ~3\'964 weeks of continuous, uninterrupted GPU time
+\f0\b0  to reach that target \'97 on a workstation card, not datacenter hardware built for weeks of nonstop duty.\
+\ls3\ilvl0\kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Model track and harness track share the one card, so they run sequentially, not in parallel \'97 doubling real wall-clock cost versus what the charter's GPU-hour math assumes.\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls3\ilvl0
+\f1\b \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	\uc0\u8226 	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Bottom line: matching lab-scale RSI baselines that were built with multi-GPU/datacenter budgets, on their own terms, on this hardware, is not a bug to fix \'97 it's a wall.
+\f0\b0  The honest options are to shrink the claim (screen-tier only, smaller \uc0\u916 *) or accept a multi-week timeline.\
+\pard\pardeftab720\sa298\partightenfactor0
+
+\f1\b\fs36 \cf0 Brainstorm \'97 what I'd suggest doing next\
+\pard\tx220\tx720\pardeftab720\li720\fi-720\partightenfactor0
+\ls4\ilvl0
+\fs24 \cf0 \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	1	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Verify the ledger/state.json divergence today
+\f0\b0  \'97 it's the one finding that could invalidate everything built on top of it if real.\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	2	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Cheapest real test of H1:
+\f0\b0  code up just the "greedy" baseline (the simplest arm) and run it head-to-head against the controller on the harness track, where each candidate is cheaper than a full GRPO run. Don't wait for all 6 planned baseline arms \'97 one comparison beats zero.\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	3	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Resolve the charter/product split explicitly
+\f0\b0 , as an ADR: either rewrite 
+\f3\fs26 CHARTER.md
+\f0\fs24 's framing around the product pitch and demote SOTA-hypotheses to a roadmap appendix, or state plainly that research continues under the old charter and product packaging is deferred until H1/H3 pass. Right now it's silently both.\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	4	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Shrink the proposer model's VRAM footprint
+\f0\b0  (smaller quant, or offload proposer JSON-writing to something lighter) to stop competing with training for the card's only 32 GB.\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	5	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Re-derive a smaller, honestly-scoped \uc0\u916 *
+\f0\b0  that fits the GPU-hours actually available per week, rather than carrying the original 240-hour target forward implicitly. The charter itself explicitly permits this ("that decision is made in week one, not month three").\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	6	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Add a plain-language CLI mode
+\f0\b0  if "any stranger can install this" stays the goal \'97 keep the Sanskrit epistemics as internal audit tags, but don't surface them as the only user-facing vocabulary.\
+\ls4\ilvl0
+\f1\b \kerning1\expnd0\expndtw0 \outl0\strokewidth0 {\listtext	7	}\expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 Batch integrity-check adjustments
+\f0\b0  (like the decorative-controller floor) into a single reviewed pass instead of reactive same-night patches, so the self-grading system doesn't look like it's moving the goalposts after each failure \'97 even when each individual fix is legitimate.\
+\pard\pardeftab720\sa240\partightenfactor0
+\cf0 Happy to have another session dig into any one of these \'97 the ledger/state.json check in particular seems worth doing right away.\
+}

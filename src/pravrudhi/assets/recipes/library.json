@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "note": "A catalogue, not an implementation. Each entry names a published recipe and the skill that carries it. Presence in this file is not evidence that the recipe has been run; a recipe becomes evidence only when a night executes it and the ledger records the result at the tier it passed.",
+  "recipes": [
+    {
+      "id": "corpus-synthesis",
+      "capability": "corpus",
+      "title": "Synthetic corpus design",
+      "skill": "data-designer",
+      "summary": "Design a dataset and a generation pipeline for a domain that has no ready corpus.",
+      "source": "NVIDIA NeMo Data Designer"
+    },
+    {
+      "id": "corpus-curation",
+      "capability": "corpus",
+      "title": "Corpus curation pipeline",
+      "skill": "nemo-data-designer-plugin",
+      "summary": "Curate, filter and deduplicate a raw corpus into training shards.",
+      "source": "NVIDIA NeMo Data Designer plugin"
+    },
+    {
+      "id": "sft-lora",
+      "capability": "finetune",
+      "title": "Supervised fine-tuning and LoRA",
+      "skill": "nemo-automodel-recipe-development",
+      "summary": "Author and modify AutoModel training and evaluation recipes, including LoRA adapters.",
+      "source": "NVIDIA NeMo AutoModel"
+    },
+    {
+      "id": "distributed-training",
+      "capability": "finetune",
+      "title": "Distributed training",
+      "skill": "nemo-automodel-distributed-training",
+      "summary": "Scale a fine-tune across devices and nodes.",
+      "source": "NVIDIA NeMo AutoModel"
+    },
+    {
+      "id": "model-onboarding",
+      "capability": "finetune",
+      "title": "Onboard a new base model",
+      "skill": "nemo-automodel-model-onboarding",
+      "summary": "Bring an unsupported architecture into the training stack.",
+      "source": "NVIDIA NeMo AutoModel"
+    },
+    {
+      "id": "megatron-pretrain",
+      "capability": "pretrain",
+      "title": "Megatron bridge pretraining",
+      "skill": "nemo-mbridge-mlm-bridge-training",
+      "summary": "Large-scale pretraining through the Megatron bridge.",
+      "source": "NVIDIA Megatron Bridge"
+    },
+    {
+      "id": "parallelism-strategy",
+      "capability": "pretrain",
+      "title": "Parallelism strategy selection",
+      "skill": "nemo-mbridge-perf-parallelism-strategies",
+      "summary": "Choose tensor, pipeline, context and data parallel degrees for a target machine.",
+      "source": "NVIDIA Megatron Bridge"
+    },
+    {
+      "id": "recipe-recommender",
+      "capability": "pretrain",
+      "title": "Recipe recommender",
+      "skill": "nemo-mbridge-recipe-recommender",
+      "summary": "Pick a starting recipe from model size and available hardware.",
+      "source": "NVIDIA Megatron Bridge"
+    },
+    {
+      "id": "memory-tuning",
+      "capability": "performance",
+      "title": "Memory tuning and activation recompute",
+      "skill": "nemo-mbridge-perf-memory-tuning",
+      "summary": "Fit a training run into the memory a single card actually has.",
+      "source": "NVIDIA Megatron Bridge"
+    },
+    {
+      "id": "sequence-packing",
+      "capability": "performance",
+      "title": "Sequence packing",
+      "skill": "nemo-mbridge-perf-sequence-packing",
+      "summary": "Raise throughput by packing variable-length examples.",
+      "source": "NVIDIA Megatron Bridge"
+    },
+    {
+      "id": "rl-post-training",
+      "capability": "rl",
+      "title": "Reinforcement learning post-training",
+      "skill": "launch-nemo-rl",
+      "summary": "Launch, monitor and debug NeMo-RL recipes, including GRPO.",
+      "source": "NVIDIA NeMo-RL"
+    },
+    {
+      "id": "evaluation",
+      "capability": "evaluate",
+      "title": "Benchmark evaluation",
+      "skill": "nemo-evaluator-plugin",
+      "summary": "Run and score benchmark jobs against a served model.",
+      "source": "NVIDIA NeMo Evaluator"
+    },
+    {
+      "id": "retrieval",
+      "capability": "retrieval",
+      "title": "Retrieval and RAG",
+      "skill": "nemo-retriever",
+      "summary": "Build the retrieval half of a domain assistant.",
+      "source": "NVIDIA NeMo Retriever"
+    },
+    {
+      "id": "retrieval-recipes",
+      "capability": "retrieval",
+      "title": "Nemotron retrieval recipes",
+      "skill": "nemotron-retrieval-recipes",
+      "summary": "Published retrieval configurations for Nemotron models.",
+      "source": "NVIDIA Nemotron"
+    },
+    {
+      "id": "policy-generation",
+      "capability": "safety",
+      "title": "Policy generation",
+      "skill": "nemotron-policy-generator",
+      "summary": "Generate and manage a content or behaviour policy for a domain model.",
+      "source": "NVIDIA Nemotron"
+    },
+    {
+      "id": "sandboxed-agents",
+      "capability": "agents",
+      "title": "Sandboxed agent operation",
+      "skill": "nemoclaw-user-get-started",
+      "summary": "Run coding agents inside managed sandboxes with policy and inference routing.",
+      "source": "NVIDIA NemoClaw"
+    },
+    {
+      "id": "sandbox-policy",
+      "capability": "agents",
+      "title": "Sandbox policy management",
+      "skill": "nemoclaw-user-manage-policy",
+      "summary": "Constrain what a sandboxed agent may do.",
+      "source": "NVIDIA NemoClaw"
+    }
+  ]
+}

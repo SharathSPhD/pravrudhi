@@ -1,0 +1,18 @@
+# The objective the engine was built against, written out as an objective rather than left implicit in the code.
+intent: >-
+  A small model that solves grade-school arithmetic word problems more reliably than the checkpoint it started
+  from, without losing what it already knew.
+domain: reasoning
+track: M
+benchmarks:
+  - id: gsm8k
+    tool: lm-eval
+    metric: gsm8k exact_match,strict-match
+    direction: up
+recipes:
+  - sft-lora
+  - rl-post-training
+  - evaluation
+notes: >-
+  Scored by lm-evaluation-harness outside the kernel, on the held-out test split, and admitted to the ledger by
+  file hash. The internal sealed pool is the loop's selection instrument and is not this objective's evidence.

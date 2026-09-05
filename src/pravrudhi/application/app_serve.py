@@ -23,25 +23,45 @@ from pravrudhi.api.runs import build_router
 from pravrudhi.api.server import create_app
 
 DEFAULT_PORT = 8008
+PACKAGED_FRONTEND = Path(__file__).resolve().parents[1] / "assets" / "frontend"
 
 
 def frontend_dir(root: Path) -> Path | None:
     """The static export, if it has been built. Absent means API-only, which is still a working engine."""
-    out = Path(root) / "app" / "frontend" / "out"
-    return out if (out / "index.html").exists() else None
+    for out in (Path(root) / "app" / "frontend" / "out", PACKAGED_FRONTEND):
+        if (out / "index.html").exists():
+            return out
+    return None
 
 
 class _SpaStatic(StaticFiles):
-    """Static files with an index.html fallback for client-side routes."""
+    """Static files for a Next.js static export.
+
+    The export writes one file per route as `<route>.html` — `runs.html`, `machines.html` — alongside a directory of
+    the same name holding the route's data payloads. Starlette maps neither: a request for `/runs` finds the
+    directory, looks for an `index.html` inside it, does not find one, and (because `html=True` and the export also
+    ships a `404.html`) answers 404. Every route but `/` was therefore either a 404 or the home page when the engine
+    served the interface itself. The public site did not show this because Vercel does the `.html` mapping for you.
+
+    So: try the path as given, then `<path>.html`, and only then fall back to the shell.
+    """
 
     async def get_response(self, path: str, scope: Any) -> Any:
-        try:
-            return await super().get_response(path, scope)
-        except Exception:
-            index = Path(self.directory) / "index.html"  # type: ignore[arg-type]
-            if index.exists():
-                return FileResponse(index)
-            raise
+        candidates = [path]
+        stripped = path.rstrip("/")
+        if stripped and not stripped.endswith(".html"):
+            candidates.append(f"{stripped}.html")
+        for candidate in candidates:
+            try:
+                response = await super().get_response(candidate, scope)
+            except Exception:  # noqa: BLE001 - StaticFiles raises HTTPException for a missing file
+                continue
+            if getattr(response, "status_code", 500) < 400:
+                return response
+        index = Path(self.directory) / "index.html"  # type: ignore[arg-type]
+        if index.exists():
+            return FileResponse(index)
+        return await super().get_response(path, scope)
 
 
 def build_app(root: Path) -> FastAPI:

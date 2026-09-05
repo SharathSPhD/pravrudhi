@@ -1,0 +1,51 @@
+# A worked example. Copy it with `pravrudhi objective new --from prabhasa-nyaya`, then edit the intent to your own.
+#
+# This one is real: prabhasa-samskrutam is building a Sanskrit-substrate model whose reasoning layer is Navya-Nyaya,
+# and its MVP intent is a legal-domain instrument. It is the example because it exercises what a GSM8K objective
+# does not: a domain benchmark rather than a general one, corpus curation as a first-class recipe, and an intent
+# that could not be inferred from the benchmark alone.
+
+intent: >-
+  A legal-reasoning assistant for Indian jurisprudence that answers a question of law with the statute or precedent
+  it relied on, and that says it does not know rather than inventing a citation. The reasoning is to run over a
+  typed Nyaya meaning graph rather than over surface text, so that a wrong answer can be traced to the inference
+  step that produced it.
+
+domain: legal
+
+# Evidence for this objective accumulates under this ledger track. A night writes external-eval rows under a track;
+# the objective reads them back. Two objectives may share a track, which lets an intent be restated without losing
+# history.
+track: nyaya
+
+# The measuring instruments. `metric` is the name exactly as the external renderer forms it, so the objective and
+# the evidence document cannot disagree about which number they mean. Both tasks below are present in the
+# pravrudhi/ext-scorers image; `lm_eval --tasks list` is the authority.
+benchmarks:
+  - id: professional-law
+    tool: lm-eval
+    metric: mmlu_professional_law acc,none
+    direction: up
+  - id: jurisprudence
+    tool: lm-eval
+    metric: mmlu_jurisprudence acc,none
+    direction: up
+
+# Techniques this objective may draw on, named from the recipe library. Naming a recipe does not run it, and does
+# not claim it has been run: `pravrudhi recipes` reports which are installed on this machine.
+recipes:
+  - corpus-curation
+  - corpus-synthesis
+  - sft-lora
+  - rl-post-training
+  - retrieval
+  - evaluation
+
+# How much improvement counts as success, in the benchmark's own units. Leave it out for "better is better" —
+# most objectives should. A target is only reported as met when the interval also excludes zero.
+target_delta: 0.03
+
+notes: >-
+  Cited-statute accuracy is the metric this objective actually wants and no public harness scores it. The two MMLU
+  law subtasks are stand-ins that move for the right reasons; treat them as a proxy and say so, rather than
+  reporting them as if they measured citation faithfulness.

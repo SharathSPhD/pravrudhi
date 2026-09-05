@@ -36,11 +36,12 @@ def test_uninitialised(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: 
     monkeypatch.setenv("PATH", "")
     report = run_doctor(tmp_path)
     assert report["ok"] is False
-    assert {check["name"] for check in report["checks"]} == {"initialised", "ledger", "docker", "pools", "prereg"}
+    assert {check["name"] for check in report["checks"]} == {"initialised", "ledger", "docker", "gpu", "pools", "prereg"}
     for check in report["checks"]:
         assert set(check) == {"name", "ok", "detail"}
-        assert check["ok"] is False
         assert isinstance(check["detail"], str) and check["detail"]
+        # A machine with no GPU on PATH is not itself an error: the gpu check stays ok, it just can't start a night.
+        assert check["ok"] is (check["name"] == "gpu")
     assert list(tmp_path.iterdir()) == []
     assert capsys.readouterr() == ("", "")
 
@@ -49,7 +50,7 @@ def test_initialised(ready_root: Path, capsys: pytest.CaptureFixture[str]) -> No
     before = {p.relative_to(ready_root): p.read_bytes() for p in ready_root.rglob("*") if p.is_file()}
     report = run_doctor(ready_root)
     assert report["ok"] is True
-    assert len(report["checks"]) == 5
+    assert len(report["checks"]) == 6
     assert all(check["ok"] is True and check["detail"] for check in report["checks"])
     assert before == {p.relative_to(ready_root): p.read_bytes() for p in ready_root.rglob("*") if p.is_file()}
     assert capsys.readouterr() == ("", "")
@@ -73,6 +74,41 @@ def test_missing_docker(ready_root: Path, monkeypatch: pytest.MonkeyPatch) -> No
     report = run_doctor(ready_root)
     assert report["ok"] is False
     assert [check["name"] for check in report["checks"] if not check["ok"]] == ["docker"]
+    docker_check = next(check for check in report["checks"] if check["name"] == "docker")
+    assert "not installed" in docker_check["detail"]
+
+
+def _write_docker_stub(bin_dir: Path, stderr: str) -> None:
+    docker = bin_dir / "docker"
+    docker.write_text(f"#!/bin/sh\necho '{stderr}' >&2\nexit 1\n")
+    docker.chmod(0o755)
+
+
+def test_docker_daemon_not_running(ready_root: Path, tmp_path: Path) -> None:
+    _write_docker_stub(tmp_path / "bin", "Cannot connect to the Docker daemon. Is the docker daemon running?")
+    report = run_doctor(ready_root)
+    assert report["ok"] is False
+    docker_check = next(check for check in report["checks"] if check["name"] == "docker")
+    assert docker_check["ok"] is False
+    assert "daemon is not running" in docker_check["detail"]
+    assert "permission denied" not in docker_check["detail"].lower()
+
+
+def test_docker_permission_denied(ready_root: Path, tmp_path: Path) -> None:
+    _write_docker_stub(tmp_path / "bin", "Got permission denied while trying to connect to the Docker daemon socket")
+    report = run_doctor(ready_root)
+    assert report["ok"] is False
+    docker_check = next(check for check in report["checks"] if check["name"] == "docker")
+    assert docker_check["ok"] is False
+    assert "permission denied" in docker_check["detail"].lower()
+    assert "docker group" in docker_check["detail"]
+
+
+def test_gpu_absent(ready_root: Path) -> None:
+    report = run_doctor(ready_root)
+    gpu_check = next(check for check in report["checks"] if check["name"] == "gpu")
+    assert gpu_check["ok"] is True
+    assert "no gpu detected" in gpu_check["detail"].lower()
 
 
 @pytest.mark.parametrize("damage", ["tamper", "empty", "malformed", "encoding"])

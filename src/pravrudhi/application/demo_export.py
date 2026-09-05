@@ -83,6 +83,12 @@ def _replay_run(ledger: Path, night: int, track: str) -> list[dict[str, Any]]:
     return events[:MAX_EVENTS]
 
 
+from pravrudhi.application.objectives import load_all
+from pravrudhi.application.objectives import problems as objective_problems
+from pravrudhi.application.objectives import summary as objective_summary
+from pravrudhi.application.recipes import availability
+
+
 def build_demo(root: Path) -> dict[str, Any]:
     root = Path(root)
     ledger = root / "research" / "ledger.jsonl"
@@ -106,6 +112,11 @@ def build_demo(root: Path) -> dict[str, Any]:
         "external": external_rows(ledger),
         "nights": nights,
         "runs": runs,
+        "objectives": {
+            "objectives": [objective_summary(root, o) for o in load_all(root)],
+            "problems": [{"file": f, "reason": r} for f, r in objective_problems(root)],
+        },
+        "recipes": availability(),
         "featured_run": {
             "id": f"n{featured['night']}-{featured['track']}" if featured else "",
             "night": featured["night"] if featured else 0,

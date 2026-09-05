@@ -3,8 +3,17 @@
 // Every function here can fail — there may be no engine running, or an endpoint may not exist yet on an
 // older engine build. Callers are expected to handle rejection; nothing here retries or hides a failure.
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, "") || "http://localhost:8008";
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+
+function detectBase(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE?.replace(/\/+$/, "");
+  if (configured) return configured;
+  if (typeof window !== "undefined" && LOOPBACK.has(window.location.hostname)) return "";
+  return "http://localhost:8008";
+}
+
+// Resolve at request time so static prerendering cannot freeze the browser's base.
+export { detectBase as apiBase };
 
 // Whether this page is a recording rather than a live engine.
 //
@@ -16,8 +25,7 @@ function detectDemo(): boolean {
   if (process.env.NEXT_PUBLIC_DEMO === "1") return true;
   if (typeof window === "undefined") return false;
   if (process.env.NEXT_PUBLIC_API_BASE) return false;
-  const host = window.location.hostname;
-  return !(host === "localhost" || host === "127.0.0.1" || host === "[::1]" || host === "::1");
+  return !LOOPBACK.has(window.location.hostname);
 }
 
 export const IS_DEMO = detectDemo();
@@ -33,7 +41,7 @@ export class ApiError extends Error {
 }
 
 async function getJSON<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
+  const res = await fetch(`${detectBase()}${path}`, { cache: "no-store" });
   if (!res.ok) throw new ApiError(res.status, path);
   return (await res.json()) as T;
 }
@@ -47,7 +55,7 @@ let cachedToken: string | null = null;
 export async function localToken(): Promise<string | null> {
   if (cachedToken !== null) return cachedToken;
   try {
-    const res = await fetch(`${API_BASE}/app-token`, { cache: "no-store" });
+    const res = await fetch(`${detectBase()}/api/app-token`, { cache: "no-store" });
     if (!res.ok) return null;
     cachedToken = ((await res.json()) as { token: string }).token;
     return cachedToken;
@@ -58,7 +66,7 @@ export async function localToken(): Promise<string | null> {
 
 async function postJSON<T>(path: string, body: unknown): Promise<T> {
   const token = await localToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${detectBase()}${path}`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -207,46 +215,46 @@ export async function health(): Promise<HealthResponse> {
     const d = await (await import("./demo")).demo();
     return { ok: true, version: d.engine.version, kernel: d.engine.version, ledger: true };
   }
-  return getJSON<HealthResponse>("/health");
+  return getJSON<HealthResponse>("/api/health");
 }
 
 export async function status(): Promise<StatusResponse> {
   if (IS_DEMO) return (await (await import("./demo")).demo()).status;
-  return getJSON<StatusResponse>("/status");
+  return getJSON<StatusResponse>("/api/status");
 }
 
 export async function candidates(): Promise<Candidate[]> {
   if (IS_DEMO) return [];
-  return getJSON<Candidate[]>("/candidates");
+  return getJSON<Candidate[]>("/api/candidates");
 }
 
 export async function nights(): Promise<NightSummary[]> {
   if (IS_DEMO) return (await (await import("./demo")).demo()).nights;
-  return getJSON<NightSummary[]>("/nights");
+  return getJSON<NightSummary[]>("/api/nights");
 }
 
 export async function hosts(): Promise<HostsResponse> {
   if (IS_DEMO) return (await import("./demo")).demoHosts();
-  return getJSON<HostsResponse>("/hosts");
+  return getJSON<HostsResponse>("/api/hosts");
 }
 
 export async function agents(): Promise<AgentStatus[]> {
   if (IS_DEMO) return (await import("./demo")).demoAgents();
-  return getJSON<AgentStatus[]>("/agents");
+  return getJSON<AgentStatus[]>("/api/agents");
 }
 
 export async function external(): Promise<ExternalRow[]> {
   if (IS_DEMO) return (await (await import("./demo")).demo()).external;
-  return getJSON<ExternalRow[]>("/external");
+  return getJSON<ExternalRow[]>("/api/external");
 }
 
 export async function startRun(req: RunRequest): Promise<RunHandle> {
-  if (IS_DEMO) throw new ApiError(501, "/runs");
-  return postJSON<RunHandle>("/runs", req);
+  if (IS_DEMO) throw new ApiError(501, "/api/runs");
+  return postJSON<RunHandle>("/api/runs", req);
 }
 
 export async function stopRun(runId: string): Promise<RunHandle> {
-  return postJSON<RunHandle>(`/runs/${encodeURIComponent(runId)}/stop`, {});
+  return postJSON<RunHandle>(`/api/runs/${encodeURIComponent(runId)}/stop`, {});
 }
 
 // Everything a page needs to show a run as it happens, or what the loop produced. Added centrally so that pages
@@ -293,16 +301,16 @@ export interface PromotedModel {
 
 export async function runs(): Promise<RunHandle[]> {
   if (IS_DEMO) return (await (await import("./demo")).demo()).runs;
-  return getJSON<RunHandle[]>("/runs");
+  return getJSON<RunHandle[]>("/api/runs");
 }
 
 export async function run(runId: string): Promise<RunDetail> {
-  return getJSON<RunDetail>(`/runs/${encodeURIComponent(runId)}`);
+  return getJSON<RunDetail>(`/api/runs/${encodeURIComponent(runId)}`);
 }
 
 export async function models(): Promise<PromotedModel[]> {
   if (IS_DEMO) return (await (await import("./demo")).demo()).models;
-  return getJSON<PromotedModel[]>("/models");
+  return getJSON<PromotedModel[]>("/api/models");
 }
 
 /**
@@ -315,7 +323,7 @@ export function streamRun(
   onEvent: (event: RunEvent) => void,
   onError?: (error: Event) => void,
 ): () => void {
-  const source = new EventSource(`${API_BASE}/runs/${encodeURIComponent(runId)}/events`);
+  const source = new EventSource(`${detectBase()}/api/runs/${encodeURIComponent(runId)}/events`);
   source.onmessage = (message) => {
     try {
       onEvent(JSON.parse(message.data) as RunEvent);
@@ -328,4 +336,108 @@ export function streamRun(
     source.close();
   };
   return () => source.close();
+}
+
+// ---------------------------------------------------------------------------
+// Objectives: what the user is trying to achieve, and whether it is happening.
+
+export interface Measurement {
+  value: number;
+  stderr: number;
+  n: number;
+  model: string;
+  night: number;
+  seq: number;
+  sha256: string;
+}
+
+export type ProgressState = "unmeasured" | "baseline_only" | "measured";
+
+export interface BenchmarkProgress {
+  benchmark: string;
+  state: ProgressState;
+  reason: string;
+  baseline: Measurement | null;
+  latest: Measurement | null;
+  delta: number | null;
+  delta_lo: number | null;
+  delta_hi: number | null;
+  target_delta: number | null;
+  met: boolean | null;
+  significant: boolean;
+}
+
+export interface BenchmarkSpec {
+  id: string;
+  tool: string;
+  metric: string;
+  direction: string;
+}
+
+export interface Objective {
+  id: string;
+  intent: string;
+  track: string;
+  domain: string;
+  benchmarks: BenchmarkSpec[];
+  recipes: string[];
+  target_delta: number | null;
+  created: string;
+  notes: string;
+  progress: BenchmarkProgress[];
+}
+
+export interface Recipe {
+  id: string;
+  capability: string;
+  title: string;
+  skill: string;
+  summary: string;
+  source: string;
+  available: boolean;
+}
+
+export interface ObjectiveDetail extends Objective {
+  recipe_detail: { available: Recipe[]; absent: Recipe[]; unknown: string[] };
+}
+
+export interface ObjectivesResponse {
+  objectives: Objective[];
+  problems: { file: string; reason: string }[];
+}
+
+export async function objectives(): Promise<ObjectivesResponse> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).objectives ?? { objectives: [], problems: [] };
+  return getJSON<ObjectivesResponse>("/api/objectives");
+}
+
+export async function objective(id: string): Promise<ObjectiveDetail> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    const found = (d.objectives?.objectives ?? []).find((o) => o.id === id);
+    if (!found) throw new ApiError(404, `/api/objectives/${id}`);
+    return { ...found, recipe_detail: { available: [], absent: [], unknown: found.recipes } };
+  }
+  return getJSON<ObjectiveDetail>(`/api/objectives/${encodeURIComponent(id)}`);
+}
+
+export async function recipeLibrary(): Promise<Recipe[]> {
+  if (IS_DEMO) return (await (await import("./demo")).demo()).recipes ?? [];
+  return (await getJSON<{ recipes: Recipe[] }>("/api/recipes")).recipes;
+}
+
+export interface ObjectiveInput {
+  id: string;
+  intent: string;
+  track: string;
+  domain: string;
+  benchmarks: { id: string; tool: string; metric: string; direction: string }[];
+  recipes: string[];
+  target_delta: number | null;
+  notes: string;
+}
+
+export async function postObjective(body: ObjectiveInput): Promise<Objective> {
+  if (IS_DEMO) throw new ApiError(501, "/api/objectives");
+  return postJSON<Objective>("/api/objectives", body);
 }

@@ -23,7 +23,7 @@ def client(tmp_root: Path) -> Iterator[TestClient]:
         yield client
 
 
-@pytest.mark.parametrize("endpoint", ["/doctor", "/hosts", "/agents", "/external", "/nights", "/h1/lora/1-2-3"])
+@pytest.mark.parametrize("endpoint", ["/api/doctor", "/api/hosts", "/api/agents", "/api/external", "/api/nights", "/api/h1/lora/1-2-3"])
 def test_console_endpoints(client: TestClient, endpoint: str) -> None:
     response = client.get(endpoint)
     assert response.status_code == 200
@@ -33,19 +33,19 @@ def test_console_endpoints(client: TestClient, endpoint: str) -> None:
 
 @pytest.mark.parametrize("nights", ["bad", "1-two", "1--2", "-1", "1-", "1.5", "1%202"])
 def test_h1_malformed_nights(client: TestClient, nights: str) -> None:
-    assert client.get(f"/h1/lora/{nights}").status_code == 400
+    assert client.get(f"/api/h1/lora/{nights}").status_code == 400
 
 
 def test_fresh_nights(client: TestClient) -> None:
-    assert client.get("/nights").json() == []
+    assert client.get("/api/nights").json() == []
 
 
 def test_local_host(client: TestClient) -> None:
-    assert any(row["host"]["name"] == "local" for row in client.get("/hosts").json()["hosts"])
+    assert any(row["host"]["name"] == "local" for row in client.get("/api/hosts").json()["hosts"])
 
 
 def test_h1_markdown(client: TestClient, tmp_root: Path) -> None:
-    assert client.get("/h1/harness/2-4").json() == {
+    assert client.get("/api/h1/harness/2-4").json() == {
         "markdown": render_h1(tmp_root / "research" / "ledger.jsonl", (2, 4), "harness")
     }
 
@@ -62,7 +62,7 @@ def test_nights_pair_latest_start_by_night_and_track(client: TestClient, tmp_roo
         (1, {"kind": "night_start", "track": "lora", "selection_policy": "future"}),
     ]:
         writer.append("audit", "kernel", {"severity": "info", **payload}, epoch=0, night=night)
-    assert client.get("/nights").json() == [
+    assert client.get("/api/nights").json() == [
         {"night": 1, "track": "lora", "selection_policy": "efe", "spent_gpu_h": 1.5,
          "outcomes": {"kept": 1}, "incumbent": "c-1"},
         {"night": 1, "track": "harness", "selection_policy": "greedy", "spent_gpu_h": 2,
@@ -81,6 +81,6 @@ def test_cors(tmp_root: Path, monkeypatch: pytest.MonkeyPatch, origins: str | No
     else:
         monkeypatch.setenv("PRAVRUDHI_ALLOWED_ORIGINS", origins)
     with TestClient(create_app(tmp_root), base_url="http://127.0.0.1:8008") as client:
-        response = client.get("/nights", headers={"Origin": "https://console.example"})
+        response = client.get("/api/nights", headers={"Origin": "https://console.example"})
     assert response.status_code == 200
     assert response.headers.get("access-control-allow-origin") == expected

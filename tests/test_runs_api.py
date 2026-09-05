@@ -1,11 +1,60 @@
 """Runs: a night started from the app is a supervised subprocess whose log becomes live events."""
+import subprocess
+import sys
 import time
+from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from pravrudhi.api.runs import RunManager, RunRequest, parse_line
 from pravrudhi.application.app_serve import build_app
 from pravrudhi.application.init import init_project
+
+
+@pytest.mark.parametrize("target, subcommand", [("model", "night"), ("harness", "harness-night")])
+@pytest.mark.parametrize("override", [None, ""])
+def test_command_uses_current_interpreter(tmp_path, monkeypatch, target, subcommand, override):
+    monkeypatch.delenv("PRAVRUDHI_CLI", raising=False)
+    if override is not None:
+        monkeypatch.setenv("PRAVRUDHI_CLI", override)
+    cmd = RunManager(tmp_path)._command(RunRequest(target=target), 1)
+    assert cmd[:4] == [sys.executable, "-m", "pravrudhi", subcommand]
+
+
+@pytest.mark.parametrize("target, subcommand", [("model", "night"), ("harness", "harness-night")])
+def test_command_honours_cli_override(tmp_path, monkeypatch, target, subcommand):
+    monkeypatch.setenv("PRAVRUDHI_CLI", '"/opt/pinned engine/bin/python" -m pravrudhi')
+    cmd = RunManager(tmp_path)._command(RunRequest(target=target), 1)
+    assert cmd[:4] == ["/opt/pinned engine/bin/python", "-m", "pravrudhi", subcommand]
+
+
+@pytest.mark.parametrize("relative_root", [False, True])
+def test_command_passes_absolute_train_parquet_when_present(tmp_path, monkeypatch, relative_root):
+    train = tmp_path / ".pravrudhi" / "data" / "gsm8k-train.parquet"
+    train.parent.mkdir(parents=True)
+    train.touch()
+    monkeypatch.chdir(tmp_path)
+    root = Path(".") if relative_root else tmp_path
+    cmd = RunManager(root)._command(RunRequest(target="model"), 1)
+    value = cmd[cmd.index("--train-parquet") + 1]
+    assert Path(value).is_absolute()
+    assert Path(value) == train
+    assert "--train-parquet" not in RunManager(root)._command(RunRequest(target="harness"), 1)
+
+
+def test_command_omits_missing_train_parquet(tmp_path):
+    cmd = RunManager(tmp_path)._command(RunRequest(target="model"), 1)
+    assert "--train-parquet" not in cmd
+
+
+def test_module_entrypoint_prints_version(tmp_path):
+    result = subprocess.run(
+        [sys.executable, "-m", "pravrudhi", "--version"],
+        cwd=tmp_path, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("pravrudhi ")
 
 
 def test_parse_recognises_the_engine_lines_and_keeps_the_rest():
@@ -61,11 +110,11 @@ def test_second_concurrent_run_is_refused_and_stop_works(tmp_path, monkeypatch):
 def test_app_serves_api_and_runs_router_on_one_app(tmp_path):
     init_project(tmp_path)
     client = TestClient(build_app(tmp_path), base_url="http://127.0.0.1:8008")
-    assert client.get("/health").status_code == 200
-    assert client.get("/runs").json() == []
-    assert client.get("/models").json() == []
-    assert client.get("/runs/nope").status_code == 404
+    assert client.get("/api/health").status_code == 200
+    assert client.get("/api/runs").json() == []
+    assert client.get("/api/models").json() == []
+    assert client.get("/api/runs/nope").status_code == 404
     from pravrudhi.api.localguard import TOKEN_HEADER, app_token
 
-    bad = client.post("/runs", json={"target": "rocket"}, headers={TOKEN_HEADER: app_token(tmp_path)})
+    bad = client.post("/api/runs", json={"target": "rocket"}, headers={TOKEN_HEADER: app_token(tmp_path)})
     assert bad.status_code == 422, "the token gets you in; the schema still judges the request"

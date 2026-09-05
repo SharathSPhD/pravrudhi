@@ -7,6 +7,8 @@
 
 import type {
   AgentStatus,
+  ObjectivesResponse,
+  Recipe,
   Candidate,
   ExternalRow,
   HostsResponse,
@@ -33,6 +35,9 @@ export interface DemoBundle {
   nights: NightSummary[];
   runs: DemoRun[];
   featured_run: { id: string; night: number; track: string; events: RunEvent[] };
+  // Added after the first recordings, so an older snapshot may not carry them.
+  objectives?: ObjectivesResponse;
+  recipes?: Recipe[];
 }
 
 export { IS_DEMO as DEMO } from "./api";

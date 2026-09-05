@@ -56,6 +56,13 @@ pravrudhi-kernel = { workspace = true }
 packages = ["src/pravrudhi"]
 include = ["src/pravrudhi/assets/**"]
 
+# The built web interface lives outside src/, so neither `packages` nor `include` reaches it. Without this mapping
+# an installed wheel serves the API with no interface at all, which is the silent degradation `frontend_dir()`
+# falls back from. The hook below adds the mapping only when the export exists, because a clean checkout that has
+# not run `npm run build` must still be buildable.
+[tool.hatch.build.targets.wheel.hooks.custom]
+path = "hatch_build.py"
+
 [tool.pytest.ini_options]
 testpaths = ["tests", "pravrudhi_kernel/tests"]
 addopts = "-p no:cacheprovider"
