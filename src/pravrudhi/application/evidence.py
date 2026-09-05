@@ -6,15 +6,17 @@ Deterministic: same ledger, same bytes.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 from pravrudhi_kernel.ledger.replay import withdrawn_observations
 from pravrudhi_kernel.ledger.verify import iter_events
+from pravrudhi_kernel.schema import LedgerEvent
 from pravrudhi_kernel.stats import wilson_ci
 
 
-def track_events(ledger: Path, track: str = "lora"):
+def track_events(ledger: Path, track: str = "lora") -> Iterator[LedgerEvent]:
     """Ledger events of one track. A harness night block runs from a night_start with track=harness to its night_end;
     rows on the H3.prompt surface and audit rows tagged track H/harness belong to the harness track, rows on
     W3.adapter to the LoRA track, and untagged rows to the block they sit in (LoRA outside any harness block)."""
@@ -41,7 +43,7 @@ def track_events(ledger: Path, track: str = "lora"):
             yield ev
 
 
-def lora_events(ledger: Path):
+def lora_events(ledger: Path) -> Iterator[LedgerEvent]:
     return track_events(ledger, "lora")
 
 
@@ -116,12 +118,15 @@ def render_noise_floor(ledger: Path, variance: Path | None, study: int = 0) -> s
             "",
             f"Runs: {len(rows)}; items scored: {n_tot}; pooled pass rate {k / n_tot:.4f}, Wilson 95% [{lo:.4f}, {hi:.4f}].",
         ]
-    if variance is not None:
-        matched = _variance_for(variance.parent, model, bench) if model else None
-        variance = matched or variance
+    # The variance line must describe *this* study. Matching on the model alone was not enough: after a later study
+    # re-pointed variance.json at a different pool, a document for an earlier pool silently printed the new pool's
+    # sigma, and stopped reproducing. A file is quoted only when both its model and its bench match this study, and
+    # when none does the line is omitted rather than approximated.
+    if variance is not None and model:
+        variance = _variance_for(variance.parent, model, bench)
     if variance and variance.exists():
         v = json.loads(variance.read_text())
-        if not model or v.get("model") == model:
+        if not model or (v.get("model") == model and v.get("bench") == bench):
             lines += [
                 "",
                 f"variance.json: sigma_seed={v['sigma_seed']:.4f} sigma_rot={v['sigma_rot']:.4f} "

@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
+from typing import Any
 
 from pravrudhi.agents.base import AgentRun, Diff, GitWorktreeMixin, git
 
@@ -38,7 +39,7 @@ def _orca(args: list[str], timeout_s: int = 120) -> tuple[int, str, str]:
     return p.returncode, p.stdout, p.stderr
 
 
-def _envelope(text: str) -> dict | None:
+def _envelope(text: str) -> dict[str, Any] | None:
     """Orca replies with {id, ok, result, _meta}; return `result` when the call succeeded."""
     try:
         v = json.loads(text)
@@ -52,7 +53,7 @@ def _envelope(text: str) -> dict | None:
     return r if isinstance(r, dict) else v
 
 
-def _dig(d: dict | None, *path: str):
+def _dig(d: dict[str, Any] | None, *path: str) -> Any:
     cur: object = d or {}
     for key in path:
         if not isinstance(cur, dict):
@@ -108,7 +109,8 @@ class OrcaWorkspace:
         if not handle:
             return False, str(info.get("_error") or (err or out)[:400]), ""
         _orca(
-            ["terminal", "wait", "--terminal", str(handle), "--for", "exit", "--timeout-ms", str(int(timeout_s * 1000)), "--json"],
+            ["terminal", "wait", "--terminal", str(handle), "--for", "exit", "--timeout-ms", str(int(timeout_s * 1000)),
+                "--json"],
             timeout_s=timeout_s + 120,
         )
         rcode, rout, rerr = _orca(["terminal", "read", "--terminal", str(handle), "--limit", "4000", "--json"], timeout_s=180)

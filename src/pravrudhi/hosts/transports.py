@@ -86,5 +86,9 @@ class OrcaTransport:
             return 124, "", f"orca timeout after {timeout_s}s"
 
 
-def transport_for(spec: HostSpec):
-    return {"local": LocalTransport, "ssh": SshTransport, "orca": OrcaTransport}[spec.transport](spec)
+def transport_for(spec: HostSpec) -> LocalTransport | SshTransport | OrcaTransport:
+    if spec.transport == "local":
+        return LocalTransport(spec)
+    if spec.transport == "ssh":
+        return SshTransport(spec)
+    return OrcaTransport(spec)

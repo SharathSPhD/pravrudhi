@@ -82,7 +82,9 @@ if srv:
 out["agents"] = [a for a in ("claude", "codex", "opencode", "orca-ide") if shutil.which(a)]
 home = os.path.expanduser("~")
 models = []
-for pat in ("%s/.cache/huggingface/hub/models--*GGUF*" % home, "%s/models/*.gguf" % home, "%s/.cache/lm-studio/models/**/*.gguf" % home):
+patterns = ("%s/.cache/huggingface/hub/models--*GGUF*" % home, "%s/models/*.gguf" % home,
+            "%s/.cache/lm-studio/models/**/*.gguf" % home)
+for pat in patterns:
     for p in glob.glob(pat, recursive=True)[:40]:
         models.append(os.path.basename(p))
 out["local_models"] = sorted(set(models))[:40]

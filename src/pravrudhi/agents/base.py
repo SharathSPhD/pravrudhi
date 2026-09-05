@@ -19,9 +19,10 @@ from __future__ import annotations
 
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 PROTECTED = (
     "pravrudhi_kernel/",
@@ -121,8 +122,8 @@ class GitWorktreeMixin:
         git(["worktree", "remove", "--force", str(workspace)], self.root)
 
 
-def timed(fn):
-    def wrapper(*a, **k):
+def timed(fn: Callable[..., Any]) -> Callable[..., tuple[Any, float]]:
+    def wrapper(*a: Any, **k: Any) -> tuple[Any, float]:
         t0 = time.monotonic()
         out = fn(*a, **k)
         return out, time.monotonic() - t0

@@ -216,6 +216,16 @@ def noise_floor(
         "labels": "model-measured; screen tier; single model; unmodified trainee (A/A); isolation container",
     }
     dest = root / "research" / "prereg" / "variance.json"
+    # A study on a new pool or trainee must not erase the one it replaces. Every noise floor is the parameter that
+    # a night's boundary was set from, so an overwritten file makes that night's evidence unreproducible: this was
+    # found when an evidence document for an earlier pool silently began quoting a later pool's sigma (ADR-0025).
+    if dest.exists():
+        prev = json.loads(dest.read_text())
+        if (prev.get("model"), prev.get("bench")) != (var["model"], var["bench"]):
+            slug = f"{prev.get('bench', 'unknown')}_{str(prev.get('model', 'unknown')).split('/')[-1]}".lower()
+            archive = dest.with_name(f"variance_archive_{slug}.json")
+            if not archive.exists():
+                archive.write_text(json.dumps(prev, indent=2, sort_keys=True) + "\n")
     dest.write_text(json.dumps(var, indent=2, sort_keys=True) + "\n")
     w.append(
         "audit",

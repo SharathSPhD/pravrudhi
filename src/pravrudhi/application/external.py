@@ -114,7 +114,7 @@ def render_external(ledger: Path) -> str:
         "tooling outside the kernel (tier: external); the result file is admitted by SHA-256. The kernel's own "
         "selection record is in the night documents.",
         "",
-        "| seq | track | condition | model | scorer | metric | value | ±  | n | file sha256 |",
+        "| seq | track | condition | model | scorer | metric | value | ±  | n | file sha256 |",  # noqa: E501
         "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
@@ -137,9 +137,18 @@ def render_external(ledger: Path) -> str:
             if cond == "base":
                 continue
             _, v, e, n = _headline(r)
-            lines.append(f"- {track} {name}: {cond} − base = {v - bv:+.4f} (base {bv:.4f}±{be:.4f}, {cond} {v:.4f}±{e:.4f}, n={n})")
+            lines.append(
+                f"- {track} {name}: {cond} − base = {v - bv:+.4f} "
+                f"(base {bv:.4f}±{be:.4f}, {cond} {v:.4f}±{e:.4f}, n={n})"
+            )
     if len(lines) and lines[-1] == "":
         lines.append("- (no paired pair yet)")
-    lines += ["", "## Tensions", "", "External rows are not kernel-executed: they carry tier `external`, not pratyakṣa in the kernel sense. "
-              "Their standard errors are the scorer's own (lm-eval) or a Wilson half-width (EvalPlus), not the loop's σ_seed.", ""]
+    lines += [
+        "",
+        "## Tensions",
+        "",
+        "External rows are not kernel-executed: they carry tier `external`, not pratyakṣa in the kernel sense. "
+        "Their standard errors are the scorer's own (lm-eval) or a Wilson half-width (EvalPlus), not the loop's σ_seed.",
+        "",
+    ]
     return "\n".join(lines)

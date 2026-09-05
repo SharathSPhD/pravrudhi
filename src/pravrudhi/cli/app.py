@@ -22,6 +22,8 @@ PROPOSER_ENDPOINT_OPT = typer.Option(
     "", "--proposer-endpoint",
     help="OpenAI-compatible endpoint to borrow for the proposer (e.g. a fleet host serving llama.cpp), leaving this GPU free",
 )
+EXT_RESULT_ARG = typer.Argument(..., help="lm-eval results.json or EvalPlus *_eval_results.json")
+PLACE_JOB_ARG = typer.Argument("train", help="train | serve | agent | any")
 POLICY_OPT = typer.Option(
     None, "--policy", help="selection arm for H1: efe (default, from prereg) | greedy | thompson | random"
 )
@@ -405,7 +407,7 @@ def main() -> None:
 
 @app.command("ext-record")
 def ext_record_cmd(
-    path: Path = typer.Argument(..., help="lm-eval results.json or EvalPlus *_eval_results.json"),
+    path: Path = EXT_RESULT_ARG,
     tool: str = typer.Option(..., "--tool", help="lm-eval | evalplus"),
     track: str = typer.Option(..., "--track", help="M (model) | H (harness)"),
     condition: str = typer.Option(..., "--condition", help="base | adapter:c-0045 | harness:c-0012"),
@@ -479,7 +481,7 @@ def hosts_add_cmd(
 
 @hosts_app.command("place")
 def hosts_place_cmd(
-    job: str = typer.Argument("train", help="train | serve | agent | any"),
+    job: str = PLACE_JOB_ARG,
     min_vram_gb: float = typer.Option(0.0, "--min-vram-gb"),
     needs_agent: str = typer.Option("", "--needs-agent"),
     root: Path = ROOT_OPT,

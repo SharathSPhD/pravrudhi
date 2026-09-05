@@ -69,7 +69,12 @@ def overlapping(tasks: list[TaskSpec]) -> list[tuple[str, str]]:
     bad: list[tuple[str, str]] = []
     for i, a in enumerate(tasks):
         for b in tasks[i + 1 :]:
-            if any(fnmatch.fnmatch(pa, pb) or fnmatch.fnmatch(pb, pa) or pa == pb for pa in a.allowed_paths for pb in b.allowed_paths):
+            collide = any(
+                fnmatch.fnmatch(pa, pb) or fnmatch.fnmatch(pb, pa) or pa == pb
+                for pa in a.allowed_paths
+                for pb in b.allowed_paths
+            )
+            if collide:
                 bad.append((a.task_id, b.task_id))
     return bad
 

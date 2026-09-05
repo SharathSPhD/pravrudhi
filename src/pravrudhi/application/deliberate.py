@@ -230,7 +230,9 @@ def deliberate(
         epistemic_ids, budget_effective, spent_planned = batch.epistemic_ids, batch.budget_effective, batch.spent_gpu_h
     else:
         order = baseline_order
-        epistemic_ids, budget_effective, spent_planned = set(), budget_gpu_h, sum(cands[c].cost_est_gpu_h for c in order)
+        epistemic_ids = []
+        budget_effective = budget_gpu_h
+        spent_planned = sum(cands[c].cost_est_gpu_h for c in order)
     for i, cid in enumerate(order):
         t = terms[cid]
         w.append(

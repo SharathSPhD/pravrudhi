@@ -375,10 +375,9 @@ def run_harness_night(
     policy = str(selection_policy or cfg.get("selection_policy", "efe"))
     ledger = root / "research" / "ledger.jsonl"
     w = LedgerWriter.open(ledger, "0.1.0")
-    from pravrudhi_kernel.ledger.verify import iter_events
-
     # incumbent = latest promoted harness on this surface whose promotion was not withdrawn, else baseline
     from pravrudhi_kernel.ledger.replay import withdrawn_observations
+    from pravrudhi_kernel.ledger.verify import iter_events
 
     withdrawn = withdrawn_observations(ledger)
     for ev in iter_events(ledger):

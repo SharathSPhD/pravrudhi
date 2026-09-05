@@ -12,9 +12,10 @@ before.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from pravrudhi.models.llama_server import LlamaServer
 from pravrudhi.models.openai_compat import ChatClient
