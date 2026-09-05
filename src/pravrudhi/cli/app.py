@@ -519,3 +519,18 @@ def doctor_cmd(
         for c in report["checks"]:
             typer.echo(f"{'ok ' if c['ok'] else 'FAIL'}  {c['name']:12} {c['detail']}")
     raise typer.Exit(code=0 if report["ok"] else 1)
+
+
+@app.command("app")
+def app_cmd(
+    root: Path = ROOT_OPT,
+    port: int = typer.Option(8008, "--port"),
+    host: str = typer.Option("127.0.0.1", "--host", help="bind address; keep it local unless you know why"),
+    no_browser: bool = typer.Option(False, "--no-browser"),
+) -> None:
+    """The Pravrudhi app: the engine's API and the web interface on one local port."""
+    from pravrudhi.application.app_serve import frontend_dir, serve
+
+    if frontend_dir(root) is None:
+        typer.echo("no frontend build at app/frontend/out; serving the API only (build with: cd app/frontend && npm run build)")
+    serve(root, host=host, port=port, open_browser=not no_browser)

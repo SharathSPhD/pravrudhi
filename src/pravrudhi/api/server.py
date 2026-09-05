@@ -12,11 +12,17 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from pravrudhi import KERNEL_VERSION, __version__
+from pravrudhi.agents.registry import survey
+from pravrudhi.application.doctor import run_doctor
+from pravrudhi.application.evidence import render_h1
+from pravrudhi.application.external import external_rows
 from pravrudhi.application.night import inbox_listing
 from pravrudhi.application.status import status
+from pravrudhi.hosts.fleet import fleet_report
 from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.ledger.verify import iter_events
 
@@ -32,7 +38,62 @@ class SignRequest(BaseModel):
 def create_app(root: Path) -> FastAPI:
     root = Path(root)
     app = FastAPI(title="pravrudhi", version=__version__)
+    origins = os.environ.get("PRAVRUDHI_ALLOWED_ORIGINS")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"] if origins is None else [origin.strip() for origin in origins.split(",") if origin.strip()],
+    )
     ledger = root / "research" / "ledger.jsonl"
+
+    @app.get("/doctor")
+    def doctor() -> dict[str, Any]:
+        return run_doctor(root)
+
+    @app.get("/hosts")
+    def hosts() -> dict[str, Any]:
+        return fleet_report(root)
+
+    @app.get("/agents")
+    def agents() -> list[dict[str, Any]]:
+        return [{"name": agent.name, "available": agent.available, "reason": agent.reason} for agent in survey(root)]
+
+    @app.get("/external")
+    def external() -> list[dict[str, Any]]:
+        return external_rows(ledger)
+
+    @app.get("/nights")
+    def nights_ep() -> list[dict[str, Any]]:
+        starts: dict[tuple[int, str], dict[str, Any]] = {}
+        rows: list[dict[str, Any]] = []
+        for event in iter_events(ledger):
+            if event.kind != "audit":
+                continue
+            payload = event.payload
+            track = payload.get("track", "lora")
+            key = (event.night, track)
+            if payload.get("kind") == "night_start":
+                starts[key] = payload
+            elif payload.get("kind") == "night_end":
+                start = starts.get(key, {})
+                rows.append({
+                    "night": event.night,
+                    "track": track,
+                    "selection_policy": start.get("selection_policy"),
+                    "spent_gpu_h": payload.get("spent_gpu_h"),
+                    "outcomes": payload.get("outcomes"),
+                    "incumbent": payload.get("incumbent"),
+                })
+        return rows
+
+    @app.get("/h1/{track}/{nights}")
+    def h1(track: str, nights: str) -> dict[str, str]:
+        if not re.fullmatch(r"[0-9]+(?:-[0-9]+)*", nights):
+            raise HTTPException(400, "nights must be dash-separated non-negative integers")
+        try:
+            parsed_nights = tuple(int(night) for night in nights.split("-"))
+        except ValueError as exc:
+            raise HTTPException(400, "invalid night number") from exc
+        return {"markdown": render_h1(ledger, parsed_nights, track)}
 
     @app.get("/health")
     def health() -> dict[str, Any]:
