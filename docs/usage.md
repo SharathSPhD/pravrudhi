@@ -10,7 +10,11 @@ You may edit anything under `harness/` (prompts, templates), `research/prereg/*.
 
 ## Reading the evidence
 
-`pravrudhi status` summarises the ledger. `pravrudhi inbox` lists promotion packs with badges derived by replay: grey has no observation, amber is under test, green is promoted and not since pruned, red is pruned or audited. `pravrudhi evidence night1` renders a per-candidate account of a night from the ledger alone; `make reproduce` fails if a rendered document differs from the committed one. `pravrudhi serve` exposes the same views over HTTP. Numbers you quote elsewhere should come from these outputs; `make headline-check` flags any measurement-looking number in the README, paper or evidence documents that does not trace to a gate or pre-registration file.
+`pravrudhi status` summarises the ledger. `pravrudhi inbox` lists promotion packs with badges derived by replay: grey has no observation, amber is under test, green is promoted and not since pruned, red is pruned or audited. `pravrudhi evidence night1` renders a per-candidate account of a LoRA night and `pravrudhi evidence hnight1` of a harness night, both from the ledger alone; `make reproduce` fails if a rendered document differs from the committed one. `pravrudhi serve` exposes the same views over HTTP. Numbers you quote elsewhere should come from these outputs; `make headline-check` flags any measurement-looking number in the README, paper or evidence documents that does not trace to a gate or pre-registration file.
+
+## The external tier
+
+The loop's own instrument selects candidates; it does not by itself prove an improvement on a public benchmark. Two wrappers run third-party scorers with the same invocation before and after a loop: `scripts/ext_eval.sh` runs lm-evaluation-harness inside the scorer image (base model, or base plus an exported adapter), and `scripts/ext_humaneval.sh` runs your agent harness on HumanEval+ and scores it with EvalPlus. Their result files enter the ledger by hash with `pravrudhi ext-record` (tier `external`, never pratyakṣa in the kernel sense), and `pravrudhi evidence external` renders the table and the paired differences from those rows alone. Quote external numbers from that document, with the standard errors the scorers report.
 
 ## Sign-off and export
 
