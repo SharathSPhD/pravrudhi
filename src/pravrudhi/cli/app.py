@@ -229,6 +229,15 @@ def evidence_cmd(
 
         text = render_external(root / "research" / "ledger.jsonl")
         dest = root / "docs" / "evidence" / "P1_external.md"
+    elif name.startswith("h1-"):
+        from pravrudhi.application.evidence import render_h1
+
+        spec = name.removeprefix("h1-")
+        trk, _, nn = spec.partition(":")
+        ns = tuple(int(x) for x in (nn or trk).split("-") if x)
+        trk = trk if nn else "lora"
+        text = render_h1(root / "research" / "ledger.jsonl", ns, track=trk)
+        dest = root / "docs" / "evidence" / f"H1_{trk}_{'_'.join(str(n) for n in ns)}.md"
     elif name.startswith("hnight"):
         n = int(name.removeprefix("hnight") or "1")
         text = render_first_night(root / "research" / "ledger.jsonl", n, track="harness")

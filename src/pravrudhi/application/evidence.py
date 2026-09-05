@@ -313,3 +313,99 @@ def render_nights_summary(ledger: Path, nights: tuple[int, ...]) -> str:
         ][-1:],
     }
     return json.dumps(out, indent=2, sort_keys=True) + "\n"
+
+
+def render_h1(ledger: Path, nights: tuple[int, ...], track: str = "lora") -> str:
+    """Compare selection arms on the nights given: the H1 screen.
+
+    CHARTER §2 H1 asks whether the EFE controller reaches Δ* with lower regret per GPU-hour than a greedy ratchet
+    and a lineage Thompson sampler at matched experiment count, with Δ* defined as the 60th percentile of the greedy
+    arm's gain distribution. This renders that comparison from the ledger and nothing else.
+
+    A comparison in which any arm received no paired evaluation is reported as VOID rather than as a result. That is
+    not a formality: the first attempt at this experiment gave one arm a full night and the others none because the
+    sealed pool ran out, and an unguarded renderer would have shown the surviving arm winning.
+    """
+    arms: dict[str, dict[str, Any]] = {}
+    night_arm: dict[int, str] = {}
+    for ev in track_events(ledger, track):
+        if ev.night not in nights:
+            continue
+        p = ev.payload
+        if ev.kind == "audit" and p.get("kind") == "night_start" and p.get("selection_policy"):
+            night_arm[ev.night] = str(p["selection_policy"])
+        arm = night_arm.get(ev.night)
+        if arm is None:
+            continue
+        a = arms.setdefault(
+            arm, {"nights": set(), "gpu_h": 0.0, "deltas": [], "promoted": 0, "pruned": 0, "selected": 0, "proposed": 0}
+        )
+        a["nights"].add(ev.night)
+        if ev.kind == "propose":
+            a["proposed"] += 1
+        elif ev.kind == "select":
+            a["selected"] += 1
+        elif ev.kind == "spend":
+            a["gpu_h"] += float(p.get("gpu_h") or 0.0)
+        elif ev.kind == "observe" and p.get("arm") == "candidate":
+            a["deltas"].append(float(p["observed"]["delta_in"]))
+        elif ev.kind == "promote":
+            a["promoted"] += 1
+        elif ev.kind == "prune":
+            a["pruned"] += 1
+
+    lines = [
+        f"# H1 screen: selection arms on {track} nights {', '.join(str(n) for n in nights)}",
+        "",
+        "Rendered from the ledger alone. Arms differ in selection only: pairing, the sequential boundary, the "
+        "canaries and every row shape are identical across arms.",
+        "",
+    ]
+    starved = sorted(a for a, v in arms.items() if not v["deltas"])
+    missing = [a for a in ("efe", "greedy") if a not in arms]
+    if starved or missing:
+        lines += [
+            "**VOID — this is not a comparison.**",
+            "",
+            f"Arms with no paired evaluation: {', '.join(starved) or 'none'}. "
+            f"Arms absent from these nights: {', '.join(missing) or 'none'}.",
+            "",
+            "An arm that never ran cannot lose. Re-run with a pool that can carry every arm before reading anything "
+            "into the table below.",
+            "",
+        ]
+    lines += [
+        "| arm | nights | proposed | selected | paired evals | mean Δ | best Δ | promoted | pruned | GPU-h | Δ per GPU-h |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for arm in sorted(arms):
+        v = arms[arm]
+        d = v["deltas"]
+        mean = sum(d) / len(d) if d else 0.0
+        best = max(d) if d else 0.0
+        per_h = (best / v["gpu_h"]) if v["gpu_h"] > 0 else 0.0
+        lines.append(
+            f"| {arm} | {','.join(str(n) for n in sorted(v['nights']))} | {v['proposed']} | {v['selected']} | "
+            f"{len(d)} | {mean:+.4f} | {best:+.4f} | {v['promoted']} | {v['pruned']} | {v['gpu_h']:.3f} | {per_h:+.4f} |"
+        )
+    greedy = arms.get("greedy", {}).get("deltas") or []
+    if greedy:
+        ordered = sorted(greedy)
+        idx = min(len(ordered) - 1, int(0.6 * (len(ordered) - 1)))
+        lines += [
+            "",
+            f"Δ\\* (60th percentile of the greedy arm's gain distribution, CHARTER §2 H1, n={len(ordered)}): "
+            f"{ordered[idx]:+.4f}.",
+        ]
+    else:
+        lines += ["", "Δ\\* is not computable: the greedy arm has no gain distribution on these nights."]
+    lines += [
+        "",
+        "## Tensions",
+        "",
+        "Best Δ per GPU-hour is a screen-tier proxy, not the charter's regret-per-GPU-hour to Δ\\*, which needs the "
+        "arms run to a common target. Nights differ in their candidate sets because the proposer is re-run per night, "
+        "so this is a randomised comparison across nights rather than a paired one.",
+        "",
+    ]
+    return "\n".join(lines)
