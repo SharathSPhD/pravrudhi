@@ -28,11 +28,15 @@ class DecorativeAbort(RuntimeError):
     pass
 
 
-def live_candidates(state_candidates: dict[str, Any], meta: dict[str, dict[str, Any]], incumbent_id: str) -> list[str]:
+def live_candidates(
+    state_candidates: dict[str, Any], meta: dict[str, dict[str, Any]], incumbent_id: str, target_model: str | None = None
+) -> list[str]:
     out = []
     for cid in meta:
         if cid == incumbent_id or cid.startswith("c-0000"):
             continue
+        if target_model and (meta[cid].get("bucket") or {}).get("target_model") not in (None, target_model):
+            continue  # a candidate proposed for another trainee is not live here (its adapter cannot load)
         c = state_candidates.get(cid)
         if c is None or c.pruned or c.promoted or c.audit_high or c.skipped:
             continue
@@ -56,6 +60,8 @@ def deliberate(
     log: Any = print,
 ) -> list[str]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "controller.yaml").read_text())
+    night_yaml = root / "research" / "prereg" / "lora_night.yaml"
+    cfg_night = yaml.safe_load(night_yaml.read_text()) if night_yaml.exists() else None
     sigma2_eval = max(sigma_seed, 1e-4) ** 2
     ledger = root / "research" / "ledger.jsonl"
     citta, meta = build_citta(
@@ -65,7 +71,7 @@ def deliberate(
         tau0_2=float(cfg["tau0_2"]),
     )
     st = replay(ledger)
-    pool = live_candidates(st.candidates, meta, incumbent_id)
+    pool = live_candidates(st.candidates, meta, incumbent_id, target_model=str(cfg_night.get("model")) if cfg_night else None)
     if not pool:
         log("deliberate: no live candidates")
         return []
