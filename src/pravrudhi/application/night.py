@@ -60,8 +60,10 @@ def run_night(
         {
             "kind": "night_start",
             "severity": "info",
+            "track": "lora",
             "budget_gpu_h": budget,
             "k": k,
+            "incumbent": ctx.incumbent_id,
             "prereg_sha256": {
                 "lora_night": _sha(root / "research" / "prereg" / "lora_night.yaml"),
                 "variance": _sha(root / "research" / "prereg" / "variance.json"),

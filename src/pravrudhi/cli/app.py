@@ -210,6 +210,10 @@ def evidence_cmd(
     if name == "noise_floor":
         text = render_noise_floor(root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json")
         dest = root / "docs" / "evidence" / "L3_noise_floor.md"
+    elif name.startswith("noise_floor"):
+        idx = int(name.removeprefix("noise_floor"))
+        text = render_noise_floor(root / "research" / "ledger.jsonl", root / "research" / "prereg" / "variance.json", idx)
+        dest = root / "docs" / "evidence" / f"P1_noise_floor_{idx}.md"
     elif name == "summary":
         text = render_nights_summary(root / "research" / "ledger.jsonl", (1, 2))
         dest = root / "docs" / "evidence" / "L4_summary.json"

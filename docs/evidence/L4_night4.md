@@ -11,9 +11,9 @@
 | c-0042 | grpo_verifiable | grpo | yes | +0.025, -0.045 | prune |  | pruned | asiddha |  |
 | c-0043 | sft_rejection | template | yes | +0.000, -0.065 | prune |  | pruned | asiddha |  |
 | c-0044 | grpo_verifiable | grpo | yes | -0.025 | prune |  | pruned | asiddha |  |
-| c-0045 | sft_rejection | data_mixture | yes | +0.090 | confirm | pass | promoted |  |  |
+| c-0045 | sft_rejection | data_mixture | yes | +0.090, +0.040 | confirm | pass | observed |  |  |
 
-Candidates proposed: 8; selected: 8; outcomes: promoted=1, pruned=7; GPU-hours charged (spend rows): 0.91.
+Candidates proposed: 8; selected: 8; outcomes: observed=1, pruned=7; GPU-hours charged (spend rows): 0.97.
 
 Audits:
 

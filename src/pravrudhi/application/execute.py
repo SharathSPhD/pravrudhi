@@ -59,8 +59,7 @@ class NightContext:
             sigma_mode="adaptive" if str(b["sigma_mode"]) == "adaptive" else "fixed",
             n0=int(b["n0"]),
         )
-        self.incumbent_id = "c-0000"
-        self.incumbent_adapter: Path | None = None
+        self.incumbent_id, self.incumbent_adapter = inherit_incumbent(root, state, str(cfg["model"]), log)
         self.kept_samples: dict[str, list[dict[str, str]]] = {}  # keyed by teacher
         self.anchor_nll_incumbent: float | None = None
         self.spent_gpu_h = 0.0
@@ -240,6 +239,35 @@ def _select_samples(kept: list[dict[str, str]], recipe: LoraRecipe, seed: int) -
             chosen.extend(group)
     rng.shuffle(chosen)
     return chosen[: recipe.sft.n_kept]
+
+
+def inherit_incumbent(root: Path, state: KernelState, model: str, log: Any = print) -> tuple[str, Path | None]:
+    """The night's incumbent is the latest promoted adapter for this trainee (recursion), else the base model.
+
+    Read from the ledger alone: the last `promote` row on W3.adapter whose candidate was proposed for `model`, with the
+    adapter located through the candidate's training spend row. A promoted candidate whose adapter directory is gone
+    cannot be the incumbent; that case is logged and the base model is used."""
+    from pravrudhi_kernel.ledger.verify import iter_events
+
+    target: dict[str, str] = {}
+    run_ids: dict[str, str] = {}
+    last: str | None = None
+    for ev in iter_events(root / "research" / "ledger.jsonl"):
+        cid = ev.candidate_id
+        if ev.kind == "propose" and cid and ev.bucket is not None:
+            target[cid] = ev.bucket.target_model
+        elif ev.kind == "spend" and cid and ev.payload.get("phase") == "train" and ev.payload.get("steps"):
+            run_ids[cid] = str(ev.payload["run_id"])
+        elif ev.kind == "promote" and cid and ev.surface == "W3.adapter" and target.get(cid) == model:
+            last = cid
+    if last is None:
+        return "c-0000", None
+    adapter = Path(state.jobs_dir) / run_ids.get(last, "") / "out" / "adapter"
+    if not (adapter / "adapter_config.json").exists():
+        log(f"incumbent {last} was promoted but its adapter is missing at {adapter}; using the base model")
+        return "c-0000", None
+    log(f"incumbent inherited from the ledger: {last} ({adapter.parent.parent.name})")
+    return last, adapter
 
 
 def find_adapter(ctx: NightContext, cid: str) -> Path | None:

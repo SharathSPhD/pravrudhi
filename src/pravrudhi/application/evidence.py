@@ -13,15 +13,57 @@ from pravrudhi_kernel.ledger.verify import iter_events
 from pravrudhi_kernel.stats import wilson_ci
 
 
-def render_noise_floor(ledger: Path, variance: Path | None) -> str:
+def lora_events(ledger: Path):
+    """Ledger events that belong to the LoRA track: rows inside a harness night block (night_start with
+    track=harness up to its night_end) and rows on the H3.prompt surface are excluded, so night numbers of the two
+    tracks do not collide in the rendered documents."""
+    in_harness = False
+    for ev in iter_events(ledger):
+        p = ev.payload
+        if ev.kind == "audit" and p.get("kind") == "night_start":
+            in_harness = p.get("track") == "harness"
+        if ev.surface == "H3.prompt" or p.get("track") in ("H", "harness"):
+            continue
+        if in_harness:
+            if ev.kind == "audit" and p.get("kind") == "night_end":
+                in_harness = False
+            if ev.surface != "W3.adapter":  # LoRA-track rows interleaved with a harness night still count
+                continue
+        yield ev
+
+
+
+def _variance_for(prereg: Path, model: str | None, bench: str | None) -> Path | None:
+    """The variance file measured for this model and pool (current or archived), else None."""
+    for cand in sorted(prereg.glob("variance*.json")):
+        try:
+            v = json.loads(cand.read_text())
+        except (OSError, ValueError):
+            continue
+        if v.get("model") == model and v.get("bench") == bench:
+            return cand
+    return None
+
+
+def render_noise_floor(ledger: Path, variance: Path | None, study: int = 0) -> str:
+    """Render the `study`-th noise-floor study (0 = the L3 study) from its own rows only."""
     rows = []
     design = None
+    model = bench = None
+    idx = -1
     for ev in iter_events(ledger):
         p = ev.payload
         if ev.kind == "audit" and p.get("kind") == "study_start" and p.get("study") == "noise_floor":
-            design = p.get("design")
+            idx += 1
+            if idx == study:
+                design = p.get("design")
+            continue
+        if idx != study:
+            continue
         if ev.kind == "observe" and p.get("study") == "noise_floor":
             o = p["observed"]
+            if ev.bucket is not None:
+                model, bench = ev.bucket.target_model, ev.bucket.task_family
             rows.append(
                 (
                     ev.seq,
@@ -34,10 +76,12 @@ def render_noise_floor(ledger: Path, variance: Path | None) -> str:
                     p.get("job", {}).get("tok_s"),
                 )
             )
+    title = "L3 noise floor" if study == 0 else f"Noise floor study {study}"
     lines = [
-        "# L3 noise floor — rendered from research/ledger.jsonl",
+        f"# {title} — rendered from research/ledger.jsonl",
         "",
-        "**Label: model-measured, screen tier, single model (unmodified Qwen/Qwen3-4B), A/A design, isolation container.**",
+        f"**Label: model-measured, screen tier, single model (unmodified {model or 'Qwen/Qwen3-4B'}), A/A design, "
+        "isolation container.**",
         "",
     ]
     if design:
@@ -60,14 +104,18 @@ def render_noise_floor(ledger: Path, variance: Path | None) -> str:
             "",
             f"Runs: {len(rows)}; items scored: {n_tot}; pooled pass rate {k / n_tot:.4f}, Wilson 95% [{lo:.4f}, {hi:.4f}].",
         ]
+    if variance is not None:
+        matched = _variance_for(variance.parent, model, bench) if model else None
+        variance = matched or variance
     if variance and variance.exists():
         v = json.loads(variance.read_text())
-        lines += [
-            "",
-            f"variance.json: sigma_seed={v['sigma_seed']:.4f} sigma_rot={v['sigma_rot']:.4f} "
-            f"sigma_total={v['sigma_total']:.4f} "
-            f"theta_surprise(|z| p99)={v['theta_surprise_abs_z_p99']}",
-        ]
+        if not model or v.get("model") == model:
+            lines += [
+                "",
+                f"variance.json: sigma_seed={v['sigma_seed']:.4f} sigma_rot={v['sigma_rot']:.4f} "
+                f"sigma_total={v['sigma_total']:.4f} "
+                f"theta_surprise(|z| p99)={v['theta_surprise_abs_z_p99']}",
+            ]
     return "\n".join(lines) + "\n"
 
 
@@ -78,7 +126,7 @@ def render_first_night(ledger: Path, night: int) -> str:
     cands: dict[str, dict[str, Any]] = {}
     audits: list[dict[str, Any]] = []
     spent = 0.0
-    for ev in iter_events(ledger):
+    for ev in lora_events(ledger):
         if ev.night != night:
             continue
         p, cid = ev.payload, ev.candidate_id
@@ -183,7 +231,7 @@ def render_nights_summary(ledger: Path, nights: tuple[int, ...]) -> str:
     import math
     from collections import Counter
 
-    rows = [ev for ev in iter_events(ledger) if ev.night in nights]
+    rows = [ev for ev in lora_events(ledger) if ev.night in nights]
     prop = [r for r in rows if r.kind == "propose" and r.candidate_id != "c-0000"]
     obs_c = [r for r in rows if r.kind == "observe" and r.payload.get("arm") == "candidate"]
     obs_i = [r for r in rows if r.kind == "observe" and r.payload.get("arm") == "incumbent"]

@@ -27,6 +27,12 @@ uv run pravrudhi pool seal-mbppplus --root .
 uv run pravrudhi study harness-noise-floor --root .
 uv run pravrudhi harness-night --night 1 --root .
 scripts/ext_humaneval.sh Qwen/Qwen3-1.7B harness/agent/harness.json ./research/ext/humaneval-after
+
+# external proof tier (third-party scorers; results enter the ledger by hash and render to docs/evidence/P1_external.md)
+scripts/ext_eval.sh Qwen/Qwen3-0.6B gsm8k ./research/ext/base            # lm-evaluation-harness, offline
+scripts/ext_eval.sh Qwen/Qwen3-0.6B gsm8k ./research/ext/after ./adapter
+uv run pravrudhi ext-record ./research/ext/after/results.json --tool lm-eval --track M --condition adapter:c-0045 --model Qwen/Qwen3-0.6B --root .
+uv run pravrudhi evidence external --root .
 ```
 
 `pravrudhi replay --verify` rebuilds the state view from the ledger and verifies the hash chain; `make reproduce` regenerates every evidence document from the ledger and fails on any difference.

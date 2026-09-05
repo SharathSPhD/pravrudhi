@@ -67,6 +67,7 @@
     2
   ],
   "observe_rows_all_kernel_pratyaksha_container": true,
+  "paired_confirm_studies": 0,
   "paired_delta_max": 0.050000000000000044,
   "paired_delta_mean": 0.001,
   "paired_delta_min": -0.040000000000000036,
