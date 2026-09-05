@@ -12,6 +12,11 @@ from typing import Any
 
 import yaml
 
+from pravrudhi.application.deliberate import DecorativeAbort, deliberate
+from pravrudhi.application.propose import propose_generic, strategy_switch_rate
+from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
+from pravrudhi.models.llama_server import LlamaServer
+from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, parse_harness
 from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.metrics import PoolExhausted, Rotation, draw_rotation, record_exposure
 from pravrudhi_kernel.metrics.pool import read_item
@@ -20,12 +25,6 @@ from pravrudhi_kernel.sandbox.observe import KernelHashes, kernel_hashes, sha256
 from pravrudhi_kernel.sandbox.runner import docker_available
 from pravrudhi_kernel.sandbox.state import read_secret
 from pravrudhi_kernel.stats import Variance, sequential_boundary
-
-from pravrudhi.application.deliberate import DecorativeAbort, deliberate
-from pravrudhi.application.propose import propose_generic, strategy_switch_rate
-from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
-from pravrudhi.models.llama_server import LlamaServer
-from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, parse_harness
 
 EXT_IMAGE = "pravrudhi/ext-scorers:latest"
 SCORER_SOURCE = Path(__file__).resolve().parents[3] / "docker" / "jobs" / "score_code.py"
@@ -266,3 +265,397 @@ def admit_candidate(
             **extra,
         },
     )
+
+
+def harness_noise_floor(root: Path, *, rotations: int, seeds: int, k: int, night: int, log: Log = print) -> dict[str, Any]:
+    """A/A of the baseline harness on the MBPP+ pool: sigma_seed for the harness track's boundary."""
+    import math
+
+    cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
+    ctx = HarnessContext(root, cfg, night, log)
+    w = LedgerWriter.open(root / "research" / "ledger.jsonl", "0.1.0")
+    w.append(
+        "audit",
+        "kernel",
+        {
+            "kind": "study_start",
+            "severity": "info",
+            "study": "harness_noise_floor",
+            "design": {"rotations": rotations, "seeds": seeds, "k": k, "model": cfg["model"], "bench": cfg["bench"]},
+        },
+        epoch=0,
+        night=night,
+    )
+    values: dict[str, list[float]] = {}
+    ref: float | None = None
+    for r in range(rotations):
+        rot = draw_rotation(
+            ctx.pool_dir,
+            night,
+            f"{BASELINE_ID}-h{r}",
+            read_secret(ctx.state),
+            k=k,
+            exposure_cap=int(cfg["evaluation"]["exposure_cap"]),
+        )
+        record_exposure(ctx.pool_dir, rot)
+        for s in range(seeds):
+            jd, res, meta = run_agent(ctx, BASELINE, rot, s, f"nf-r{r}-s{s}")
+            if res.exit_code != 0 or meta is None:
+                log(f"rotation {r} seed {s}: agent FAILED {res.stderr_tail[-300:]}")
+                continue
+            scores, sref, sres = score_agent(ctx, jd, rot)
+            h = _hashes(ctx, jd, BASELINE)
+            meta["items_sha256"] = h.items
+            _, obs = admit_observation(
+                w,
+                expected=h,
+                job_meta=meta,
+                per_item_scores=scores,
+                per_item_ref=str(sref),
+                run_id=jd.name,
+                candidate_id=BASELINE_ID,
+                surface="H3.prompt",
+                bucket=ctx.bucket,
+                epoch=0,
+                night=night,
+                cycle=None,
+                seed=s,
+                rotation_id=rot.rotation_id,
+                value_ref=ref,
+                cost_gpu_h=res.wall_s / 3600,
+                wall_s=res.wall_s,
+                peak_gib=res.peak_gib_smi,
+                isolation=ctx.state.isolation,
+                stage="screen",
+                extra={"study": "harness_noise_floor", "track": "harness", "rotation_index": r},
+            )
+            v = obs.payload["observed"]["value"]
+            ref = v if ref is None else ref
+            values.setdefault(rot.rotation_id, []).append(v)
+            log(f"rotation {r} seed {s}: plus_pass={v:.4f} n={k} seq={obs.seq} wall={res.wall_s:.0f}s")
+    allv = [x for vs in values.values() for x in vs]
+    within = [math.sqrt(sum((x - sum(vs) / len(vs)) ** 2 for x in vs) / (len(vs) - 1)) for vs in values.values() if len(vs) >= 2]
+    sigma_seed = math.sqrt(sum(x * x for x in within) / len(within)) if within else 0.0
+    means = [sum(vs) / len(vs) for vs in values.values()]
+    sigma_rot = math.sqrt(sum((m - sum(means) / len(means)) ** 2 for m in means) / (len(means) - 1)) if len(means) > 1 else 0.0
+    out = {
+        "bench": cfg["bench"],
+        "model": cfg["model"],
+        "study": "harness_noise_floor",
+        "n_runs": len(allv),
+        "mean_plus_pass": sum(allv) / max(1, len(allv)),
+        "sigma_seed": sigma_seed,
+        "sigma_rot": sigma_rot,
+        "k_items": k,
+        "labels": "model-measured, screen tier, baseline harness A/A",
+    }
+    (root / "research" / "prereg" / "variance_harness.json").write_text(json.dumps(out, indent=2, sort_keys=True) + "\n")
+    w.append(
+        "audit",
+        "kernel",
+        {"kind": "study_end", "severity": "info", "study": "harness_noise_floor", "summary": out},
+        epoch=0,
+        night=night,
+    )
+    return out
+
+
+def run_harness_night(
+    root: Path, *, night: int, k: int | None, budget_gpu_h: float | None, gguf: Path, log: Log = print
+) -> dict[str, Any]:
+    cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
+    ctx = HarnessContext(root, cfg, night, log)
+    if ctx.variance is None:
+        raise RuntimeError("run the harness noise floor first (research/prereg/variance_harness.json)")
+    budget = float(budget_gpu_h if budget_gpu_h is not None else cfg["budget"]["night_gpu_h"])
+    kk = int(k if k is not None else cfg["proposer"]["k_candidates"])
+    ledger = root / "research" / "ledger.jsonl"
+    w = LedgerWriter.open(ledger, "0.1.0")
+    from pravrudhi_kernel.ledger.verify import iter_events
+
+    # incumbent = latest promoted harness on this surface, else baseline
+    for ev in iter_events(ledger):
+        if ev.kind == "promote" and ev.surface == "H3.prompt" and ev.payload.get("harness"):
+            inc_parsed = parse_harness(ev.payload["harness"])
+            if not isinstance(inc_parsed, str):
+                ctx.incumbent, ctx.incumbent_id = inc_parsed, str(ev.candidate_id)
+    w.append(
+        "audit",
+        "kernel",
+        {
+            "kind": "night_start",
+            "severity": "info",
+            "track": "harness",
+            "budget_gpu_h": budget,
+            "k": kk,
+            "incumbent": ctx.incumbent_id,
+            "prereg_sha256": {
+                "harness_night": sha256_file(root / "research" / "prereg" / "harness_night.yaml"),
+                "variance_harness": sha256_file(root / "research" / "prereg" / "variance_harness.json"),
+            },
+        },
+        epoch=0,
+        night=night,
+    )
+    already = sum(1 for ev in iter_events(ledger) if ev.kind == "propose" and ev.night == night and ev.surface == "H3.prompt")
+    recipes: dict[str, HarnessRecipe] = {}
+    if already < kk:
+        server = LlamaServer(gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192)
+        log("deliberation window: starting proposer")
+        client = server.start()
+        try:
+            acc = propose_generic(
+                root,
+                w,
+                client,
+                night=night,
+                k=kk,
+                model=str(cfg["model"]),
+                bucket=ctx.bucket,
+                prompts_dir=root / "harness" / "prompts",
+                sealed_dir=root / ".pravrudhi" / "kernel" / "sealed" / "predictions",
+                incumbent_id=ctx.incumbent_id,
+                sigma_seed=ctx.variance.sigma_seed,
+                temperature=float(cfg["proposer"]["temperature"]),
+                max_tokens=int(cfg["proposer"]["max_tokens"]),
+                rethink_m=int(cfg["rethink_m"]),
+                log=log,
+                grammar_doc=H_GRAMMAR_DOC,
+                parse_fn=parse_harness,
+                prompt_file="harness_proposer/v1.md",
+                surface="H3.prompt",
+                op="harness",
+            )
+            recipes = dict(acc)
+        finally:
+            server.stop()
+            log("deliberation window: proposer stopped")
+    outcomes: dict[str, str] = {}
+    from pravrudhi.application.citta_view import build_citta
+
+    for rnd in range(int(cfg.get("max_rounds", 4))):
+        remaining = budget - ctx.spent_gpu_h
+        if remaining <= 0.05:
+            break
+        try:
+            order = deliberate(
+                root,
+                w,
+                night=night,
+                budget_gpu_h=remaining,
+                sigma_seed=ctx.variance.sigma_seed,
+                incumbent_id=ctx.incumbent_id,
+                harness_hash=hashlib.sha256(json.dumps(ctx.incumbent.harness_json(), sort_keys=True).encode()).hexdigest(),
+                model_hash="0" * 64,
+                rng_seed=night * 100 + rnd,
+                log=log,
+                surface="H3.prompt",
+                target_model=str(cfg["model"]),
+            )
+        except DecorativeAbort as e:
+            w.append(
+                "audit",
+                "kernel",
+                {"kind": "night_end", "severity": "high", "reason": "decorative_controller", "track": "harness"},
+                epoch=0,
+                night=night,
+            )
+            return {"night": night, "status": "aborted", "reason": str(e)}
+        if not order:
+            break
+        log(f"round {rnd + 1}: {len(order)} selected, {remaining:.2f} GPU-h remaining")
+        _, meta = build_citta(ledger, root / ".pravrudhi" / "kernel" / "sealed" / "predictions", sigma2_eval=1e-4, tau0_2=0.01)
+        for cid in order:
+            if ctx.spent_gpu_h >= budget:
+                outcomes[cid] = "skipped:budget"
+                continue
+            rec = recipes.get(cid)
+            if rec is None:
+                parsed = parse_harness(meta[cid]["recipe"] or {})
+                if isinstance(parsed, str):
+                    outcomes[cid] = "skipped:bad_recipe"
+                    continue
+                rec = parsed
+                recipes[cid] = parsed
+            try:
+                outcomes[cid] = _execute_one(ctx, w, cid, rec, int(cfg["evaluation"]["k_items"]))
+            except PoolExhausted as e:
+                w.append(
+                    "audit",
+                    "kernel",
+                    {"kind": "pool_exhausted", "severity": "high", "detail": str(e)},
+                    epoch=0,
+                    night=night,
+                    candidate_id=cid,
+                    surface="H3.prompt",
+                )
+                outcomes[cid] = "skipped:pool_exhausted"
+                break
+            except RuntimeError as e:
+                outcomes[cid] = f"failed:{e}"
+    sw, n, ci = strategy_switch_rate(ledger)
+    w.append(
+        "audit",
+        "controller",
+        {"kind": "strategy_switch_rate", "severity": "info", "switches": sw, "n": n, "wilson": list(ci)},
+        epoch=0,
+        night=night,
+    )
+    w.append(
+        "audit",
+        "kernel",
+        {
+            "kind": "night_end",
+            "severity": "info",
+            "track": "harness",
+            "spent_gpu_h": ctx.spent_gpu_h,
+            "budget_gpu_h": budget,
+            "outcomes": outcomes,
+            "incumbent": ctx.incumbent_id,
+            "incumbent_harness": ctx.incumbent.harness_json(),
+        },
+        epoch=0,
+        night=night,
+    )
+    log(f"harness night {night} closed: spent {ctx.spent_gpu_h:.2f}/{budget}; outcomes {outcomes}; incumbent {ctx.incumbent_id}")
+    return {
+        "night": night,
+        "status": "closed",
+        "spent_gpu_h": ctx.spent_gpu_h,
+        "outcomes": outcomes,
+        "incumbent": ctx.incumbent_id,
+    }
+
+
+def _execute_one(ctx: HarnessContext, w: LedgerWriter, cid: str, rec: HarnessRecipe, k: int) -> str:
+    st = replay(ctx.root / "research" / "ledger.jsonl")
+    xs_prev = list(st.candidates[cid].xs) if cid in st.candidates else []
+    seed = len(xs_prev)
+    rot = draw_rotation(
+        ctx.pool_dir,
+        ctx.night,
+        f"{cid}-s{seed}",
+        read_secret(ctx.state),
+        k=k,
+        exposure_cap=int(ctx.cfg["evaluation"]["exposure_cap"]),
+    )
+    record_exposure(ctx.pool_dir, rot)
+    ijd, ires, imeta = run_agent(ctx, ctx.incumbent, rot, seed, f"inc-{cid}")
+    cjd, cres, cmeta = run_agent(ctx, rec, rot, seed, f"cand-{cid}")
+    if ires.exit_code != 0 or cres.exit_code != 0 or imeta is None or cmeta is None:
+        w.append(
+            "audit",
+            "kernel",
+            {"kind": "job_failed", "severity": "high", "stderr_tail": (cres.stderr_tail or ires.stderr_tail)[-800:]},
+            epoch=0,
+            night=ctx.night,
+            candidate_id=cid,
+            surface="H3.prompt",
+        )
+        raise RuntimeError("agent run failed")
+    iscores, iref, _ = score_agent(ctx, ijd, rot)
+    cscores, cref, csres = score_agent(ctx, cjd, rot)
+    iv, cv = sum(iscores.values()) / len(iscores), sum(cscores.values()) / len(cscores)
+    delta = cv - iv
+    assert ctx.variance is not None
+    br = sequential_boundary([*xs_prev, delta], ctx.variance)
+    ih = _hashes(ctx, ijd, ctx.incumbent)
+    imeta["items_sha256"] = ih.items
+    admit_observation(
+        w,
+        expected=ih,
+        job_meta=imeta,
+        per_item_scores=iscores,
+        per_item_ref=str(iref),
+        run_id=ijd.name,
+        candidate_id=ctx.incumbent_id,
+        surface="H3.prompt",
+        bucket=ctx.bucket,
+        epoch=0,
+        night=ctx.night,
+        cycle=None,
+        seed=seed,
+        rotation_id=rot.rotation_id,
+        value_ref=None,
+        cost_gpu_h=ires.wall_s / 3600,
+        wall_s=ires.wall_s,
+        peak_gib=ires.peak_gib_smi,
+        isolation=ctx.state.isolation,
+        stage="screen",
+        extra={"arm": "incumbent", "paired_with": cid, "track": "harness"},
+    )
+    sealed = ctx.sealed.get(cid)
+    brier = None
+    predicted = None
+    if sealed:
+        predicted = {"delta_in": sealed["delta_in"], "delta_out": None, "conf": sealed["conf"], "hash": sealed["hash"]}
+        brier = (sealed["conf"] - (1.0 if (sealed["delta_in"] >= 0) == (delta >= 0) else 0.0)) ** 2
+    admit_candidate(
+        ctx,
+        w,
+        cid,
+        rec,
+        (cscores, cref, csres, cmeta, cjd),
+        seed,
+        rot.rotation_id,
+        iv,
+        br,
+        {"predicted": predicted, "brier": brier, "wall_s_candidate": cres.wall_s, "harness": rec.harness_json()},
+    )
+    ctx.log(
+        f"{cid}: seed {seed} incumbent={iv:.3f} candidate={cv:.3f} delta={delta:+.3f} "
+        f"boundary={br.decision} (n={br.n}, E={br.e_value:.2f})"
+    )
+    if br.decision == "prune":
+        w.append(
+            "prune",
+            "kernel",
+            {
+                "hetvabhasa": br.hetvabhasa or "asiddha",
+                "reason": f"sequential boundary at n={br.n}",
+                "stage": "screen",
+                "boundary": "prune",
+                "by": "sequential",
+                "status": "pruned",
+            },
+            epoch=0,
+            night=ctx.night,
+            candidate_id=cid,
+            surface="H3.prompt",
+        )
+        return "pruned"
+    if br.decision == "confirm":
+        pack = ctx.root / "research" / "inbox" / f"harness-night{ctx.night}" / cid
+        pack.mkdir(parents=True, exist_ok=True)
+        (pack / "README.md").write_text(
+            f"# Harness promotion {cid}\n\n```json\n{json.dumps(rec.harness_json(), indent=2)}\n```\n"
+        )
+        w.append(
+            "promote",
+            "broker",
+            {
+                "tier": "T2",
+                "from_worktree": str(pack),
+                "merge_commit": hashlib.sha256(json.dumps(rec.harness_json(), sort_keys=True).encode()).hexdigest(),
+                "tag": f"harness-night{ctx.night}-{cid}",
+                "lineage": [ctx.incumbent_id],
+                "tau_before": 0.5,
+                "tau_after": 0.6,
+                "inbox_pack": str(pack),
+                "harness": rec.harness_json(),
+                "regression": {"pass3": None, "wilson_lo": None, "flips": 0},
+                "holm": {"m": 1, "rank": 1, "p_adj": None},
+            },
+            epoch=0,
+            night=ctx.night,
+            candidate_id=cid,
+            surface="H3.prompt",
+        )
+        ctx.incumbent, ctx.incumbent_id = rec, cid
+        (ctx.root / "harness" / "agent").mkdir(parents=True, exist_ok=True)
+        (ctx.root / "harness" / "agent" / "harness.json").write_text(
+            json.dumps(rec.harness_json(), indent=2, sort_keys=True) + "\n"
+        )
+        ctx.log(f"{cid}: PROMOTED harness (T2); now the incumbent")
+        return "promoted"
+    return "continue"

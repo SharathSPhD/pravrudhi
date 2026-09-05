@@ -316,5 +316,40 @@ def study_paired_confirm(
     paired_confirm(root, night=night, candidate_id=candidate, seed=seed, k=k, log=typer.echo)
 
 
+@study_app.command("harness-noise-floor")
+def study_harness_nf(
+    rotations: int = typer.Option(3, "--rotations"),
+    seeds: int = typer.Option(3, "--seeds"),
+    k: int = typer.Option(100, "--k"),
+    night: int = typer.Option(0, "--night"),
+    root: Path = ROOT_OPT,
+) -> None:
+    """A/A of the baseline harness on MBPP+ (kernel-scored hidden tests); writes research/prereg/variance_harness.json."""
+    from pravrudhi.application.harness_track import harness_noise_floor
+
+    out = harness_noise_floor(root, rotations=rotations, seeds=seeds, k=k, night=night, log=typer.echo)
+    typer.echo(json.dumps({k2: out[k2] for k2 in ("n_runs", "mean_plus_pass", "sigma_seed", "sigma_rot")}))
+
+
+@app.command("harness-night")
+def harness_night_cmd(
+    night: int = NIGHT_OPT,
+    budget: float | None = BUDGET_OPT,
+    k: int | None = K_OPT,
+    root: Path = ROOT_OPT,
+    gguf: Path | None = GGUF_OPT,
+) -> None:
+    """Track H night: fixed model, mutable harness, paired on MBPP+ rotations, hidden tests scored in the sandbox."""
+    from pravrudhi.application.harness_track import run_harness_night
+    from pravrudhi.application.spine import resolve_model_snapshot
+
+    if gguf is None:
+        import yaml
+
+        cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
+        gguf = resolve_model_snapshot("Qwen/Qwen3-30B-A3B-GGUF") / str(cfg["proposer"]["gguf"])
+    typer.echo(json.dumps(run_harness_night(root, night=night, k=k, budget_gpu_h=budget, gguf=gguf, log=typer.echo), indent=2))
+
+
 def main() -> None:
     app()

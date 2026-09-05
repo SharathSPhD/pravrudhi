@@ -58,6 +58,8 @@ def deliberate(
     model_hash: str,
     rng_seed: int,
     log: Any = print,
+    surface: str | None = None,
+    target_model: str | None = None,
 ) -> list[str]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "controller.yaml").read_text())
     night_yaml = root / "research" / "prereg" / "lora_night.yaml"
@@ -71,7 +73,10 @@ def deliberate(
         tau0_2=float(cfg["tau0_2"]),
     )
     st = replay(ledger)
-    pool = live_candidates(st.candidates, meta, incumbent_id, target_model=str(cfg_night.get("model")) if cfg_night else None)
+    tm = target_model or (str(cfg_night.get("model")) if cfg_night else None)
+    pool = live_candidates(st.candidates, meta, incumbent_id, target_model=tm)
+    if surface:
+        pool = [c for c in pool if meta[c]["surface"] == surface]
     if not pool:
         log("deliberate: no live candidates")
         return []
