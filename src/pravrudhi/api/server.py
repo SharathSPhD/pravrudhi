@@ -190,6 +190,23 @@ def create_app(root: Path) -> FastAPI:
         write(root, obj)
         return summary(root, obj)
 
+    @api.get("/objectives/{oid}/plan")
+    def objective_plan(oid: str) -> dict[str, Any]:
+        """A proposed decomposition of the intent into work. A proposal, never evidence: nothing here has run."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.intent import compile_intent
+        from pravrudhi.application.objectives import load_all
+        from pravrudhi.application.recipes import installed, library
+
+        for o in load_all(root):
+            if o.id == oid:
+                plan = compile_intent(o, tuple(library()), installed_skills=frozenset(installed()))
+                out = asdict(plan)
+                out["objective"] = o.id  # the full objective is already available at /api/objectives/{oid}
+                return out
+        raise HTTPException(404, "no such objective")
+
     @api.get("/recipes")
     def recipes_ep() -> dict[str, Any]:
         """The recipe catalogue, each entry marked available or not on this machine. Not evidence: naming a recipe

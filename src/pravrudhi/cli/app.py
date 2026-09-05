@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-
 import typer
 
 from pravrudhi import KERNEL_VERSION, __version__

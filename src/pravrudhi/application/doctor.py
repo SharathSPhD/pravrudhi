@@ -58,7 +58,7 @@ def run_doctor(root: Path) -> dict[str, Any]:
         gpu_detail = "No GPU detected: 'nvidia-smi' is not on PATH."
     else:
         try:
-            result = subprocess.run(
+            probe = subprocess.run(
                 ["nvidia-smi", "--query-gpu=name,driver_version", "--format=csv,noheader"],
                 capture_output=True,
                 text=True,
@@ -67,11 +67,11 @@ def run_doctor(root: Path) -> dict[str, Any]:
         except (OSError, subprocess.SubprocessError) as exc:
             gpu_detail = f"No GPU detected: 'nvidia-smi' could not be run ({exc})."
         else:
-            lines = [line.strip() for line in result.stdout.strip().splitlines() if line.strip()]
-            if result.returncode == 0 and lines:
+            lines = [line.strip() for line in probe.stdout.strip().splitlines() if line.strip()]
+            if probe.returncode == 0 and lines:
                 gpu_detail = "; ".join(lines)
             else:
-                reason = result.stderr.strip() or f"exited {result.returncode}"
+                reason = probe.stderr.strip() or f"exited {probe.returncode}"
                 gpu_detail = f"No GPU detected: 'nvidia-smi' failed ({reason})."
     checks.append({"name": "gpu", "ok": True, "detail": gpu_detail})
 

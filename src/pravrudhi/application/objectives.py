@@ -18,8 +18,8 @@ See docs/superpowers/specs/2026-09-05-pravrudhi-objectives-design.md.
 from __future__ import annotations
 
 import re
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -193,7 +193,7 @@ def write(root: Path, obj: Objective) -> Path:
     body = obj.to_dict()
     body.pop("id")
     if not body.get("created"):
-        body["created"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        body["created"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     path.write_text(yaml.safe_dump(body, sort_keys=False, allow_unicode=True))
     return path
 

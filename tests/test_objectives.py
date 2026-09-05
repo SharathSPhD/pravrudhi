@@ -7,12 +7,9 @@ from pathlib import Path
 
 import pytest
 import yaml
-from pravrudhi_kernel.ledger import LedgerWriter
 
 from pravrudhi.application import recipes
 from pravrudhi.application.objectives import (
-    Benchmark,
-    Objective,
     ObjectiveError,
     copy_example,
     examples,
@@ -24,6 +21,7 @@ from pravrudhi.application.objectives import (
     summary,
     write,
 )
+from pravrudhi_kernel.ledger import LedgerWriter
 
 GOOD = {
     "id": "legal-mvp",

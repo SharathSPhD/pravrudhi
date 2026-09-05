@@ -23,7 +23,10 @@ def client(tmp_root: Path) -> Iterator[TestClient]:
         yield client
 
 
-@pytest.mark.parametrize("endpoint", ["/api/doctor", "/api/hosts", "/api/agents", "/api/external", "/api/nights", "/api/h1/lora/1-2-3"])
+CONSOLE_ENDPOINTS = ["/api/doctor", "/api/hosts", "/api/agents", "/api/external", "/api/nights", "/api/h1/lora/1-2-3"]
+
+
+@pytest.mark.parametrize("endpoint", CONSOLE_ENDPOINTS)
 def test_console_endpoints(client: TestClient, endpoint: str) -> None:
     response = client.get(endpoint)
     assert response.status_code == 200

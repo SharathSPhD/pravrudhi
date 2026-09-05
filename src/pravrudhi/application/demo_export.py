@@ -18,6 +18,10 @@ from typing import Any
 
 from pravrudhi.api.runs import models_listing
 from pravrudhi.application.external import external_rows
+from pravrudhi.application.objectives import load_all
+from pravrudhi.application.objectives import problems as objective_problems
+from pravrudhi.application.objectives import summary as objective_summary
+from pravrudhi.application.recipes import availability
 from pravrudhi.application.status import status
 from pravrudhi_kernel.ledger import replay
 from pravrudhi_kernel.ledger.verify import iter_events
@@ -81,12 +85,6 @@ def _replay_run(ledger: Path, night: int, track: str) -> list[dict[str, Any]]:
         elif ev.kind == "prune" and ev.candidate_id:
             events.append({"type": "pruned", "candidate": ev.candidate_id})
     return events[:MAX_EVENTS]
-
-
-from pravrudhi.application.objectives import load_all
-from pravrudhi.application.objectives import problems as objective_problems
-from pravrudhi.application.objectives import summary as objective_summary
-from pravrudhi.application.recipes import availability
 
 
 def build_demo(root: Path) -> dict[str, Any]:
