@@ -15,7 +15,12 @@ NUM = re.compile(r"(?<![\w.])(\d+\.\d{2,})(?![\w.])")
 
 def known_numbers(root: Path) -> set[str]:
     out: set[str] = set()
-    for p in list((root / "gates").glob("gate_*.json")) + list((root / "research" / "prereg").glob("*.json")):
+    sources = (
+        list((root / "gates").glob("gate_*.json"))
+        + list((root / "research" / "prereg").glob("*.json"))
+        + list((root / "docs" / "evidence").glob("*.md"))  # reproduced from the ledger by `make reproduce`
+    )
+    for p in sources:
         if p.exists():
             out |= set(NUM.findall(p.read_text()))
     return out
@@ -46,7 +51,7 @@ def main() -> int:
     targets = [
         root / "README.md",
         *sorted((root / "paper" / "sections").glob("*.tex")),
-        *sorted((root / "docs" / "evidence").glob("*.md")),
+        *sorted((root / "docs").glob("*.md")),
     ]
     bad = scan(root, targets, known)
     for b in bad:
