@@ -69,6 +69,7 @@ class HostCapabilities:
     gpu_name: str = ""
     gpu_vram_gb: float = 0.0
     accelerator: str = "none"  # cuda | metal | none
+    accel_mem_gb: float = 0.0  # measured usable accelerator memory when a runtime could report it
     docker: bool = False
     python: str = ""
     agents: list[str] = field(default_factory=list)
@@ -95,6 +96,8 @@ class HostCapabilities:
         On CUDA that is video memory. On Apple Silicon the GPU draws on unified memory, and the conventional
         allocatable fraction is about three quarters, so a 16 GB Mac carries roughly a 12 GB model.
         """
+        if self.accel_mem_gb:
+            return round(self.accel_mem_gb, 1)  # measured beats estimated
         if self.accelerator == "cuda":
             return round(self.gpu_vram_gb, 1)
         if self.accelerator == "metal":

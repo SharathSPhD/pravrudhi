@@ -15,7 +15,7 @@ import yaml
 from pravrudhi.application.deliberate import DecorativeAbort, deliberate
 from pravrudhi.application.propose import propose_generic, strategy_switch_rate
 from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
-from pravrudhi.models.llama_server import LlamaServer
+from pravrudhi.models.proposer import proposer_client
 from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, harness_array_schema, parse_harness
 from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.metrics import PoolExhausted, Rotation, draw_rotation, record_exposure
@@ -364,6 +364,7 @@ def harness_noise_floor(root: Path, *, rotations: int, seeds: int, k: int, night
 def run_harness_night(
     root: Path, *, night: int, k: int | None, budget_gpu_h: float | None, gguf: Path, log: Log = print,
     selection_policy: str | None = None,
+    proposer_endpoint: str = "",
 ) -> dict[str, Any]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
     ctx = HarnessContext(root, cfg, night, log)
@@ -407,10 +408,10 @@ def run_harness_night(
     already = sum(1 for ev in iter_events(ledger) if ev.kind == "propose" and ev.night == night and ev.surface == "H3.prompt")
     recipes: dict[str, HarnessRecipe] = {}
     if already < kk:
-        server = LlamaServer(gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192)
-        log("deliberation window: starting proposer")
-        client = server.start()
-        try:
+        endpoint = proposer_endpoint or str(cfg["proposer"].get("endpoint", ""))
+        with proposer_client(
+            gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192, endpoint=endpoint, log=log
+        ) as client:
             acc = propose_generic(
                 root,
                 w,
@@ -437,9 +438,6 @@ def run_harness_night(
                 + json.dumps(ctx.incumbent.harness_json(), indent=1, sort_keys=True),
             )
             recipes = dict(acc)
-        finally:
-            server.stop()
-            log("deliberation window: proposer stopped")
     outcomes: dict[str, str] = {}
     from pravrudhi.application.citta_view import build_citta
 

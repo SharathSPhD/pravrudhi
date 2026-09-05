@@ -13,7 +13,7 @@ from pravrudhi.application.deliberate import DecorativeAbort, deliberate
 from pravrudhi.application.execute import NightContext, evaluate_and_dispose, train
 from pravrudhi.application.propose import propose, strategy_switch_rate
 from pravrudhi.application.spine import resolve_model_snapshot
-from pravrudhi.models.llama_server import LlamaServer
+from pravrudhi.models.proposer import proposer_client
 from pravrudhi.targets import LoraRecipe
 from pravrudhi_kernel.ledger import LedgerWriter
 from pravrudhi_kernel.sandbox import ensure_kernel_state
@@ -37,6 +37,7 @@ def run_night(
     gguf: Path,
     log: Callable[[str], None] = print,
     selection_policy: str | None = None,
+    proposer_endpoint: str = "",
 ) -> dict[str, Any]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "lora_night.yaml").read_text())
     policy = str(selection_policy or cfg.get("selection_policy", "efe"))
@@ -82,13 +83,13 @@ def run_night(
 
     already = sum(1 for ev in iter_events(ledger) if ev.kind == "propose" and ev.night == night and ev.candidate_id != "c-0000")
     accepted: list[tuple[str, LoraRecipe]] = []
-    server = LlamaServer(gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192)
+    endpoint = proposer_endpoint or str(cfg["proposer"].get("endpoint", ""))
     if already >= k:
         log(f"deliberation window: {already} proposals already in the ledger for night {night}; not proposing again")
     else:
-        log("deliberation window: starting proposer")
-        client = server.start()
-        try:
+        with proposer_client(
+            gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192, endpoint=endpoint, log=log
+        ) as client:
             accepted = propose(
                 root,
                 w,
@@ -106,9 +107,6 @@ def run_night(
                 rethink_m=int(cfg["rethink_m"]),
                 log=log,
             )
-        finally:
-            server.stop()
-            log("deliberation window: proposer stopped")
     recipes: dict[str, LoraRecipe] = dict(accepted)
     # 2 + 3. rounds of selection and execution until the budget or the pool is exhausted; a candidate that returned
     #        `continue` is live again in the next round and receives its next seed (adapter re-used, not retrained)

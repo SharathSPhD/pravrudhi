@@ -58,6 +58,27 @@ else:
         out["accelerator"] = "none"
 
 out["docker"] = bool(shutil.which("docker")) and bool(sh("docker info --format ok"))
+
+# If llama.cpp is present it reports the accelerator's real usable memory, which beats any heuristic. Apple
+# Silicon in particular shares memory between CPU and GPU, and the allocatable share is a policy of the OS, not
+# a fixed fraction we should be guessing at.
+srv = shutil.which("llama-server") or ""
+if not srv:
+    import glob as _g
+    cands = _g.glob(os.path.expanduser("~/pravrudhi/llama/*/llama-server"))
+    srv = cands[0] if cands else ""
+if srv:
+    for line in sh("%s --list-devices" % srv, timeout=60).splitlines():
+        line = line.strip()
+        if line.startswith(("MTL", "CUDA", "Vulkan", "ROCm")) and "MiB" in line:
+            try:
+                mib = float(line.split("(")[1].split("MiB")[0].strip())
+                out["accel_mem_gb"] = round(mib / 1024, 1)
+                if line.split(":")[0].startswith("MTL"):
+                    out["gpu_name"] = line.split("(")[0].split(":", 1)[1].strip() or out.get("gpu_name", "")
+            except (IndexError, ValueError):
+                pass
+            break
 out["agents"] = [a for a in ("claude", "codex", "opencode", "orca-ide") if shutil.which(a)]
 home = os.path.expanduser("~")
 models = []
@@ -90,6 +111,7 @@ def parse_probe(stdout: str) -> HostCapabilities:
         gpu_name=str(d.get("gpu_name", "")),
         gpu_vram_gb=float(d.get("gpu_vram_gb") or 0.0),
         accelerator=str(d.get("accelerator", "none")),
+        accel_mem_gb=float(d.get("accel_mem_gb") or 0.0),
         docker=bool(d.get("docker")),
         python=str(d.get("python", "")),
         agents=list(d.get("agents") or []),
