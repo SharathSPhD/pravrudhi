@@ -61,7 +61,7 @@ class NightContext:
         )
         self.incumbent_id = "c-0000"
         self.incumbent_adapter: Path | None = None
-        self.kept_samples: list[dict[str, str]] | None = None
+        self.kept_samples: dict[str, list[dict[str, str]]] = {}  # keyed by teacher
         self.anchor_nll_incumbent: float | None = None
         self.spent_gpu_h = 0.0
         self.hf_home = snapshot.parents[3]
@@ -112,13 +112,13 @@ def _load_sealed(d: Path) -> dict[str, dict[str, Any]]:
     return out
 
 
-def ensure_samples(ctx: NightContext, w: LedgerWriter) -> list[dict[str, str]]:
-    """One rejection-sampling job per night on train prompts; the kernel scorer keeps the verified-correct ones."""
-    if ctx.kept_samples is not None:
-        return ctx.kept_samples
+def ensure_samples(ctx: NightContext, w: LedgerWriter, teacher: str = "incumbent") -> list[dict[str, str]]:
+    """One rejection-sampling job per night per teacher on train prompts; the kernel scorer keeps the verified ones."""
+    if teacher in ctx.kept_samples:
+        return ctx.kept_samples[teacher]
     s = ctx.cfg["sampling"]
     rows = ctx.train_rows[int(s["prompts_offset"]) : int(s["prompts_offset"]) + int(s["n_prompts"])]
-    jd = ctx.job_dir("sample")
+    jd = ctx.job_dir("sample" if teacher == "incumbent" else "sample-teacher")
     (jd / "in" / "prompts.jsonl").write_text(
         "".join(json.dumps({"id": f"tr{i}", "question": r["question"]}) + "\n" for i, r in enumerate(rows))
     )
@@ -135,10 +135,17 @@ def ensure_samples(ctx: NightContext, w: LedgerWriter) -> list[dict[str, str]]:
         "--seed",
         str(ctx.night),
     ]
-    extra = {str(ctx.incumbent_adapter): "/adapter"} if ctx.incumbent_adapter else None
-    if ctx.incumbent_adapter:
+    extra = {str(ctx.incumbent_adapter): "/adapter"} if (ctx.incumbent_adapter and teacher == "incumbent") else None
+    if ctx.incumbent_adapter and teacher == "incumbent":
         args += ["--adapter-dir", "/adapter"]
-    res, meta = ctx.run("sample", args, jd, extra)
+    if teacher != "incumbent":
+        from pravrudhi.application.spine import resolve_model_snapshot
+
+        tsnap = resolve_model_snapshot(teacher)
+        args = ["--model-dir", "/models/" + str(tsnap.relative_to(ctx.hf_home))] + args
+        res, meta = ctx.run_raw("sample", args, jd, extra)
+    else:
+        res, meta = ctx.run("sample", args, jd, extra)
     w.append(
         "spend",
         "executor",
@@ -198,7 +205,7 @@ def ensure_samples(ctx: NightContext, w: LedgerWriter) -> list[dict[str, str]]:
         night=ctx.night,
     )
     ctx.log(f"sampling: {len(kept)}/{n_total} verified-correct samples kept")
-    ctx.kept_samples = kept
+    ctx.kept_samples[teacher] = kept
     return kept
 
 
@@ -244,7 +251,7 @@ def train(ctx: NightContext, w: LedgerWriter, cid: str, recipe: LoraRecipe) -> P
     jd = ctx.job_dir(f"train-{cid}")
     (jd / "in" / "recipe.json").write_text(json.dumps(recipe.model_dump(), sort_keys=True))
     if recipe.strategy == "sft_rejection":
-        kept = ensure_samples(ctx, w)
+        kept = ensure_samples(ctx, w, recipe.sft.teacher)
         rows = _select_samples(kept, recipe, seed=int(cid[2:]))
         (jd / "in" / "train.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         res, meta = ctx.run("train_sft", ["--seed", str(ctx.night)], jd)

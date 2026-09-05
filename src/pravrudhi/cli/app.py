@@ -102,10 +102,16 @@ TEMPLATE_OPT = typer.Option(Path("harness/prompts/eval/gsm8k_v1.md"), "--templat
 
 
 @pool_app.command("seal-gsm8k")
-def pool_seal(parquet: Path, bench: str = POOL_OPT, root: Path = ROOT_OPT) -> None:
+def pool_seal(
+    parquet: Path,
+    bench: str = POOL_OPT,
+    root: Path = ROOT_OPT,
+    offset: int = typer.Option(0, "--offset"),
+    count: int | None = typer.Option(None, "--count"),
+) -> None:
     from pravrudhi.application.pool_admin import seal_gsm8k
 
-    m = seal_gsm8k(root, parquet, bench)
+    m = seal_gsm8k(root, parquet, bench, offset=offset, count=count)
     typer.echo(f"sealed {m['bench']}: {m['n_items']} items, pool_version {m['pool_version'][:16]}")
 
 

@@ -12,11 +12,12 @@ from pravrudhi_kernel.sandbox import ensure_kernel_state
 from pravrudhi_kernel.sandbox.runner import docker_available
 
 
-def seal_gsm8k(root: Path, parquet: Path, bench: str = "gsm8k-test") -> dict[str, Any]:
+def seal_gsm8k(root: Path, parquet: Path, bench: str = "gsm8k-test", offset: int = 0, count: int | None = None) -> dict[str, Any]:
     import pyarrow.parquet as pq
 
     state = ensure_kernel_state(root, docker_available=docker_available())
     rows = pq.read_table(parquet).to_pylist()
+    rows = rows[offset : (offset + count) if count else None]
     src = {
         "file": parquet.name,
         "sha256": hashlib.sha256(parquet.read_bytes()).hexdigest(),

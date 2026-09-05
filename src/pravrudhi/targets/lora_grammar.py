@@ -24,6 +24,9 @@ class LoraParams(BaseModel):
 class SftParams(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     n_kept: int = Field(default=512, ge=32, le=4096)  # how many kept (verified-correct) samples to train on
+    teacher: Literal["incumbent", "Qwen/Qwen3-4B"] = (
+        "incumbent"  # who samples: the trainee itself, or a stronger local model (distillation)
+    )
     filter: Literal["all_correct", "shortest_correct", "longest_correct", "diverse_correct"] = "all_correct"
     epochs: int = Field(default=1, ge=1, le=3)
     lr: float = Field(default=1e-4, ge=1e-6, le=5e-3)
