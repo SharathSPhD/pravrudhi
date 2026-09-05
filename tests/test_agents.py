@@ -1,0 +1,81 @@
+"""The coding-agent layer: protected paths, worktree isolation, adapter shape, honest availability."""
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from pravrudhi.agents.base import PROTECTED, CodingAgent, Diff, GitWorktreeMixin
+from pravrudhi.agents.cli_agents import ClaudeCodeAgent, CodexAgent
+from pravrudhi.agents.orca_agent import OrcaAgent, OrcaUnavailable
+from pravrudhi.agents.registry import build_registry, survey
+
+
+def _repo(tmp_path: Path) -> Path:
+    r = tmp_path / "repo"
+    r.mkdir()
+    for c in (["init", "-q", "-b", "main"], ["config", "user.email", "t@e"], ["config", "user.name", "t"]):
+        subprocess.run(["git", *c], cwd=r, check=True, capture_output=True)
+    (r / "src").mkdir()
+    (r / "src" / "a.py").write_text("x = 1\n")
+    subprocess.run(["git", "add", "-A"], cwd=r, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=r, check=True, capture_output=True)
+    return r
+
+
+def test_protected_paths_are_flagged_not_silently_accepted():
+    d = Diff(files=["src/ok.py", "pravrudhi_kernel/x.py", "research/ledger.jsonl", "research/prereg/lora_night.yaml"])
+    assert d.violations == ["pravrudhi_kernel/x.py", "research/ledger.jsonl", "research/prereg/lora_night.yaml"]
+    assert Diff(files=["src/ok.py"]).violations == []
+    assert all(p in PROTECTED for p in ("pravrudhi_kernel/", "research/ledger.jsonl", "gates/"))
+
+
+def test_worktree_isolates_changes_and_reports_the_diff(tmp_path):
+    r = _repo(tmp_path)
+    a = ClaudeCodeAgent(r)
+    wt = a.create_workspace("t1")
+    assert wt.exists() and wt != r
+    (wt / "src" / "a.py").write_text("x = 2\n")
+    (wt / "src" / "new.py").write_text("y = 3\n")
+    d = a.collect_changes(wt)
+    assert "src/a.py" in d.files and "src/new.py" in d.files and d.insertions >= 1
+    assert (r / "src" / "a.py").read_text() == "x = 1\n", "main worktree must be untouched"
+    assert d.violations == []
+    a.stop(wt)
+    assert not wt.exists()
+
+
+def test_kernel_edit_by_an_agent_is_a_violation(tmp_path):
+    r = _repo(tmp_path)
+    (r / "pravrudhi_kernel").mkdir()
+    (r / "pravrudhi_kernel" / "k.py").write_text("k = 1\n")
+    subprocess.run(["git", "add", "-A"], cwd=r, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "k"], cwd=r, check=True, capture_output=True)
+    a = ClaudeCodeAgent(r)
+    wt = a.create_workspace("t2")
+    (wt / "pravrudhi_kernel" / "k.py").write_text("k = 999\n")
+    assert a.collect_changes(wt).violations == ["pravrudhi_kernel/k.py"]
+    a.stop(wt)
+
+
+def test_adapters_satisfy_the_protocol_and_name_themselves(tmp_path):
+    r = _repo(tmp_path)
+    for a in (ClaudeCodeAgent(r), CodexAgent(r), OrcaAgent(r, agent_id="codex")):
+        assert isinstance(a, CodingAgent) and isinstance(a, GitWorktreeMixin)
+    assert ClaudeCodeAgent(r).name == "claude-code"
+    assert CodexAgent(r).name == "codex"
+    assert OrcaAgent(r, agent_id="codex").name == "orca:codex"
+
+
+def test_orca_refuses_clearly_when_its_runtime_is_absent(tmp_path, monkeypatch):
+    a = OrcaAgent(_repo(tmp_path))
+    monkeypatch.setattr(a, "runtime_ready", lambda: False)
+    with pytest.raises(OrcaUnavailable):
+        a.create_workspace("t3")
+
+
+def test_survey_reports_a_reason_for_every_agent(tmp_path):
+    r = _repo(tmp_path)
+    rows = survey(r)
+    assert {r.name for r in rows} >= {"claude-code", "codex", "orca:claude", "orca:codex"}
+    assert all(r.reason for r in rows), "an unavailable agent must say why"
+    assert set(build_registry(r, include_orca=False)) == {"claude-code", "codex"}

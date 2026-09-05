@@ -1,0 +1,56 @@
+"""Choosing an agent, and refusing the ones that would not actually work.
+
+The registry answers one question honestly: which coding agents can run right now, on this machine, as configured?
+An agent that is installed but signed out, or whose orchestrator needs a display server that is not present, is
+reported as unavailable with the reason, rather than being handed a task that will fail halfway through a night.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from pravrudhi.agents.cli_agents import ClaudeCodeAgent, CodexAgent
+from pravrudhi.agents.orca_agent import OrcaAgent
+
+
+@dataclass(frozen=True)
+class AgentStatus:
+    name: str
+    available: bool
+    reason: str
+
+
+def build_registry(root: Path, *, include_orca: bool = True) -> dict[str, Any]:
+    agents: dict[str, Any] = {"claude-code": ClaudeCodeAgent(root), "codex": CodexAgent(root)}
+    if include_orca:
+        for agent_id in ("claude", "codex"):
+            a = OrcaAgent(root, agent_id=agent_id)
+            agents[a.name] = a
+    return agents
+
+
+def survey(root: Path, *, include_orca: bool = True) -> list[AgentStatus]:
+    """One line per agent: usable now, or the specific reason it is not."""
+    out: list[AgentStatus] = []
+    for name, a in build_registry(root, include_orca=include_orca).items():
+        if isinstance(a, CodexAgent):
+            if not a.available():
+                out.append(AgentStatus(name, False, "codex CLI not installed"))
+            elif not a.logged_in():
+                out.append(AgentStatus(name, False, "codex CLI installed but not signed in (run `codex login`)"))
+            else:
+                out.append(AgentStatus(name, True, "ready"))
+        elif isinstance(a, OrcaAgent):
+            ok = a.available()
+            out.append(
+                AgentStatus(name, ok, "ready" if ok else "orca-ide runtime not reachable (needs a display server: xvfb)")
+            )
+        else:
+            ok = a.available()
+            out.append(AgentStatus(name, ok, "ready" if ok else "claude CLI not installed"))
+    return out
+
+
+__all__ = ["AgentStatus", "build_registry", "survey"]

@@ -405,3 +405,19 @@ def ext_record_cmd(
     row = record_external(root, path.resolve(), tool=tool, track=track, condition=condition, model=model,
                           night=night, dataset=dataset, seed=seed)
     typer.echo(json.dumps({k: row[k] for k in ("seq", "track", "condition", "metrics", "sha256")}))
+
+
+@app.command("agents")
+def agents_cmd(
+    root: Path = ROOT_OPT,
+    json_out: bool = typer.Option(False, "--json", help="machine-readable output"),
+) -> None:
+    """Which coding agents can run right now, and the reason for any that cannot."""
+    from pravrudhi.agents.registry import survey
+
+    rows = survey(root)
+    if json_out:
+        typer.echo(json.dumps([{"name": r.name, "available": r.available, "reason": r.reason} for r in rows], indent=2))
+        return
+    for r in rows:
+        typer.echo(f"{r.name:16} {'ready' if r.available else 'unavailable':12} {r.reason}")
