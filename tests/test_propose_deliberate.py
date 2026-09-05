@@ -203,3 +203,11 @@ def test_deliberate_aborts_when_scores_do_not_condition_on_the_action(tmp_path: 
         raise AssertionError("expected DecorativeAbort")
     rows = [json.loads(line) for line in (root / "research" / "ledger.jsonl").read_text().splitlines()]
     assert any(r["kind"] == "audit" and r["payload"].get("kind") == "decorative_controller" for r in rows)
+
+
+def test_mi_floor_applies_only_in_first_round_after_bootstrap() -> None:
+    from pravrudhi.application.deliberate import mi_floor
+
+    assert mi_floor(0.05, bootstrap=True, round_index=0) == 0.0
+    assert mi_floor(0.05, bootstrap=False, round_index=0) == 0.05
+    assert mi_floor(0.05, bootstrap=False, round_index=1) == 0.0  # ADR-0012

@@ -450,6 +450,7 @@ def run_harness_night(
                 model_hash="0" * 64,
                 rng_seed=night * 100 + rnd,
                 log=log,
+                round_index=rnd,
                 surface="H3.prompt",
                 target_model=str(cfg["model"]),
             )

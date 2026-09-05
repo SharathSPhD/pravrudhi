@@ -24,6 +24,11 @@ from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.schema import AbstractionLevel, Candidate, EvidencePlan, Pramana, Prediction, Preferences, Residency, Stage
 
 
+def mi_floor(mi_min_bits: float, *, bootstrap: bool, round_index: int) -> float:
+    """C2: no information floor before any observation exists; ADR-0012: none after a night's first round."""
+    return 0.0 if (bootstrap or round_index > 0) else mi_min_bits
+
+
 class DecorativeAbort(RuntimeError):
     pass
 
@@ -60,6 +65,7 @@ def deliberate(
     log: Any = print,
     surface: str | None = None,
     target_model: str | None = None,
+    round_index: int = 0,
 ) -> list[str]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "controller.yaml").read_text())
     night_yaml = root / "research" / "prereg" / "lora_night.yaml"
@@ -149,7 +155,9 @@ def deliberate(
     # C2 bootstrap: before any candidate in the pool has a kernel observation, near-uniform selection is the expected
     # behaviour, not a decorative controller; the identical-score and CV criteria still apply, the MI floor does not.
     bootstrap = not any((st.candidates[c].n_obs if c in st.candidates else 0) > 0 for c in pool)
-    mi_min = 0.0 if bootstrap else float(cfg["decorative"]["mi_min_bits"])
+    # ADR-0012: the information floor applies only in a night's first round; after that the survivors' posteriors
+    # have been observed and a near-uniform choice among near-equals is the calibrated output, not a decorative one.
+    mi_min = mi_floor(float(cfg["decorative"]["mi_min_bits"]), bootstrap=bootstrap, round_index=round_index)
     verdict = decorative_check(G, Q, float(cfg["decorative"]["cv_min"]), mi_min)
     (root / "research" / "last_select.json").write_text(
         json.dumps(

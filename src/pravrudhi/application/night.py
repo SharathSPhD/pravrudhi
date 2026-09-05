@@ -125,6 +125,7 @@ def run_night(
                 model_hash=model_dir_hash(snap),
                 rng_seed=night * 100 + rnd,
                 log=log,
+                round_index=rnd,
             )
         except DecorativeAbort as e:
             log(f"night aborted: decorative controller ({e})")
