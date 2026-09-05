@@ -275,6 +275,66 @@
       "tool": "evalplus",
       "tool_version": "0.3.1",
       "track": "H"
+    },
+    {
+      "condition": "base",
+      "dataset": "mbpp",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/mb/base/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "mbpp": {
+          "pass@1_base": 0.5793650793650794,
+          "pass@1_plus": 0.49206349206349204
+        },
+        "mbpp_counts": {
+          "base_pass": 219,
+          "n": 378,
+          "plus_pass": 186
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "mbpp": 378
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1842,
+      "severity": "info",
+      "sha256": "019dd55c9c3219bf09c9bb4c14c1d766182ab87bc96dd4c8abf870ea98e27bac",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
+    },
+    {
+      "condition": "harness:combo",
+      "dataset": "mbpp",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/mb/combo/out/evalplus_samples_eval_results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "mbpp": {
+          "pass@1_base": 0.7804232804232805,
+          "pass@1_plus": 0.6296296296296297
+        },
+        "mbpp_counts": {
+          "base_pass": 295,
+          "n": 378,
+          "plus_pass": 238
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "n_samples": {
+        "mbpp": 378
+      },
+      "night": 3,
+      "seed": 0,
+      "seq": 1843,
+      "severity": "info",
+      "sha256": "23ea57b18e5b01e9d7cb3f8bfb7a32a64721f2b1bb8c11a0732082015122fa2a",
+      "tier": "external",
+      "tool": "evalplus",
+      "tool_version": "0.3.1",
+      "track": "H"
     }
   ],
   "featured_run": {
@@ -546,14 +606,14 @@
       "artefact": "research/inbox/harness-night3/c-0078",
       "external_after": null,
       "external_before": {
-        "humaneval": {
-          "pass@1_base": 0.6341463414634146,
-          "pass@1_plus": 0.5975609756097561
+        "mbpp": {
+          "pass@1_base": 0.5793650793650794,
+          "pass@1_plus": 0.49206349206349204
         },
-        "humaneval_counts": {
-          "base_pass": 104,
-          "n": 164,
-          "plus_pass": 98
+        "mbpp_counts": {
+          "base_pass": 219,
+          "n": 378,
+          "plus_pass": 186
         }
       },
       "id": "c-0078",
@@ -752,6 +812,12 @@
             "id": "humaneval-plus",
             "metric": "humaneval+ pass@1",
             "tool": "evalplus"
+          },
+          {
+            "direction": "up",
+            "id": "mbpp-plus",
+            "metric": "mbpp+ pass@1",
+            "tool": "evalplus"
           }
         ],
         "created": "",
@@ -786,6 +852,35 @@
             "met": null,
             "reason": "",
             "significant": false,
+            "state": "measured",
+            "target_delta": null
+          },
+          {
+            "baseline": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 378,
+              "night": 3,
+              "seq": 1842,
+              "sha256": "019dd55c9c3219bf09c9bb4c14c1d766182ab87bc96dd4c8abf870ea98e27bac",
+              "stderr": 0.05014530624659291,
+              "value": 0.49206349206349204
+            },
+            "benchmark": "mbpp+ pass@1",
+            "delta": 0.13756613756613761,
+            "delta_hi": 0.2742383441537315,
+            "delta_lo": 0.0008939309785437055,
+            "latest": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 378,
+              "night": 3,
+              "seq": 1843,
+              "sha256": "23ea57b18e5b01e9d7cb3f8bfb7a32a64721f2b1bb8c11a0732082015122fa2a",
+              "stderr": 0.048454321220749885,
+              "value": 0.6296296296296297
+            },
+            "met": null,
+            "reason": "",
+            "significant": true,
             "state": "measured",
             "target_delta": null
           }
@@ -941,6 +1036,12 @@
                 "id": "humaneval-plus",
                 "metric": "humaneval+ pass@1",
                 "tool": "evalplus"
+              },
+              {
+                "direction": "up",
+                "id": "mbpp-plus",
+                "metric": "mbpp+ pass@1",
+                "tool": "evalplus"
               }
             ],
             "criterion": "Obtain a baseline result from each declared external tool reporting its exact metric on this track.",
@@ -1008,6 +1109,12 @@
                 "direction": "up",
                 "id": "humaneval-plus",
                 "metric": "humaneval+ pass@1",
+                "tool": "evalplus"
+              },
+              {
+                "direction": "up",
+                "id": "mbpp-plus",
+                "metric": "mbpp+ pass@1",
                 "tool": "evalplus"
               }
             ],
@@ -1735,13 +1842,13 @@
     },
     "candidates": 141,
     "chain_ok": true,
-    "events": 1842,
+    "events": 1844,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "d1ae39a26414dfee22a5fc4362013173ddd19998d7eb59aed696d3fd03ff2783",
+    "ledger_head": "e1a1ed888a45788522f23b13025b05d2e3be1cf8e4ff57e7108b6428b4f8d885",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -1883,6 +1990,6 @@
       ]
     },
     "pruned": 82,
-    "state_hash": "caf543870408f7acc46a8efa50f0c0fc21bcc33f1a8c056e16797d9ccd47bbb2"
+    "state_hash": "bfbe45a94a03de808f8ab05464654d36c77961c3b614acc99fcf085a9de78992"
   }
 }

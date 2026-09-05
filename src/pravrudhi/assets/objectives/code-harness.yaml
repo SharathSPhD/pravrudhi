@@ -9,6 +9,10 @@ benchmarks:
     tool: evalplus
     metric: humaneval+ pass@1
     direction: up
+  - id: mbpp-plus
+    tool: evalplus
+    metric: mbpp+ pass@1
+    direction: up
 recipes:
   - evaluation
   - sandboxed-agents
