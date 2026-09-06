@@ -109,6 +109,54 @@ class HeartbeatResponse(BaseModel):
     beats: list[BeatOut]
 
 
+class SandboxViolationResponse(BaseModel):
+    """One out-of-policy write an agent made: the task that made it, the path it touched, and the policy
+    (its declared allowed paths) that forbade it. Persisted at `.pravrudhi/violations.jsonl`."""
+
+    task_id: str
+    path: str
+    allowed_paths: list[str]
+    at: str
+
+
+
+class SandboxObservationResponse(BaseModel):
+    """What one worktree has touched against its base commit, and how that stacks up against its policy."""
+
+    created: list[str] = []
+    modified: list[str] = []
+    deleted: list[str] = []
+    bytes_written: int = 0
+    allowed_count: int = 0
+    violations: list[SandboxViolationResponse] = []
+
+
+
+class LiveSandboxResponse(BaseModel):
+    """A live agent process was invisible once dispatched: nothing showed what its worktree was touching, how
+    much of its wall-clock budget it had spent, or whether it had written outside its declared policy."""
+
+    pid: int
+    kind: str
+    task_id: str
+    worktree: str
+    elapsed_s: int
+    budget_s: int
+    budget_fraction: float | None = None
+    allowed_paths: list[str] = []
+    observation: SandboxObservationResponse
+
+
+
+class SandboxesResponse(BaseModel):
+    """Every live agent joined to its worktree and policy, plus the persisted history of every write a policy
+    has forbidden -- the record that makes a policy real rather than decorative."""
+
+    live: list[LiveSandboxResponse]
+    recent_violations: list[SandboxViolationResponse]
+
+
+
 class StatusResponse(RootModel[UninitialisedStatus | InitialisedStatus]):
     """Missing and replayed ledgers were conflated by an untyped status object."""
 

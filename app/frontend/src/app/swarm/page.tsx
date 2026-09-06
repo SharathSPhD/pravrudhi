@@ -7,6 +7,7 @@ import { DispatchPanel } from "@/components/swarm/DispatchPanel";
 import { FleetTable } from "@/components/swarm/FleetTable";
 import { LivePanel } from "@/components/swarm/LivePanel";
 import { RoutingTable } from "@/components/swarm/RoutingTable";
+import { SandboxesSection } from "@/components/sandboxes/SandboxesSection";
 import { swarm, type SwarmSnapshot } from "@/lib/swarm";
 
 export default function SwarmPage() {
@@ -50,6 +51,7 @@ export default function SwarmPage() {
             <LivePanel />
 
             <DispatchPanel />
+            <SandboxesSection />
 
             <section>
               <h2 className="mb-3 text-sm font-medium text-[var(--color-text)]">Fleet</h2>

@@ -58,6 +58,7 @@ from pravrudhi.api.schemas import (
     RequestAdvanceRequest,
     RequestEvidenceRequest,
     RequestResponse,
+    SandboxesResponse,
     SignResponse,
     StatusResponse,
     SubagentsResponse,
@@ -284,6 +285,19 @@ def create_app(root: Path) -> FastAPI:
             return dispatchboard.cancel(root, job_id).to_dict()
         except dispatchboard.DispatchError as e:
             raise HTTPException(404, str(e)) from e
+
+    @api.get("/sandboxes", response_model=SandboxesResponse)
+    def sandboxes_ep() -> dict[str, Any]:
+        """What a dispatched agent is doing right now: its worktree, its declared policy, what it has touched,
+        and any write that policy forbade -- plus the persisted history of every violation this workspace has
+        observed, so a policy is something an operator can check rather than something they must trust."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.sandbox_monitor import violations as sandbox_violations
+        from pravrudhi.application.sandbox_monitor import watch as watch_sandboxes
+
+        live = [{**row, "observation": asdict(row["observation"])} for row in watch_sandboxes(root)]
+        return {"live": live, "recent_violations": sandbox_violations(root, 50)}
 
     @api.get("/external", response_model_exclude_unset=True)
     def external() -> ExternalResultsResponse:
