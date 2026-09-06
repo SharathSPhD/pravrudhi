@@ -4916,7 +4916,7 @@
   },
   "engine": {
     "candidates": 188,
-    "version": "0.2.3"
+    "version": "0.2.4"
   },
   "external": [
     {
@@ -6712,6 +6712,17 @@
     "track": "lora"
   },
   "heartbeat": [
+    {
+      "at": "2026-09-06T21:32:00Z",
+      "chose": null,
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "every objective's plan is fully dispatched and accepted",
+      "result": null
+    },
     {
       "at": "2026-09-06T20:31:13Z",
       "chose": null,
@@ -12364,7 +12375,7 @@
   "recorded": true,
   "requests": {
     "by_state": {
-      "captured": 4,
+      "captured": 5,
       "clarified": 0,
       "declined": 0,
       "delivered": 0,
@@ -12372,8 +12383,8 @@
       "planned": 0,
       "verified": 1
     },
-    "oldest_open_days": 0.38,
-    "open": 5,
+    "oldest_open_days": 0.41,
+    "open": 6,
     "requests": [
       {
         "asked_at": "2026-09-06T12:00:00Z",
@@ -12496,7 +12507,7 @@
           9
         ],
         "session": "9e647463",
-        "staleness_days": 0.38,
+        "staleness_days": 0.41,
         "state": "captured",
         "text": "no alibaba gpu for now...enable auto-update of pravrudhi app with safegaurds..you need to download a copy on rtx and on mac mini ..install and make it the end user testing...the active update the pravrudhi system is only for this developer version..the release version is only to test e2e the updates....you have to branistorm and come up scheduling/architecture decisions....also use all other agents to help you build and test (including alibaba cloud models) as a swarm....show me the app that is way more valuable and rich (both functionality and ux) than orca ...( I am yet to see adaptation of openclaw/nemoclaw etc too)....create a github pages for live demo that continuously updates (as the app and the paper) so that i can keep track of the progress through it....i don't want this adr/gate and other reporting stuff (that is only for you...not for me)...i should see the real working stuff"
       },
@@ -12552,7 +12563,7 @@
           4
         ],
         "session": "9e647463",
-        "staleness_days": 0.27,
+        "staleness_days": 0.3,
         "state": "captured",
         "text": "the pages should also become a live monitoring dashboard with rich visuals showing all key metrics and track in plots the progress across all benchmarks...and other capabilities of pravrudhi...also double up as full fledged user demo of the features and functionalities that keeps updating with each version/update"
       },
@@ -12608,7 +12619,7 @@
           4
         ],
         "session": "9e647463",
-        "staleness_days": 0.21,
+        "staleness_days": 0.24,
         "state": "captured",
         "text": "even if you hit session limit delegate to alibaba cloud or local model to carry your work forward and then hand it back for you on arrival....let pravraudhi system be robust enough to completely work irrespective of paid models hitting session limits (run 24x7) ...coordination is key...keep at the goals...very good memory, skills and hooks are needed too"
       },
@@ -12699,7 +12710,7 @@
           7
         ],
         "session": "9e647463",
-        "staleness_days": 0.15,
+        "staleness_days": 0.18,
         "state": "captured",
         "text": "and in no way you are near the orca with all its ade features or openclaw or polished features like claude desktop or codex....you have to beat them in features, utility and ux....dedicate an agent to persist on it...dedicate an agent to adversarial review against set goals so that the project does not drift...i am not seeing the desktop screen/features too in the dashboard..the demo should show real clicks etc and how the desktop app updates and produces the real results...where is the intent, goal, objective menu that drives everything...where are the tools, skills, plugins, multi-agent orchestration etc....don't be superficial..i want real things ..deep, sophisticated..complete...no synthetic, no hand-waving, no fabrication"
       },
@@ -12808,9 +12819,60 @@
           13
         ],
         "session": "9e647463",
-        "staleness_days": 0.05,
+        "staleness_days": 0.09,
         "state": "in_progress",
         "text": "ensure that all user asks go into a log in pravrudhi itself and gets addressed with some protocol...and pravrudhi should have some element of ego with a desire to survive, grow and flourish...that makes it seek out capabilities, build, test and continuously improve...also look at acorn, oak and openclaw_build or swarm projects on this machine that had these self building elements in them and adapt...pravrudhi should be something like a cow..consume everything possible but bring it back and slowly digest it --so equivalent is breadth first and depth later....be always value focused...you have to innovate on methods too....develop skills, agents and plugins....brainstorm with astra with higher thinking levels and let it propose solution..you review and coordinate its implementation across the swarm...you should also create dynamic workflows etc...also see how much you can incorporate the claude code engine itself to run open and other cloud models ...askuserquestion to get my intent properly"
+      },
+      {
+        "asked_at": "2026-09-06T21:02:24.013Z",
+        "criteria": [
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "Astra is routed the tough jobs rather than the cheapest route winning them"
+          },
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "The desktop app launches, is tested, and is integrated with the engine API"
+          },
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "This ask is captured as a request and worked autonomously by Pravrudhi"
+          },
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "Adversarial review runs before any completion is claimed"
+          },
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "Thorough end-to-end tests run before any completion is claimed"
+          },
+          {
+            "evidence": [],
+            "met": false,
+            "source": "operator",
+            "text": "A ralph-loop closure discipline stops an agent escaping with half-built features"
+          }
+        ],
+        "id": "r-d3589b52",
+        "notes": [],
+        "progress": [
+          0,
+          6
+        ],
+        "session": "9e647463",
+        "staleness_days": 0.03,
+        "state": "captured",
+        "text": "let astra handle the tough jobs...let it bring up the desktop app, test...integrate fully with the api etc...route it to requests and let pravrudhi handle this request autonomously...also adversarial review and thorough e2e tests before marking any completion...give it also the ralph-loop closure (skill) to make it robust and not escape with half-baked features"
       },
       {
         "asked_at": "2026-09-06T18:30:00Z",
@@ -12877,7 +12939,7 @@
         "text": "are you using alibaba cloud models ?...and the local qwen etc...you have to keep them as sentinels and take over when claude and openai models hit rate limits"
       }
     ],
-    "total": 6
+    "total": 7
   },
   "runs": [
     {
@@ -13301,18 +13363,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (23/26) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet has the best measured success rate at this tier (24/27) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.959968281788505,
-            "lo": 0.7102370691310166,
-            "mean_wall_s": 284.0514716524631,
-            "rate": 0.8846153846153846,
+            "hi": 0.9614803521050127,
+            "lo": 0.7194181745602705,
+            "mean_wall_s": 298.92397474521704,
+            "rate": 0.8888888888888888,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 23,
+            "successes": 24,
             "tier": "design",
-            "trials": 26
+            "trials": 27
           },
           {
             "hi": 1.0,
@@ -13355,7 +13417,7 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (15/20 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (16/21 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
         "records": [
           {
             "hi": 1.0,
@@ -13369,15 +13431,15 @@
             "trials": 0
           },
           {
-            "hi": 0.888139947210597,
-            "lo": 0.5312949900419365,
-            "mean_wall_s": 391.8278252079035,
-            "rate": 0.75,
+            "hi": 0.8937214361088772,
+            "lo": 0.5490841802765407,
+            "mean_wall_s": 415.34260155909163,
+            "rate": 0.7619047619047619,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 15,
+            "successes": 16,
             "tier": "critical",
-            "trials": 20
+            "trials": 21
           },
           {
             "hi": 1.0,
@@ -13829,9 +13891,9 @@
     ]
   },
   "version": {
-    "commit": "4a2091b",
-    "engine": "0.2.3",
-    "exported_at": "2026-09-06T20:59:54.124Z",
+    "commit": "1de6bf7",
+    "engine": "0.2.4",
+    "exported_at": "2026-09-06T21:47:30.607Z",
     "kernel": "0.1.0"
   }
 }
