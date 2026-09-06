@@ -26,7 +26,16 @@ uv run pravrudhi hosts list --root .                  # what this machine can do
 uv run pravrudhi hosts add mac-mini --address 10.0.0.5 --user you   # enrol another machine over ssh
 uv run pravrudhi hosts place train --root .           # which machine takes a training job, and why not the others
 uv run pravrudhi agents --root .                      # which coding agents can run here
-uv run pravrudhi serve --root .                       # HTTP: /status /candidates /observations /inbox /evidence
+uv run pravrudhi serve --root .                       # HTTP under /api: candidates, observations, inbox, evidence, objectives, chat...
+
+# optional: state what you want, track it, and let the engine plan for it
+uv run pravrudhi objective new my-goal --from math-reasoning    # or --intent/--track/--metric written by hand
+uv run pravrudhi objective progress my-goal --root .            # baseline vs current, straight from the ledger
+uv run pravrudhi objective loom my-goal --root .                # the plan as Loom source: readable, editable, not yet run
+uv run pravrudhi objective subagents my-goal --run --root .     # fan the plan out to coding agents; output lands in proposals/, never as evidence
+uv run pravrudhi tools --root .                                 # tools and connectors this engine can draw on, and what's installed here
+uv run pravrudhi recipes --root .                               # published training/eval recipes, and what's installed here
+uv run pravrudhi routing --root .                               # which agent and model a difficulty tier would use now, and why
 
 # harness track (fixed model, mutable scaffold, MBPP+ hidden tests in the sandbox; HumanEval+ as external proof)
 uv run pravrudhi pool seal-mbppplus --root .
@@ -42,6 +51,8 @@ uv run pravrudhi evidence external --root .
 ```
 
 `pravrudhi replay --verify` rebuilds the state view from the ledger and verifies the hash chain; `make reproduce` regenerates every evidence document from the ledger and fails on any difference.
+
+`pravrudhi app` (see `app/README.md`) serves the same engine with a browser interface, plus a few surfaces the CLI does not have a command for. `/api/chat` is a conversational front door over the same replay functions as the routes above: a reply may only state a number a tool call actually returned, citing the ledger rows behind it, and whatever it cannot verify is stripped out and reported as a refusal rather than invented. Its model endpoint is `PRAVRUDHI_CHAT_ENDPOINT` (falling back to the proposer's own local llama.cpp). `/api/memory` holds durable notes kept apart from ledger evidence; they follow the caller, not the workspace. Identity is optional: set `PRAVRUDHI_AUTH=required` with a Supabase project configured (see `supabase/`) to get per-user accounts at `/api/me` and separate per-user workspaces at `/api/workspaces`; leave it unset and every route answers to the local operator, no account required.
 
 ## What runs where
 

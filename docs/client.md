@@ -190,6 +190,9 @@ The client mirrors the engine's HTTP API. Methods return typed response objects 
 - `start_run(...)` → dict
 - `stop_run(run_id)` → dict
 
+The engine's chat endpoint (`POST /api/chat`) and its per-objective subagent dispatch (`POST /api/objectives/{id}/subagents`)
+have no client method yet; reach them with `httpx` directly, or drop to the CLI (`pravrudhi objective subagents <id> --run`).
+
 ## What this client is not, yet
 
 It imports its response models from `pravrudhi.api.schemas`, which imports from `pravrudhi_kernel`, so installing

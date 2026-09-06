@@ -21,7 +21,17 @@ is not implemented.
 
 The recipe catalogue ships with the engine and reports local skill availability. Objective detail in the API
 resolves available, absent and unknown recipe references. This is discovery and reporting, not automatic recipe
-execution or evidence that a technique works.
+execution or evidence that a technique works. The tool and connector catalogue and measured agent/model routing
+are reported the same way: what exists and what is installed here, not a claim that it has been invoked.
+
+An objective's plan can also be read as Loom source, and fanned out to coding agents as scoped subagent tasks,
+from both the command line and the API. Either path produces a proposal in `proposals/`, not evidence; nothing
+a subagent writes is admitted to the ledger by virtue of having run. A conversational endpoint answers questions
+about an objective or a run from the same replayed data as the other routes, restricted to citing ledger rows: a
+number the tools did not return is stripped from the reply and reported as a refusal rather than invented. A
+separate memory store holds durable notes, kept apart from ledger evidence and addressed to the caller rather
+than the workspace. Identity is optional and off by default; enabling it gives each signed-in user their own
+workspaces, each with an independent ledger, without changing what a single local engine does unauthenticated.
 
 The local app serves browser pages and API routes together. Improve provides run controls and status, Runs
 provides history and event inspection, Machines reports capabilities, and Settings reports coding-agent
@@ -62,3 +72,8 @@ across model configurations remain open design questions.
 A hosted account flow for connecting private engines, remote deployment arrangements, and broader administration
 controls remain separate from the recorded public site. Desktop packaging, shared engine tenancy and billing
 have no commitment here. Broader target support should be decided against a concrete evaluation contract.
+
+What happens when a sealed pool runs out of unused items is undecided. Studies and nights draw repeatedly
+against the same fixed, kernel-owned pool under an exposure cap; no policy yet governs what happens once that
+pool is exhausted — reseal against fresh held-out data, rotate in a second pool, or refuse further runs until an
+operator intervenes. This affects every track that seals a pool, not only the one that first exhausts it.
