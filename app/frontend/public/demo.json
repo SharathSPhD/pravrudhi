@@ -1547,6 +1547,41 @@
       "tool": "evalplus",
       "tool_version": "0.3.1",
       "track": "H"
+    },
+    {
+      "condition": "base",
+      "file": "/tmp/claude-1000/-home-ss-projects-pravrudhi/9e647463-05b0-43fe-9b20-48a82dacf7a6/scratchpad/nyaya/base/results.json",
+      "kind": "external_eval",
+      "metrics": {
+        "mmlu_jurisprudence": {
+          "acc,none": 0.6851851851851852,
+          "acc_stderr,none": 0.0448993107359131
+        },
+        "mmlu_professional_law": {
+          "acc,none": 0.3917861799217731,
+          "acc_stderr,none": 0.01246756441814512
+        }
+      },
+      "model": "Qwen/Qwen3-1.7B",
+      "model_args": "pretrained=/models/hub/models--Qwen--Qwen3-1.7B/snapshots/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e/,dtype=bfloat16,trust_remote_code=False",
+      "n_samples": {
+        "mmlu_jurisprudence": 108,
+        "mmlu_professional_law": 1534
+      },
+      "n_shot": {
+        "mmlu_jurisprudence": 0,
+        "mmlu_professional_law": 0
+      },
+      "night": 1,
+      "seed": 0,
+      "seq": 1848,
+      "severity": "info",
+      "sha256": "43e2e6b301dc7439df4fdf158b16807d71b8d5e83c02db7c0d46bc8273e6e379",
+      "tier": "external",
+      "tool": "lm-eval",
+      "tool_version": "0.4.9",
+      "track": "nyaya",
+      "transformers_version": "4.57.6"
     }
   ],
   "featured_run": {
@@ -2191,7 +2226,15 @@
         "notes": "Cited-statute accuracy is the metric this objective actually wants and no public harness scores it. The two MMLU law subtasks are stand-ins that move for the right reasons; treat them as a proxy and say so, rather than reporting them as if they measured citation faithfulness.",
         "progress": [
           {
-            "baseline": null,
+            "baseline": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 1534,
+              "night": 1,
+              "seq": 1848,
+              "sha256": "43e2e6b301dc7439df4fdf158b16807d71b8d5e83c02db7c0d46bc8273e6e379",
+              "stderr": 0.01246756441814512,
+              "value": 0.3917861799217731
+            },
             "benchmark": "mmlu_professional_law acc,none",
             "delta": null,
             "delta_hi": null,
@@ -2201,14 +2244,22 @@
             "met": null,
             "p_mcnemar": null,
             "paired": false,
-            "reason": "no external result on track 'nyaya' reports 'mmlu_professional_law acc,none'",
+            "reason": "the baseline is measured; nothing has been compared against it yet",
             "significant": false,
-            "state": "unmeasured",
+            "state": "baseline_only",
             "target_delta": 0.03,
             "wins": null
           },
           {
-            "baseline": null,
+            "baseline": {
+              "model": "Qwen/Qwen3-1.7B",
+              "n": 108,
+              "night": 1,
+              "seq": 1848,
+              "sha256": "43e2e6b301dc7439df4fdf158b16807d71b8d5e83c02db7c0d46bc8273e6e379",
+              "stderr": 0.0448993107359131,
+              "value": 0.6851851851851852
+            },
             "benchmark": "mmlu_jurisprudence acc,none",
             "delta": null,
             "delta_hi": null,
@@ -2218,9 +2269,9 @@
             "met": null,
             "p_mcnemar": null,
             "paired": false,
-            "reason": "no external result on track 'nyaya' reports 'mmlu_jurisprudence acc,none'",
+            "reason": "the baseline is measured; nothing has been compared against it yet",
             "significant": false,
-            "state": "unmeasured",
+            "state": "baseline_only",
             "target_delta": 0.03,
             "wins": null
           }
@@ -3074,13 +3125,13 @@
     },
     "candidates": 141,
     "chain_ok": true,
-    "events": 1848,
+    "events": 1849,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "e40a5c6f127f47d8794662365c88267753ce9bfd0aa327f619bb53b1162b016b",
+    "ledger_head": "8c674bcd7cd498e38a83168566eb9b313c9eda7926321c2aee69a1b935608dd8",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -3222,6 +3273,6 @@
       ]
     },
     "pruned": 82,
-    "state_hash": "78fd664caec8be17df0ef40a01eabac57f0364a360976b60d36eb3922f65176a"
+    "state_hash": "e5064c3fa630511955c88069e649dc86d7135c54cef3d32860f69daaeb211bd7"
   }
 }

@@ -26,7 +26,7 @@ from typing import Any
 import yaml
 
 from pravrudhi.application.discordance import discordance
-from pravrudhi.application.external import _headline, external_rows
+from pravrudhi.application.external import external_rows, headlines
 from pravrudhi_kernel.stats import wilson_ci
 
 PACKAGED_OBJECTIVES = Path(__file__).resolve().parents[1] / "assets" / "objectives"
@@ -218,17 +218,17 @@ def copy_example(root: Path, name: str) -> Path:
     return write(root, obj)
 
 
-def _measure(row: dict[str, Any]) -> tuple[str, Measurement]:
-    name, value, stderr, n = _headline(row)
-    return name, Measurement(
-        value=value,
-        stderr=stderr,
-        n=n,
-        model=str(row.get("model") or ""),
-        night=int(row.get("night") or 0),
-        seq=int(row.get("seq") or 0),
-        sha256=str(row.get("sha256") or ""),
-    )
+def _measures(row: dict[str, Any]) -> list[tuple[str, Measurement]]:
+    """Every (metric name, measurement) a row carries. A two-task lm-eval file is one row, and reading only its
+    first task left the second task's benchmark showing as unmeasured on an objective that named it."""
+    return [
+        (name, Measurement(
+            value=value, stderr=stderr, n=n,
+            model=str(row.get("model") or ""), night=int(row.get("night") or 0),
+            seq=int(row.get("seq") or 0), sha256=str(row.get("sha256") or ""),
+        ))
+        for name, value, stderr, n in headlines(row)
+    ]
 
 
 def _paired_stats(
@@ -257,10 +257,11 @@ def progress(obj: Objective, ledger: Path) -> list[Progress]:
     measured: dict[str, dict[str, list[tuple[Measurement, dict[str, Any]]]]] = {}
     for r in rows:
         try:
-            name, m = _measure(r)
+            pairs = _measures(r)
         except (KeyError, StopIteration, ZeroDivisionError):
             continue
-        measured.setdefault(name, {}).setdefault(str(r.get("condition") or ""), []).append((m, r))
+        for name, m in pairs:
+            measured.setdefault(name, {}).setdefault(str(r.get("condition") or ""), []).append((m, r))
 
     out: list[Progress] = []
     for b in obj.benchmarks:

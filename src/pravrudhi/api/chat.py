@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from pravrudhi.api.identity import CurrentUserDep, User
 from pravrudhi.api.schemas import ChatResponse, ChatThreadDetailResponse, ChatThreadsResponse
-from pravrudhi.application.chat import Complete, converse
+from pravrudhi.application.chat import ChatEndpointUnreachable, Complete, converse
 from pravrudhi.application.memory import MemoryError as MemoryStoreError
 from pravrudhi.application.memory_store import store_for
 
@@ -43,7 +43,10 @@ def build_chat_router(root: Path, complete: Complete | None = None) -> APIRouter
         `refusals`, so a reply is either traceable to the ledger or visibly missing a sentence."""
         if not req.message.strip():
             raise HTTPException(422, "a chat turn with no message asks nothing")
-        outcome = converse(workspace, req.message, thread_id=req.thread_id, user=user, complete=complete)
+        try:
+            outcome = converse(workspace, req.message, thread_id=req.thread_id, user=user, complete=complete)
+        except ChatEndpointUnreachable as exc:
+            raise HTTPException(503, str(exc)) from exc
         return outcome.to_dict()
 
     @router.get("/chat/threads", response_model=ChatThreadsResponse)

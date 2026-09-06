@@ -29,6 +29,10 @@ POLICY_OPT = typer.Option(
     None, "--policy", help="selection arm for H1: efe (default, from prereg) | greedy | thompson | random"
 )
 NIGHT_OPT = typer.Option(1, "--night")
+SEED_RECIPE_OPT = typer.Option(
+    [], "--seed-recipe",
+    help="harness recipe JSON to admit as a candidate through the kernel's own door, alongside the proposer's; repeatable",
+)
 BUDGET_OPT = typer.Option(None, "--budget", help="GPU-hours; default from research/prereg/lora_night.yaml")
 K_OPT = typer.Option(None, "--k")
 TRAIN_PARQUET_OPT = typer.Option(Path(".pravrudhi/data/gsm8k-train.parquet"), "--train-parquet")
@@ -584,9 +588,10 @@ def harness_night_cmd(
     proposer_endpoint: str = PROPOSER_ENDPOINT_OPT,
     root: Path = ROOT_OPT,
     gguf: Path | None = GGUF_OPT,
+    seed_recipe: list[Path] = SEED_RECIPE_OPT,
 ) -> None:
     """Track H night: fixed model, mutable harness, paired on MBPP+ rotations, hidden tests scored in the sandbox."""
-    from pravrudhi.application.harness_track import run_harness_night
+    from pravrudhi.application.harness_track import load_seed_recipes, run_harness_night
     from pravrudhi.application.spine import resolve_model_snapshot
 
     if gguf is None:
@@ -599,6 +604,7 @@ def harness_night_cmd(
             run_harness_night(
                 root, night=night, k=k, budget_gpu_h=budget, gguf=gguf, log=typer.echo, selection_policy=policy,
                 proposer_endpoint=proposer_endpoint,
+                seed_recipes=load_seed_recipes(seed_recipe),
             ),
             indent=2,
         )

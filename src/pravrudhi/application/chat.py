@@ -146,10 +146,19 @@ class ChatOutcome:
         }
 
 
+class ChatEndpointUnreachable(RuntimeError):
+    """The model endpoint did not answer. Raised so the API can say which endpoint, rather than a bare 500."""
+
+
 def chat_endpoint() -> str:
     """Where the chat model runs. Falls back to the proposer's endpoint rather than to nothing, so a machine
     already serving the proposer needs no extra configuration to hold a conversation."""
-    return os.environ.get("PRAVRUDHI_CHAT_ENDPOINT", "").strip() or DEFAULT_ENDPOINT
+    # The operator's own local server was on a different port from this module's default, and the chat answered
+    # with a bare 500 until someone found it. The proposer's endpoint setting is the second place to look.
+    for var in ("PRAVRUDHI_CHAT_ENDPOINT", "PRAVRUDHI_PROPOSER_ENDPOINT"):
+        if os.environ.get(var, "").strip():
+            return os.environ[var].strip()
+    return DEFAULT_ENDPOINT
 
 
 def system_prompt() -> str:
@@ -490,7 +499,14 @@ def default_complete(endpoint: str = "", model: str = "local") -> Complete:
     client = ChatClient(endpoint or chat_endpoint(), model=model)
 
     def complete(messages: list[dict[str, str]], tools: list[dict[str, Any]]) -> dict[str, Any]:
-        result = client.chat(messages, temperature=0.2, max_tokens=1024, json_schema=_DRAFT_SCHEMA)
+        try:
+            result = client.chat(messages, temperature=0.2, max_tokens=1024, json_schema=_DRAFT_SCHEMA)
+        except (OSError, ConnectionError) as exc:
+            raise ChatEndpointUnreachable(f"no chat model answered at {endpoint or chat_endpoint()}: {exc}") from exc
+        except Exception as exc:  # noqa: BLE001 - the client wraps transport errors in its own types
+            if "connect" in str(exc).lower() or "refused" in str(exc).lower() or "timeout" in str(exc).lower():
+                raise ChatEndpointUnreachable(f"no chat model answered at {endpoint or chat_endpoint()}: {exc}") from exc
+            raise
         try:
             data = json.loads(result.text)
         except json.JSONDecodeError:

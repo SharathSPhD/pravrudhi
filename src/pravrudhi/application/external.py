@@ -131,6 +131,25 @@ def stderr_key(key: str) -> str:
     return f"{head}_stderr{sep}{tail}"
 
 
+def headlines(row: dict[str, Any]) -> list[tuple[str, float, float, int]]:
+    """Every metric a row carries, not only the first.
+
+    An lm-eval run over two tasks writes one results file with both; admitting it as one row and reading only the
+    first task made the second invisible to any objective that named it, so a legal objective with two law tasks
+    could be measured and still show one of them as unmeasured. EvalPlus rows carry one dataset and yield one."""
+    m = row["metrics"]
+    if row["tool"] != "lm-eval":
+        return [_headline(row)]
+    out: list[tuple[str, float, float, int]] = []
+    for task, metrics in m.items():
+        if not metrics:
+            continue
+        key = "exact_match,strict-match" if "exact_match,strict-match" in metrics else next(iter(metrics))
+        n = int((row.get("n_samples") or {}).get(task) or 0)
+        out.append((f"{task} {key}", metrics[key], metrics.get(stderr_key(key), 0.0), n))
+    return out
+
+
 def _headline(row: dict[str, Any]) -> tuple[str, float, float, int]:
     m = row["metrics"]
     if row["tool"] == "lm-eval":
