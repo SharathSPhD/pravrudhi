@@ -1,0 +1,274 @@
+"""Memory storage across engines: the same shape, two homes.
+
+Until this module existed, `memory.py`'s API was reachable only through a `root` directory on disk, which
+fits the local single-user engine but not a hosted one: a logged-in user on a shared, stateless engine
+process has no per-workspace directory of their own to write a preference, a note, or a chat turn into.
+`MemoryStore` is `memory.py`'s API with `root` bound at construction instead of passed per call, so a caller
+that already holds a store never needs to know whether it is writing to a JSONL file or a Supabase table.
+`store_for` picks the right one for the request in front of it — a `Path` root when there is one (the local
+engine, or no verified user), Supabase-backed storage otherwise.
+
+`SupabaseMemoryStore` speaks PostgREST directly rather than through a client library, because the only thing
+it needs is a handful of table reads and writes scoped to one `user_id`, and because an injectable `fetch`
+lets it be exercised in tests with no network. It reapplies the same guards `memory.py` enforces (a durable
+note may never restate a ledger number, a preference must have a key, a chat turn's role must be one of the
+two the schema allows) before any network call, not after, so a rejected write never becomes a half-written
+row a caller has to clean up.
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from typing import Any, Protocol
+
+import httpx
+
+from pravrudhi.api.identity import User
+from pravrudhi.application import memory
+from pravrudhi.application.memory import ChatThread, ChatTurn, MemoryNote, Preference
+
+
+class Fetch(Protocol):
+    """One PostgREST call: a method and a table path, with an optional JSON body and query params."""
+
+    def __call__(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]] | dict[str, Any]: ...
+
+
+class MemoryStore(Protocol):
+    """`memory.py`'s API with the store's home (a workspace root, or a user's Supabase rows) already bound."""
+
+    def remember(self, text: str, *, source: str) -> MemoryNote: ...
+
+    def recall(self, query: str = "", *, limit: int = 5) -> list[MemoryNote]: ...
+
+    def forget(self, note_id: str) -> bool: ...
+
+    def set_preference(self, key: str, value: Any, *, source: str) -> Preference: ...
+
+    def preferences(self) -> dict[str, Preference]: ...
+
+    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn: ...
+
+    def thread(self, thread_id: str) -> ChatThread: ...
+
+    def threads(self) -> list[ChatThread]: ...
+
+
+class FileMemoryStore:
+    """`MemoryStore` over the local JSONL files under `<root>/.pravrudhi/memory/`."""
+
+    def __init__(self, root: Path) -> None:
+        self._root = root
+
+    def remember(self, text: str, *, source: str) -> MemoryNote:
+        return memory.remember(self._root, text, source=source)
+
+    def recall(self, query: str = "", *, limit: int = 5) -> list[MemoryNote]:
+        return memory.recall(self._root, query, limit=limit)
+
+    def forget(self, note_id: str) -> bool:
+        return memory.forget(self._root, note_id)
+
+    def set_preference(self, key: str, value: Any, *, source: str) -> Preference:
+        return memory.set_preference(self._root, key, value, source=source)
+
+    def preferences(self) -> dict[str, Preference]:
+        return memory.preferences(self._root)
+
+    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn:
+        return memory.append_turn(self._root, thread_id, role, content)
+
+    def thread(self, thread_id: str) -> ChatThread:
+        return memory.thread(self._root, thread_id)
+
+    def threads(self) -> list[ChatThread]:
+        return memory.threads(self._root)
+
+
+def _as_list(result: list[dict[str, Any]] | dict[str, Any]) -> list[dict[str, Any]]:
+    return result if isinstance(result, list) else [result]
+
+
+def _one(result: list[dict[str, Any]] | dict[str, Any]) -> dict[str, Any]:
+    rows = _as_list(result)
+    return rows[0]
+
+
+def _httpx_fetch(url: str, service_key: str) -> Fetch:
+    """The default `Fetch`: PostgREST over `{url}/rest/v1/`, authenticated with the service key.
+
+    The key is carried only in request headers, never interpolated into a URL, a log line, or an
+    exception message, so nothing here can leak it into a place a log aggregator or error tracker keeps.
+    """
+    base = url.rstrip("/") + "/rest/v1"
+    headers = {
+        "apikey": service_key,
+        "Authorization": f"Bearer {service_key}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    def call(
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]] | dict[str, Any]:
+        response = httpx.request(method, f"{base}/{path}", headers=headers, json=json, params=params, timeout=10.0)
+        response.raise_for_status()
+        if not response.content:
+            return []
+        result: list[dict[str, Any]] | dict[str, Any] = response.json()
+        return result
+
+    return call
+
+
+class SupabaseMemoryStore:
+    """`MemoryStore` over the `preferences`, `memory_notes`, `chat_threads` and `chat_turns` tables
+    (`supabase/schema.sql`), scoped to one `user_id` the way every row's `owner all` RLS policy is."""
+
+    def __init__(self, url: str, service_key: str, user_id: str, fetch: Fetch | None = None) -> None:
+        self._user_id = user_id
+        self._fetch = fetch if fetch is not None else _httpx_fetch(url, service_key)
+
+    def remember(self, text: str, *, source: str) -> MemoryNote:
+        text = text.strip()
+        if not text:
+            raise memory.MemoryError("a memory note with no text remembers nothing")
+        if memory._NUMERIC_CLAIM_RE.search(text):
+            raise memory.MemoryError(
+                f"refusing to remember {text!r}: it reads as a numeric claim about a result, and evidence comes "
+                "only from the ledger. If this is true, the ledger already has it; ask for the objective's "
+                "progress instead of recording the number here."
+            )
+        row = _one(self._fetch("POST", "memory_notes", json={"user_id": self._user_id, "text": text, "source": source}))
+        return MemoryNote(
+            id=str(row["id"]), text=str(row["text"]), source=str(row["source"]), created=str(row["created_at"])
+        )
+
+    def recall(self, query: str = "", *, limit: int = 5) -> list[MemoryNote]:
+        rows = _as_list(
+            self._fetch(
+                "GET", "memory_notes", params={"user_id": f"eq.{self._user_id}", "order": "created_at.desc"}
+            )
+        )
+        notes = [
+            MemoryNote(id=str(r["id"]), text=str(r["text"]), source=str(r["source"]), created=str(r["created_at"]))
+            for r in rows
+        ]
+        if query.strip():
+            q = query.strip().lower()
+            notes.sort(key=lambda n: 0 if q in n.text.lower() else 1)
+        return notes[:limit]
+
+    def forget(self, note_id: str) -> bool:
+        rows = _as_list(
+            self._fetch(
+                "DELETE", "memory_notes", params={"id": f"eq.{note_id}", "user_id": f"eq.{self._user_id}"}
+            )
+        )
+        return len(rows) > 0
+
+    def set_preference(self, key: str, value: Any, *, source: str) -> Preference:
+        key = key.strip()
+        if not key:
+            raise memory.MemoryError("a preference with no key cannot be recalled by key")
+        row = _one(
+            self._fetch(
+                "POST",
+                "preferences",
+                json={"user_id": self._user_id, "key": key, "value": value, "source": source},
+            )
+        )
+        return Preference(
+            key=str(row["key"]), value=row["value"], set_at=str(row["set_at"]), source=str(row["source"])
+        )
+
+    def preferences(self) -> dict[str, Preference]:
+        rows = _as_list(
+            self._fetch("GET", "preferences", params={"user_id": f"eq.{self._user_id}", "order": "set_at.desc"})
+        )
+        latest: dict[str, Preference] = {}
+        for r in rows:
+            key = str(r["key"])
+            if key not in latest:
+                latest[key] = Preference(
+                    key=key, value=r["value"], set_at=str(r["set_at"]), source=str(r["source"])
+                )
+        return latest
+
+    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn:
+        if role not in memory._ROLES:
+            raise memory.MemoryError(f"chat turn role must be one of {memory._ROLES}, got {role!r}")
+        existing = _as_list(
+            self._fetch(
+                "GET", "chat_threads", params={"id": f"eq.{thread_id}", "user_id": f"eq.{self._user_id}"}
+            )
+        )
+        if not existing:
+            self._fetch("POST", "chat_threads", json={"id": thread_id, "user_id": self._user_id})
+        row = _one(
+            self._fetch("POST", "chat_turns", json={"thread_id": thread_id, "role": role, "content": content})
+        )
+        self._fetch(
+            "PATCH",
+            "chat_threads",
+            json={"updated_at": row["created_at"]},
+            params={"id": f"eq.{thread_id}", "user_id": f"eq.{self._user_id}"},
+        )
+        return ChatTurn(role=str(row["role"]), content=str(row["content"]), ts=str(row["created_at"]))
+
+    def thread(self, thread_id: str) -> ChatThread:
+        threads_rows = _as_list(
+            self._fetch(
+                "GET", "chat_threads", params={"id": f"eq.{thread_id}", "user_id": f"eq.{self._user_id}"}
+            )
+        )
+        if not threads_rows:
+            raise memory.MemoryError(f"no chat thread {thread_id!r} in this workspace")
+        thread_row = threads_rows[0]
+        turns = self._turns(thread_id)
+        return ChatThread(
+            id=thread_id, turns=turns, created=str(thread_row["created_at"]), updated=str(thread_row["updated_at"])
+        )
+
+    def threads(self) -> list[ChatThread]:
+        thread_rows = _as_list(self._fetch("GET", "chat_threads", params={"user_id": f"eq.{self._user_id}"}))
+        out = [
+            ChatThread(
+                id=str(t["id"]),
+                turns=self._turns(str(t["id"])),
+                created=str(t["created_at"]),
+                updated=str(t["updated_at"]),
+            )
+            for t in thread_rows
+        ]
+        out.sort(key=lambda t: t.updated, reverse=True)
+        return out
+
+    def _turns(self, thread_id: str) -> tuple[ChatTurn, ...]:
+        rows = _as_list(
+            self._fetch("GET", "chat_turns", params={"thread_id": f"eq.{thread_id}", "order": "created_at.asc"})
+        )
+        return tuple(ChatTurn(role=str(r["role"]), content=str(r["content"]), ts=str(r["created_at"])) for r in rows)
+
+
+def store_for(root: Path, user: User | None) -> MemoryStore:
+    """The right store for this request: file-backed when there is no verified user or no Supabase project
+    configured to hold their rows, Supabase-backed otherwise."""
+    if user is not None:
+        url = os.environ.get("SUPABASE_URL", "")
+        service_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+        if url and service_key:
+            return SupabaseMemoryStore(url, service_key, user.id)
+    return FileMemoryStore(root)

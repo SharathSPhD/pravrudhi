@@ -1,0 +1,51 @@
+# sft-lora recipe config for the `finetune` step (math-reasoning objective).
+# All values are PROPOSED starting points, not measured or tuned results.
+# Fill in the four path fields below before running any script.
+
+# --- inputs supplied by the pipeline (fill these in) ---
+base_model: "REPLACE_ME"          # e.g. a local path or HF hub id for the base_model input
+prepared_corpus:                  # one or more JSONL files, see dataset.* below for schema
+  - "REPLACE_ME.jsonl"
+domain_eval_path: "REPLACE_ME_domain_eval.jsonl"        # held-out grade-school arithmetic word problems
+retention_eval_path: "REPLACE_ME_retention_eval.jsonl"  # real, non-synthetic general-purpose prompts
+
+# --- output ---
+output_dir: "proposals/math-reasoning/finetune/artifacts/adapter"  # finetune_candidate lands here
+
+# --- dataset schema ---
+dataset:
+  prompt_field: "question"   # rename if prepared_corpus uses different field names
+  answer_field: "answer"
+
+# --- LoRA hyperparameters (standard starting config, not searched) ---
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+
+# --- training schedule ---
+training:
+  num_train_epochs: 3
+  max_steps: 1200            # hard cap; whichever of epochs/steps is reached first stops the run
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  max_seq_length: 1024
+  bf16: true
+  logging_steps: 20
+  save_strategy: "epoch"
+  seed: 42
+
+# --- compute budget guardrail (proposed, see README for rationale) ---
+compute_budget:
+  max_gpu_hours: 2.0
+  device: "single RTX 5090"
+
+# --- eval ---
+eval:
+  batch_size: 8
+  max_new_tokens: 256
+  temperature: 0.0

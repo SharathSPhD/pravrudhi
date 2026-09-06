@@ -277,29 +277,31 @@ def create_app(root: Path) -> FastAPI:
         raise HTTPException(404, "no such objective")
 
     @api.get("/memory", response_model=MemoryResponse)
-    def memory_ep() -> dict[str, Any]:
-        """What belongs to the user in this workspace. Kept apart from the ledger, which owns what the loop learned."""
+    async def memory_ep(user: User | None = CurrentUserDep) -> dict[str, Any]:
+        """What belongs to the caller. A logged-in user's memory lives in Supabase; a local engine's on disk. Either
+        way it is kept apart from the ledger, which owns what the loop learned."""
         from dataclasses import asdict
 
-        from pravrudhi.application.memory import preferences, recall, threads
+        from pravrudhi.application.memory_store import store_for
 
+        store = store_for(root, user)
         return {
             "preferences": [{"key": k, **{kk: vv for kk, vv in asdict(p).items() if kk != "key"}}
-                            for k, p in preferences(root).items()],
-            "notes": [asdict(n) for n in recall(root, "", limit=50)],
-            "threads": [t.id for t in threads(root)],
+                            for k, p in store.preferences().items()],
+            "notes": [asdict(n) for n in store.recall("", limit=50)],
+            "threads": [t.id for t in store.threads()],
         }
 
     @api.post("/memory/notes", response_model=MemoryNoteResponse)
-    def remember_ep(req: RememberRequest) -> dict[str, Any]:
+    async def remember_ep(req: RememberRequest, user: User | None = CurrentUserDep) -> dict[str, Any]:
         """Record a durable fact. Refused if it reads as a bare numeric claim about a result."""
         from dataclasses import asdict
 
         from pravrudhi.application.memory import MemoryError as MemErr
-        from pravrudhi.application.memory import remember
+        from pravrudhi.application.memory_store import store_for
 
         try:
-            return asdict(remember(root, req.text, source=req.source or "api"))
+            return asdict(store_for(root, user).remember(req.text, source=req.source or "api"))
         except MemErr as e:
             raise HTTPException(422, str(e)) from e
 

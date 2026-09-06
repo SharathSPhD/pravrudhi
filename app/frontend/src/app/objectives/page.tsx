@@ -7,7 +7,7 @@
 // carries a difference. Rendering the first two as a zero would tell the user the loop had failed when in fact it
 // has not yet run.
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import {
   Target,
   Plus,
@@ -31,6 +31,7 @@ import {
   type Plan,
   type LoomResponse,
   type SubagentsResponse,
+  type SubagentRunRow,
   type BenchmarkProgress,
   type Objective,
   type Recipe,
@@ -41,6 +42,20 @@ import { PageHeader } from "@/components/PageHeader";
 
 function pct(v: number): string {
   return `${(v * 100).toFixed(1)}%`;
+}
+
+// SubagentRunRow.wall has gone stale against the engine's own field name; wall_s is read first and wall kept
+// only as a fallback for an older engine build that never sent it.
+function formatWall(wallS: number | null | undefined, legacyWall: number | null | undefined): string {
+  return `${Math.round(wallS ?? legacyWall ?? 0)}s`;
+}
+
+function formatAgentModel(agent: string, model: string | null | undefined): string {
+  return model ? `${agent}/${model}` : agent;
+}
+
+function truncateReason(reason: string): string {
+  return reason.length > 120 ? reason.slice(0, 120) : reason;
 }
 
 function Verdict({ p }: { p: BenchmarkProgress }) {
@@ -315,11 +330,30 @@ function LoomView({ id }: { id: string }) {
   );
 }
 
+// The engine's own field names for a dispatched run, layered onto the client's SubagentRunRow because api.ts is
+// not this task's to change: an older engine that never sends them still satisfies this type via the optionals.
+type EngineRunRow = SubagentRunRow & {
+  agent?: string | null;
+  model?: string | null;
+  wall_s?: number | null;
+  reason?: string | null;
+};
+
+interface DispatchPoll {
+  started: number;
+  target: number;
+  deadline: number;
+}
+
+const POLL_INTERVAL_MS = 5000;
+const POLL_TIMEOUT_MS = 15 * 60 * 1000;
+
 function SubagentsView({ id }: { id: string }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<SubagentsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dispatching, setDispatching] = useState(false);
+  const [poll, setPoll] = useState<DispatchPoll | null>(null);
 
   useEffect(() => {
     if (!open || data) return;
@@ -328,11 +362,53 @@ function SubagentsView({ id }: { id: string }) {
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [open, data, id]);
 
+  // Dispatch posts and forgets: the engine keeps running after the response returns, so the runs table only
+  // catches up by asking again. Polling stops as soon as the run count reaches what was started, or after 15
+  // minutes, whichever comes first — this instance of `poll` never changes underneath the effect, only the
+  // recursive timeout it owns does, so the loop is self-contained.
+  useEffect(() => {
+    if (!poll) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      if (cancelled) return;
+      objectiveSubagents(id)
+        .then((next) => {
+          if (cancelled) return;
+          setData(next);
+          if (next.runs.length >= poll.target || Date.now() >= poll.deadline) {
+            setPoll(null);
+            return;
+          }
+          timer = setTimeout(tick, POLL_INTERVAL_MS);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setError(e instanceof Error ? e.message : String(e));
+          setPoll(null);
+        });
+    };
+
+    timer = setTimeout(tick, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [poll, id]);
+
   const dispatch = async () => {
     setDispatching(true);
     setError(null);
     try {
-      setData(await dispatchSubagents(id));
+      const started = data?.preview.length ?? 0;
+      const baseline = data?.runs.length ?? 0;
+      const result = await dispatchSubagents(id);
+      setData(result);
+      const target = baseline + started;
+      if (started > 0 && result.runs.length < target) {
+        setPoll({ started, target, deadline: Date.now() + POLL_TIMEOUT_MS });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -391,7 +467,7 @@ function SubagentsView({ id }: { id: string }) {
               <div className="mt-3">
                 <button
                   onClick={dispatch}
-                  disabled={IS_DEMO || dispatching || data.preview.length === 0}
+                  disabled={IS_DEMO || dispatching || poll !== null || data.preview.length === 0}
                   title={
                     IS_DEMO
                       ? "This is a recording. Run the engine on your own machine to dispatch subagents."
@@ -399,8 +475,11 @@ function SubagentsView({ id }: { id: string }) {
                   }
                   className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {dispatching ? "Dispatching…" : "Dispatch"}
+                  {dispatching || poll ? "Dispatching…" : "Dispatch"}
                 </button>
+                {poll && (
+                  <p className="mt-2 text-[11px] text-[var(--color-text-dim)]">dispatching {poll.started}…</p>
+                )}
               </div>
 
               {data.runs.length > 0 && (
@@ -409,20 +488,37 @@ function SubagentsView({ id }: { id: string }) {
                     <thead>
                       <tr className="text-[var(--color-text-dim)]">
                         <th className="pb-1 pr-3 font-normal">step</th>
-                        <th className="pb-1 pr-3 font-normal">route</th>
+                        <th className="pb-1 pr-3 font-normal">agent / model</th>
                         <th className="pb-1 pr-3 font-normal">accepted</th>
                         <th className="pb-1 font-normal">wall</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data.runs.map((r, i) => (
-                        <tr key={`${r.step}-${i}`} className="border-t border-[var(--color-border)]">
-                          <td className="py-1 pr-3 font-mono text-[var(--color-text)]">{r.step}</td>
-                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.route}</td>
-                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.accepted ? "yes" : "no"}</td>
-                          <td className="py-1 tabular-nums text-[var(--color-text-dim)]">{r.wall}s</td>
-                        </tr>
-                      ))}
+                      {data.runs.map((raw, i) => {
+                        const r = raw as EngineRunRow;
+                        const reason = !r.accepted && r.reason ? truncateReason(r.reason) : null;
+                        return (
+                          <Fragment key={`${r.step}-${i}`}>
+                            <tr className="border-t border-[var(--color-border)]" title={reason ?? undefined}>
+                              <td className="py-1 pr-3 font-mono text-[var(--color-text)]">{r.step}</td>
+                              <td className="py-1 pr-3 text-[var(--color-text-dim)]">
+                                {formatAgentModel(r.agent ?? r.route, r.model)}
+                              </td>
+                              <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.accepted ? "yes" : "no"}</td>
+                              <td className="py-1 tabular-nums text-[var(--color-text-dim)]">
+                                {formatWall(r.wall_s, r.wall)}
+                              </td>
+                            </tr>
+                            {reason && (
+                              <tr className="border-t border-[var(--color-border)]">
+                                <td colSpan={4} className="py-1 text-[11px] text-[var(--color-text-dim)]">
+                                  {reason}
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

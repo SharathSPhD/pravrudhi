@@ -1,0 +1,5 @@
+# Domain -> feature names to monitor when deriving interpretation specs from an objective (loom_interp.py).
+# A domain absent here gets no FeatureSpec: the mapping is the only place a feature name is invented, never code.
+legal:
+  - cites_statute
+  - abstains_when_unsure

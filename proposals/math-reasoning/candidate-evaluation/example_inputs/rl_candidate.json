@@ -1,0 +1,5 @@
+{
+  "_comment": "ILLUSTRATIVE DUMMY NUMBERS ONLY -- not a measured result of any real checkpoint.",
+  "gsm8k": {"metric": "accuracy", "correct": 560, "n": 1319},
+  "general_capability_holdout": {"metric": "accuracy", "correct": 840, "n": 1000}
+}

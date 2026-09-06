@@ -1,0 +1,38 @@
+# Proposed run configuration for the candidate-evaluation step.
+# This is a PROPOSAL: nothing here has been executed against a real
+# checkpoint, and evaluation_sample_count below is a recommendation with
+# a stated rationale, not a measured or previously-agreed value.
+
+benchmarks:
+  - name: gsm8k
+    role: target
+    # GSM8K's own test split (1319 problems) comfortably exceeds the
+    # proposed sample count below, so the recommendation is: run the
+    # full test split. Only subsample if compute/time-boxing forces it,
+    # and if so, use evaluation_sample_count.
+    full_split_size: 1319
+
+  - name: general_capability_holdout
+    role: regression_guard
+    # Stand-in name: whatever general-purpose held-out set the objective's
+    # "without losing what it already knew" clause is meant to be checked
+    # against (e.g. a slice of the pre-RL SFT/eval set). Named generically
+    # here because this proposal is scoped to not survey the repo for the
+    # actual eval set the project already uses.
+    full_split_size: null
+
+evaluation_sample_count: 385
+evaluation_sample_count_rationale: >
+  385 is ceil(z^2 * p*(1-p) / margin^2) with z=1.96 (95% confidence),
+  p=0.5 (worst-case variance for a proportion), and margin=0.05 (+/-5
+  percentage points half-width). That is: 385 items is the smallest
+  sample that lets a single-benchmark accuracy estimate resolve a 5pp
+  swing at 95% confidence even in the worst case. See
+  stats.required_n_for_margin(0.05, 0.95, 0.5) for the formula.
+  Use this only as a floor for benchmarks smaller than 385 items or ones
+  evaluated by subsampling; prefer the full test split whenever it is
+  available and affordable, since more items only tighten the interval
+  compare_candidates.py reports.
+
+confidence_level: 0.95
+uncertainty_rule_type: wilson_diff

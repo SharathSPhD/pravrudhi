@@ -1,0 +1,95 @@
+# Source datasets for the grade-school-arithmetic corpus proposal.
+#
+# Every source is a real, human-authored (or human-verified) math word problem
+# dataset with a published train/test split. None are LLM-synthesized. This
+# repo's product direction rules out synthetic stand-ins for data that will be
+# used to train or evaluate reasoning ability (see project memory
+# pravrudhi-product-direction) - a synthesized "grade-school word problem"
+# is exactly the kind of item that can look right while encoding a wrong
+# solution path, which defeats the objective's own "more reliably" bar.
+#
+# `target_counts` are proposed quantities, not measurements - see README.md
+# "Corpus size" section for the reasoning behind each number.
+
+sources:
+  - source_id: gsm8k
+    hf_dataset: openai/gsm8k
+    hf_config: main
+    train_split: train
+    heldout_split: test          # official GSM8K test set - never enters the training pool
+    license: MIT
+    origin: https://github.com/openai/grade-school-math
+    description: >
+      8.5K linguistically diverse grade-school math word problems requiring
+      2-8 steps of elementary arithmetic (+, -, *, /). The primary target
+      domain for this objective and the field's standard benchmark for it.
+    target_count_train: 7473     # full published train split
+
+  - source_id: asdiv
+    hf_dataset: EleutherAI/asdiv
+    hf_config: null
+    train_split: validation       # ASDiv ships one labeled split; treated as source pool, see note below
+    heldout_split: null
+    license: CC-BY-NC-4.0
+    origin: https://github.com/chaochun/nlu-asdiv-dataset
+    description: >
+      Academia Sinica Diverse MWP set, annotated with problem type
+      (arithmetic / other) and grade level. Only the `arithmetic`-tagged,
+      elementary-grade subset is pulled (`fetch_sources.py --field-filter`),
+      since ASDiv also contains algebra/geometry items out of scope here.
+    target_count_train: 2300     # ~= size of the arithmetic-only, elementary-grade subset
+
+  - source_id: svamp
+    hf_dataset: ChilleD/SVAMP
+    hf_config: null
+    train_split: train
+    heldout_split: test
+    license: MIT
+    origin: https://github.com/arkilpatel/SVAMP
+    description: >
+      Challenge set built by applying structure-preserving variations
+      (question sensitivity, reasoning sensitivity, structural invariance)
+      to ASDiv-derived seed problems. Included specifically because it
+      probes whether the model is pattern-matching a template rather than
+      reasoning - directly relevant to "more reliably", not just "more
+      often".
+    target_count_train: 1000
+
+  - source_id: mawps
+    hf_dataset: MU-NLPC/Calc-mawps
+    hf_config: null
+    train_split: train
+    heldout_split: test
+    license: MIT
+    origin: https://github.com/sroy9/mawps
+    description: >
+      Aggregated single- and multi-step arithmetic word problems (AddSub,
+      MultiArith, SingleOp, SingleEq lineage). Broadens topic and phrasing
+      coverage beyond GSM8K's crowdworker style.
+    target_count_train: 3320
+
+# Decontamination note: SVAMP is derived from ASDiv seed problems and MAWPS
+# absorbs several older word-problem sets that circulate in more than one
+# HF dataset repackaging. This is exactly the kind of cross-dataset template
+# reuse that split_holdout.py's cross-source near-dup pass (not just the
+# official per-dataset test/train label) is designed to catch - see
+# README.md "Separation from held-out evaluation".
+
+holdout:
+  # Every row whose (source_id, split) matches a `heldout_split` above is
+  # excluded from the training pool unconditionally, regardless of anything
+  # dedupe.py finds. This is the objective's primary evaluation benchmark
+  # (GSM8K test, 1,319 problems) plus the secondary SVAMP/MAWPS test splits.
+  external_test_splits_are_authoritative: true
+
+  # In addition to the external test splits, reserve a stratified slice of
+  # the curated *training* pool itself as an internal dev/early-stopping set,
+  # so the external test splits above are never touched until the final
+  # reported evaluation of this objective.
+  internal_dev_fraction: 0.05
+  internal_dev_seed: 20260906
+
+  # Cross-source near-duplicate threshold used by dedupe.py / split_holdout.py
+  # to decide whether a training-pool item "is" a held-out item under
+  # template/number-substitution paraphrase, not just exact text match.
+  near_dup_jaccard_threshold: 0.8

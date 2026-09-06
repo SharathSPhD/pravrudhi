@@ -1,0 +1,52 @@
+# Domain-coverage floors for the grade-school-arithmetic corpus.
+#
+# Grade-school word-problem sets skew heavily toward two or three story
+# templates (shopping/money and simple rate problems dominate raw counts in
+# GSM8K, ASDiv and MAWPS alike). Without an explicit floor per bucket, naive
+# concatenation of the sources in sources.yaml would let those templates
+# crowd out topics that are just as much "grade-school arithmetic" but
+# appear less often - e.g. unit conversion or age problems - which would
+# make "solves grade-school arithmetic word problems more reliably" true
+# only for the over-represented story shapes.
+#
+# Buckets are assigned by scripts/common.py::classify_topic, a keyword/
+# structure heuristic over the question text (not a learned classifier -
+# this is a proposal-stage scaffold, meant to be audited, not a black box).
+# validate_corpus.py reports the realized share per bucket and exits
+# non-zero if any floor is missed.
+
+topic_buckets:
+  money_and_shopping:
+    min_share: 0.15
+    examples: ["cost", "price", "dollars", "spent", "bought", "sold"]
+  time_and_scheduling:
+    min_share: 0.08
+    examples: ["hours", "minutes", "days", "weeks", "clock", "finish"]
+  rate_and_distance:
+    min_share: 0.08
+    examples: ["speed", "miles", "km", "per hour", "travel"]
+  counting_and_grouping:
+    min_share: 0.15
+    examples: ["how many", "groups of", "each", "total number"]
+  age_and_comparison:
+    min_share: 0.05
+    examples: ["years old", "older than", "younger than", "age"]
+  measurement_and_units:
+    min_share: 0.08
+    examples: ["liters", "kilograms", "pounds", "inches", "feet", "cm"]
+  other_elementary_arithmetic:
+    min_share: 0.0     # catch-all; not floored, but tracked for visibility
+    examples: []
+
+# Independently of topic, also floor the reasoning-depth mix so the corpus
+# is not dominated by trivial one-step problems (easy to source, but the
+# objective explicitly names "reasoning" reliability, which one-step
+# arithmetic barely exercises).
+step_count_buckets:
+  single_step:
+    min_share: 0.0
+    max_share: 0.35    # cap, not floor - prevents the pool from skewing trivial
+  multi_step_2_to_4:
+    min_share: 0.40
+  multi_step_5_plus:
+    min_share: 0.10

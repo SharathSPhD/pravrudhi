@@ -1,0 +1,54 @@
+# GRPO config for the `rl-post-training` recipe applied to grade-school
+# arithmetic word problems. Consumed by train_rl.py via --config.
+#
+# Every value under `proposed_quantities` corresponds to a number the
+# objective left unspecified (rollout_count, compute_budget). They are
+# starting points for the operator, not measured or tuned results.
+
+model:
+  base_model: "artifacts/finetune_candidate"   # placeholder, see README "Paths"
+  load_in_4bit: false
+  trust_remote_code: false
+
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+  task_type: "CAUSAL_LM"
+
+data:
+  train_data: "artifacts/prepared_corpus/train.jsonl"     # placeholder
+  holdout_data: "artifacts/prepared_corpus/holdout.jsonl" # placeholder, not used during training
+  question_field: "question"
+  answer_field: "answer"
+  max_prompt_length: 512
+  max_completion_length: 512
+
+reward:
+  module: "reward.py"
+  correctness_weight: 1.0
+  format_weight: 0.1
+
+proposed_quantities:
+  # rollout_count: GRPO group size (completions sampled per prompt).
+  rollout_count: 8
+  # prompts drawn per optimizer step; rollout_count * prompts_per_step
+  # completions are generated per step.
+  prompts_per_step: 64
+  # compute_budget, expressed as a step count (proposed, see README).
+  max_steps: 300
+  eval_steps: 50
+
+training:
+  learning_rate: 1.0e-6
+  kl_coef: 0.04          # penalty toward the reference (finetune_candidate) policy
+  temperature: 1.0
+  top_p: 1.0
+  seed: 0
+  gradient_checkpointing: true
+  bf16: true
+
+output:
+  output_dir: "artifacts/rl_candidate"   # placeholder
+  save_steps: 50

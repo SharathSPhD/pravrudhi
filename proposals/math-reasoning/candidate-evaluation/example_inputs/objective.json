@@ -1,0 +1,9 @@
+{
+  "_comment": "ILLUSTRATIVE ONLY. Stand-in for the real objective record this step consumes, shaped to exercise compare_candidates.py end to end. Not a claim about the real objective schema.",
+  "id": "math-reasoning",
+  "intent": "A small model that solves grade-school arithmetic word problems more reliably than the checkpoint it started from, without losing what it already knew.",
+  "uncertainty_rule": {
+    "type": "wilson_diff",
+    "confidence": 0.95
+  }
+}

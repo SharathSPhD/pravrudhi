@@ -1,0 +1,30 @@
+# Proposal-stage task list for the math-reasoning baseline-evaluation step.
+#
+# Consumed by run_baseline_eval.sh. Nothing here is measured data; it is a
+# declaration of what to run and how many items to sample from each task, per
+# the "evaluation_sample_count" rationale in README.md.
+#
+# num_fewshot / limit are proposed defaults, not fixed requirements — override
+# with environment variables (see run_baseline_eval.sh) if the objective's own
+# `benchmarks` input specifies something else.
+
+tasks:
+  - name: gsm8k
+    role: target
+    metric: exact_match
+    num_fewshot: 8
+    limit: null          # null = full test split (n=1319), see README rationale
+
+  - name: arc_easy
+    role: retention
+    metric: acc_norm
+    num_fewshot: 0
+    limit: 500            # fixed-seed subsample, see README rationale
+
+  - name: hellaswag
+    role: retention
+    metric: acc_norm
+    num_fewshot: 0
+    limit: 500
+
+seed: 1234

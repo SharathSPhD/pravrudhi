@@ -1,0 +1,16 @@
+[
+  {
+    "_comment": "ILLUSTRATIVE. Target benchmark: grade-school arithmetic word problems.",
+    "name": "gsm8k",
+    "metric": "accuracy",
+    "direction": "maximize",
+    "target": 0.02,
+    "target_type": "delta"
+  },
+  {
+    "_comment": "ILLUSTRATIVE. Regression guard: general capability the checkpoint had before RL, to catch 'lost what it already knew'. No target -> must simply not regress with confidence.",
+    "name": "general_capability_holdout",
+    "metric": "accuracy",
+    "direction": "maximize"
+  }
+]
