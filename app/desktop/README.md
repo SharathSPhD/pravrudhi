@@ -8,7 +8,7 @@ From `app/desktop/`, run development with:
 npm install && npm start
 ```
 
-Choose your project with **Engine → Choose workspace…**, or set `PRAVRUDHI_WORKSPACE` before launch. The selection persists; the initial default is your home folder. The shell does not initialise or modify the workspace itself.
+Choose your project with **Engine → Choose workspace…**, or set `PRAVRUDHI_WORKSPACE` before launch. The selection persists; the initial default is the installed engine's source project when its built frontend is present, otherwise your home folder. The shell does not initialise or modify the workspace itself.
 
 Build the current platform's distributable with:
 
@@ -20,13 +20,13 @@ Linux produces an AppImage. On macOS this produces an **unsigned DMG**; it is no
 
 The discovery order is `PRAVRUDHI_BIN`, `pravrudhi` on PATH, `~/pravrudhi-release/.pravrudhi/releases/current/.venv/bin/pravrudhi`, `~/.local/bin/pravrudhi`, then the executable remembered by **Locate the engine…**. Invalid/non-executable candidates are skipped. A picked binary does not override an earlier valid candidate; change `PRAVRUDHI_BIN` to explicitly override discovery.
 
-A free loopback port is selected and the shell launches `pravrudhi app --no-browser --port N --root <workspace>`. A real connection screen remains visible until `/api/health` succeeds, with a deadline of 30 seconds. A missing frontend, failed process, or failed health check leads to recovery rather than an empty window. Doctor runs automatically on failure when a binary exists, and can be rerun. Each check displays its engine-provided name and detail with a copyable recovery or diagnostic command. There is no universal command to install Docker on every OS or repair a corrupted ledger; these checks link to installation guidance or advise restoring a verified backup rather than fabricate a repair. Commands are never executed from the renderer.
+The shell first probes `PRAVRUDHI_ENGINE_URL`, its remembered engine URL, and the engine default `http://127.0.0.1:8008`. Only healthy loopback HTTP endpoints are attached. An attached engine is externally owned: Stop disconnects and Restart reconnects without killing it. Otherwise, a free loopback port is selected and the shell launches `pravrudhi app --no-browser --port N --root <workspace>`. A real connection screen remains visible until `/api/health` succeeds, with a deadline of 30 seconds. A missing frontend, failed process, or failed health check leads to recovery. The first-run screen reads `/api/health`, `/api/update`, `/api/requests` (the open backlog), and `/api/inbox` (unsigned packs) through named invoke calls, displays errors per endpoint, and runs doctor. **Open engine interface** loads the engine page; **Engine → Connection and diagnostics** returns to the desktop screen. Doctor runs automatically on failure when a binary exists, and can be rerun. Each check displays its engine-provided name and detail with a copyable recovery or diagnostic command. There is no universal command to install Docker on every OS or repair a corrupted ledger; these checks link to installation guidance or advise restoring a verified backup rather than fabricate a repair. Commands are never executed from the renderer.
 
 Native File, View, Engine, and Help menus support additional windows, engine location/restart/stop, workspace access, updates, reload, zoom, developer tools, docs, and version information. A tray menu reflects engine status and can focus the app or restart the engine. Windows share one engine. The first window's focus is restored on a second application launch. Window bounds and maximized state persist in Electron userData, with off-screen recovery. Closing all windows quits on both platforms, terminating the engine process group; SIGINT/SIGTERM also clean up. Graceful termination escalates to SIGKILL if needed.
 
-Update checks invoke `pravrudhi update --json`; applying requires the native prompt and invokes `pravrudhi update --apply --channel release --json`. The engine's ApplyResult reason is shown verbatim. The engine owns all update safeguards. Restart via the Engine menu after an applied update. The check has a bounded command timeout; applying has a longer bounded timeout. The shell itself is updated by installing a new desktop package.
+Update checks read `GET /api/update`; applying requires the native prompt and invokes `pravrudhi update --apply --channel release --json`. The engine's ApplyResult reason is shown verbatim. The engine owns all update safeguards. Restart via the Engine menu after an applied update. The check has a bounded command timeout; applying has a longer bounded timeout. The shell itself is updated by installing a new desktop package.
 
-The renderer is sandboxed with context isolation and no Node integration. Its preload exposes only status, locate, restart, stop, doctor, updates, and workspace access through explicitly named invoke calls. IPC validates the sender window, main frame, and origin. New-window requests and navigations send external HTTP(S) links to the system browser; non-web schemes are blocked. Permissions and webviews are denied.
+The renderer is sandboxed with context isolation and no Node integration. Its preload exposes only status, health, update state, backlog and inbox counts, open interface, locate, restart, stop, doctor, updates, and workspace access through explicitly named invoke calls. IPC validates the sender window, main frame, and origin. New-window requests and navigations send external HTTP(S) links to the system browser; non-web schemes are blocked. Permissions and webviews are denied.
 
 Run the headless logic tests (no GUI is launched):
 
@@ -34,4 +34,14 @@ Run the headless logic tests (no GUI is launched):
 node --test test/
 ```
 
-Tests exercise executable discovery and fallbacks, actual loopback port binding, health retries/deadlines/cancellation, doctor parsing, navigation policy, state persistence, and recovery command quoting. GUI and packaged-artifact smoke tests require a graphical Linux/macOS session.
+Tests exercise executable discovery and fallbacks, actual loopback port binding, health retries/deadlines/cancellation, doctor parsing, navigation policy, state persistence, and recovery command quoting. Run the real desktop smoke check without a display:
+
+```sh
+npm run smoke
+```
+
+The launcher uses `ELECTRON_ENABLE_LOGGING=1` and `xvfb-run -a`. Smoke passes `--no-sandbox` to disable the process-level Chromium sandbox because this environment cannot chown the SUID helper to root and set mode 4755. The renderer keeps `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`. When Xvfb is unavailable, it uses Electron headless/offscreen rendering with `ELECTRON_DISABLE_GPU=1` and hardware acceleration disabled. It installs no system packages. Electron and its system runtime libraries must already be available after `npm install`.
+
+The main process writes `.smoke/report.json` containing `launched`, `engine_found`, `engine_url`, `page_title`, `health_ok`, and `errors`. It waits for the first-run API screen, loads the actual engine frontend, records its title after loading, rechecks health, and terminates its owned engine group before exiting. A failed launch, failed endpoint, missing frontend, or timeout exits nonzero. If Electron cannot initialize, the launcher writes a failure report using the same reporter module. Each run removes the previous report first. Smoke uses isolated `.smoke/user-data`; set `PRAVRUDHI_WORKSPACE` or `PRAVRUDHI_ENGINE_URL` to target a particular installation.
+
+Tests also cover API errors, attachment without spawning, menu and tray handlers, process ownership and group termination, single-instance focusing, preload restrictions, first-run rendering, and smoke JSON success/failure paths. No GUI is launched by unit tests.

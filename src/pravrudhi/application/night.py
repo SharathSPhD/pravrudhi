@@ -216,9 +216,18 @@ def _sha(p: Path) -> str:
 
 
 def inbox_listing(root: Path) -> list[dict[str, Any]]:
+    """What is waiting on a human decision, and an empty list on a workspace that has never run a night.
+
+    This replayed the ledger unconditionally, so on a fresh install — no research directory at all — it raised
+    and the route answered 500. That is the first thing a new user's desktop app asks for, so the very first
+    screen of the product was a server error.
+    """
     from pravrudhi_kernel.ledger import replay
 
-    st = replay(root / "research" / "ledger.jsonl")
+    ledger = root / "research" / "ledger.jsonl"
+    if not ledger.exists():
+        return []
+    st = replay(ledger)
     out = []
     for p in sorted((root / "research" / "inbox").glob("*/*/README.md")) if (root / "research" / "inbox").exists() else []:
         cid = p.parent.name

@@ -1,6 +1,11 @@
 'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('desktop', Object.freeze({
+  health: () => ipcRenderer.invoke('engine:health'),
+  updateState: () => ipcRenderer.invoke('engine:update-state'),
+  backlogCount: () => ipcRenderer.invoke('engine:backlog'),
+  pendingInboxCount: () => ipcRenderer.invoke('engine:inbox'),
+  openEngine: () => ipcRenderer.invoke('engine:open'),
   engineStatus: () => ipcRenderer.invoke('engine:status'),
   locateEngine: () => ipcRenderer.invoke('engine:locate'),
   restart: () => ipcRenderer.invoke('engine:restart'),

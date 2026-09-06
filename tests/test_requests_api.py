@@ -91,3 +91,18 @@ def test_no_response_field_carries_a_secret_shaped_string(tmp_path: Path, client
         assert token not in resp.text
         lowered = resp.text.lower()
         assert not any(marker in lowered for marker in ("api_key", "secret", "password", "bearer "))
+
+
+def test_a_fresh_workspace_answers_every_read_route_rather_than_erroring(tmp_path):
+    """A new user's first screen asked for the inbox and got a 500: the listing replayed a ledger that did not
+    exist yet. Every read-only route must answer on a workspace that has never run a night."""
+    from fastapi.testclient import TestClient
+
+    from pravrudhi.api.server import create_app
+
+    client = TestClient(create_app(tmp_path))
+    headers = {"host": "127.0.0.1:8008"}
+    for path in ("/api/health", "/api/inbox", "/api/requests", "/api/status", "/api/update", "/api/swarm"):
+        r = client.get(path, headers=headers)
+        assert r.status_code == 200, f"{path} answered {r.status_code} on a fresh workspace"
+    assert client.get("/api/inbox", headers=headers).json() == []

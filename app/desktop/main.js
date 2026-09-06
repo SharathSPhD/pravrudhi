@@ -1,40 +1,53 @@
 'use strict';
 const {app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, dialog, shell, screen} = require('electron');
-const {spawn} = require('node:child_process');
 const path = require('node:path');
 const {pathToFileURL} = require('node:url');
-const {discoverEngine, freePort, pollHealth, parseDoctor, linkPolicy, readState, writeState, validBounds} = require('./lib/core');
+const {discoverEngine, pollHealth, parseDoctor, linkPolicy, readState, writeState, validBounds} = require('./lib/core');
 const {recovery} = require('./lib/recovery');
+const {createApiClient} = require('./lib/api');
+const {selectConnection, defaultWorkspace} = require('./lib/connection');
+const {createProcessOwner, singleInstance, focusWindow} = require('./lib/lifecycle');
+const {engineMenu, trayState} = require('./lib/menu');
+const {createSmokeReporter} = require('./lib/smoke');
+const smokeMode = process.env.PRAVRUDHI_DESKTOP_SMOKE === '1';
+const offscreen = process.env.ELECTRON_DISABLE_GPU === '1';
+if (offscreen) app.disableHardwareAcceleration();
+if (smokeMode) app.setPath('userData', path.join(__dirname, '.smoke/user-data'));
+const smoke = smokeMode ? createSmokeReporter(path.join(__dirname, '.smoke/report.json')) : null;
+let smokeExitCode = 1, smokeFinished = false;
+async function finishSmoke(error) {
+  if (!smoke || smokeFinished) return;
+  smokeFinished = true;
+  try {
+    smokeExitCode = error ? await smoke.fail(error) : await smoke.finish({getTitle:()=>[...windows][0].webContents.getTitle(),health:api.health});
+  } catch (failure) { console.error('Smoke report:', failure); smokeExitCode = 1; }
+  app.quit();
+}
 const docs = 'https://github.com/SharathSPhD/pravrudhi#readme';
 const statusFile = path.join(__dirname, 'renderer/index.html');
 const statusURL = pathToFileURL(statusFile).href;
 let settings, stateFile, workspace, tray, engine, controller, quitting = false, queue = Promise.resolve();
-const windows = new Set(), children = new Set();
+const windows = new Set(), processes = createProcessOwner();
 let status = {phase: 'starting', detail: 'Finding your installed engine…', checks: [], version: 'Unknown', origin: null};
+const api = createApiClient(()=>status.origin);
+const engineController = {restart:()=>serialize(start),stop:()=>serialize(stop),checkForUpdates:updates,openWorkspace:async()=>{ const error = await shell.openPath(workspace); if (error) throw new Error(error); }};
 function persist() { writeState(stateFile, settings); }
 function publish(patch) { status = {...status, ...patch}; refreshTray(); }
 function statusScreens() { for (const w of windows) w.loadFile(statusFile).catch(() => {}); }
-function focus() { const w = [...windows][0] || createWindow(); if (w.isMinimized()) w.restore(); w.show(); w.focus(); }
+function focus() { focusWindow(windows, createWindow); }
 function safe(action) { return () => Promise.resolve().then(action).catch(e => dialog.showErrorBox('Pravrudhi', e.message)); }
 function serialize(action) { controller?.abort(); const next = queue.then(action); queue = next.catch(() => {}); return next; }
 function launch(args) {
   if (quitting) throw new Error('Application is shutting down.');
-  const child = spawn(status.binary, args, {cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'], shell: false});
-  children.add(child);
-  return child;
+  return processes.launch(status.binary,args,{cwd:workspace});
 }
-function signalGroup(child, signal) { if (child.pid) { try { process.kill(-child.pid, signal); } catch (e) { if (e.code !== 'ESRCH') throw e; } } }
-async function terminate(child) {
-  signalGroup(child, 'SIGTERM');
-  await new Promise(r => setTimeout(r, 800));
-  signalGroup(child, 'SIGKILL'); children.delete(child);
-}
+const terminate = child => processes.stop(child);
 async function command(args, timeout = 30000) {
   if (!status.binary) throw new Error('Locate an installed engine first.');
   const child = launch(args);
   return new Promise((resolve, reject) => {
     let out = '', err = '', finished = false;
-    const finish = async (error) => { if (finished) return; finished = true; clearTimeout(timer); await terminate(child); error ? reject(error) : resolve(out); };
+    const finish = async (error) => { if (finished) return; finished = true; clearTimeout(timer); try { await terminate(child); error ? reject(error) : resolve(out); } catch (failure) { reject(failure); } };
     const timer = setTimeout(() => finish(new Error('Engine command timed out.')), timeout);
     child.stdout.on('data', b => { out += b; if (out.length > 4 * 1024 * 1024) finish(new Error('Engine output exceeded the limit.')); });
     child.stderr.on('data', b => { err = (err + b).slice(-12000); });
@@ -50,45 +63,71 @@ async function doctor() {
 }
 async function stop() {
   controller?.abort();
-  const old = engine; engine = null;
+  const old = engine, attached = status.attached; engine = null;
   if (old) await terminate(old);
-  publish({phase:'stopped', origin:null, detail:'Engine stopped. Your workspace is ready when you are.'}); statusScreens();
+  publish({phase:'stopped', origin:null, attached:false, detail:attached ? 'Disconnected. The externally managed engine is still running.' : 'Engine stopped. Your workspace is ready when you are.'}); statusScreens();
 }
 async function start() {
   await stop();
   if (quitting) return;
   publish({phase:'starting', detail:'Finding your installed engine…', checks:[], doctorError:null});
-  const binary = await discoverEngine({saved: settings.enginePath});
-  publish({binary, version:'Unknown'});
-  if (!binary) { publish({phase:'missing', detail:'Connect your Pravrudhi engine to get started.'}); return; }
-  command(['--version'], 5000).then(value => { if (status.binary === binary) publish({version:value.trim() || 'Unknown'}); }).catch(() => {});
   controller = new AbortController();
   const currentController = controller;
   let processFailure = '';
   try {
-    const port = await freePort();
-    currentController.signal.throwIfAborted();
-    const origin = `http://127.0.0.1:${port}`;
-    publish({detail:`Starting ${binary} · waiting for /api/health…`});
-    const child = launch(['app', '--no-browser', '--port', String(port), '--root', workspace]); engine = child;
-    let stderr = '';
-    child.stderr.on('data', b => { stderr = (stderr + b).slice(-6000); }); child.stdout.resume();
-    child.on('error', e => { processFailure = e.message; currentController.abort(); });
-    child.on('exit', (code, signal) => {
-      if (engine !== child) return;
-      processFailure = stderr || `Engine exited (${signal || code}).`; currentController.abort();
-      if (status.phase === 'running') { engine = null; publish({phase:'error', origin:null, detail:processFailure}); statusScreens(); safe(async () => { await terminate(child); if (!quitting) await doctor(); })(); }
+    const connection = await selectConnection({
+      candidates:[process.env.PRAVRUDHI_ENGINE_URL, settings.engineURL, 'http://127.0.0.1:8008'],
+      discover:()=>discoverEngine({saved:settings.enginePath})
     });
+    const {binary, origin, attached} = connection;
+    currentController.signal.throwIfAborted();
+    publish({binary, attached, version:'Unknown', detail:attached ? 'Connected to your running engine.' : `Starting ${binary} · waiting for /api/health…`});
+    smoke?.engine(origin);
+    if (!attached) {
+      const port = new URL(origin).port;
+      const child = launch(['app', '--no-browser', '--port', port, '--root', workspace]); engine = child;
+      let stderr = '';
+      child.stderr.on('data', b => { stderr = (stderr + b).slice(-6000); }); child.stdout.resume();
+      child.on('error', e => { processFailure = e.message; currentController.abort(); });
+      child.on('exit', (code, signal) => {
+        if (engine !== child) return;
+        processFailure = stderr || `Engine exited (${signal || code}).`; currentController.abort();
+        if (status.phase === 'running') {
+          engine = null; publish({phase:'error', origin:null, detail:processFailure}); statusScreens();
+          safe(async () => { await terminate(child); if (!quitting) await doctor(); })();
+        }
+      });
+    }
     try { await pollHealth(`${origin}/api/health`, {signal:currentController.signal}); } catch(e) { throw new Error(processFailure || e.message); }
     const response = await fetch(origin, {signal: AbortSignal.timeout(5000)});
     if (!response.ok || !(response.headers.get('content-type') || '').includes('text/html')) throw new Error('The engine is healthy, but its frontend is not installed. See the installation instructions to prepare the interface.');
     currentController.signal.throwIfAborted();
-    publish({phase:'running', origin, detail:'Engine running'});
-    for (const w of windows) await w.loadURL(origin);
+    publish({phase:'running', origin, detail:attached ? 'Connected to an existing engine. Stop disconnects this desktop; the external engine stays running.' : 'Engine running'});
+    settings.engineURL = origin; persist();
+    const health = await api.health(); publish({version:health.version || 'Unknown'});
+    await doctor();
+    if (smoke) {
+      // Exercise the actual sandboxed first-run renderer and its invoke calls.
+      const window = [...windows][0];
+      await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
+        const deadline = Date.now() + 45000;
+        function check() {
+          if (document.body.dataset.apiReady === 'true' && document.body.dataset.doctorReady === 'true') {
+            if (document.body.dataset.apiError) return reject(new Error(document.body.dataset.apiError));
+            return resolve();
+          }
+          if (Date.now() >= deadline) return reject(new Error('First-run API screen did not finish loading.'));
+          setTimeout(check, 100);
+        }
+        check();
+      })`);
+      await window.loadURL(origin);
+      await finishSmoke();
+    }
   } catch (e) {
     const old = engine; engine = null; if (old) await terminate(old);
     if (quitting || (currentController.signal.aborted && !processFailure)) return;
-    publish({phase:'error', origin:null, detail:e.message}); statusScreens(); await doctor();
+    publish({phase:'error', origin:null, detail:e.message}); statusScreens(); if (smoke) await finishSmoke(e); else await doctor();
   }
 }
 async function locate() {
@@ -101,7 +140,7 @@ async function updates() {
   if (updating) return;
   updating = true;
   try {
-    const result = JSON.parse(await command(['update', '--json', '--root', workspace]));
+    const result = await api.update();
     if (result.update_available === true) {
       const choice = await dialog.showMessageBox({type:'question', message:`Engine update available: ${result.latest?.tag || 'new release'}`, detail:'Apply the release using the engine’s update safeguards?', buttons:['Cancel','Apply update'], defaultId:0, cancelId:0});
       if (choice.response === 1) {
@@ -116,9 +155,10 @@ async function updates() {
 function createWindow() {
   const b = settings.bounds;
   const visible = validBounds(b) && screen.getAllDisplays().some(d => b.x < d.workArea.x + d.workArea.width && b.x + b.width > d.workArea.x && b.y < d.workArea.y + d.workArea.height && b.y + b.height > d.workArea.y);
-  const w = new BrowserWindow({width:1200, height:800, ...(visible ? b : {}), minWidth:720, minHeight:520, title:'Pravrudhi', backgroundColor:'#11151b', show:false, icon:path.join(__dirname,'renderer/icon.png'), webPreferences:{preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true}});
+  const w = new BrowserWindow({width:1200, height:800, ...(visible ? b : {}), minWidth:720, minHeight:520, title:'Pravrudhi', backgroundColor:'#11151b', show:false, icon:path.join(__dirname,'renderer/icon.png'), webPreferences:{preload:path.join(__dirname,'preload.js'), contextIsolation:true, nodeIntegration:false, sandbox:true, offscreen}});
   windows.add(w);
-  w.once('ready-to-show', () => { w.show(); if (settings.maximized) w.maximize(); });
+  w.webContents.once('did-finish-load', () => smoke?.launched());
+  w.once('ready-to-show', () => { if (!offscreen) w.show(); if (settings.maximized) w.maximize(); });
   const remember = () => { if (!w.isDestroyed()) { settings.bounds = w.getNormalBounds(); settings.maximized = w.isMaximized(); persist(); } };
   w.on('close', remember); w.on('resize', remember); w.on('move', remember); w.on('closed', () => windows.delete(w));
   const navigate = (event, url) => {
@@ -129,25 +169,25 @@ function createWindow() {
   w.webContents.on('will-navigate', navigate); w.webContents.on('will-redirect', navigate);
   w.webContents.on('will-attach-webview', event => event.preventDefault());
   w.webContents.session.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
-  w.webContents.on('did-fail-load', (_event, code, detail, _url, main) => { if (main && code !== -3) { publish({phase:'error',detail:`Could not load the interface: ${detail}`}); w.loadFile(statusFile).catch(() => {}); } });
+  w.webContents.on('did-fail-load', (_event, code, detail, _url, main) => { if (main && code !== -3) { if (smoke) { finishSmoke(new Error(`Could not load the interface: ${detail}`)); return; } publish({phase:'error',detail:`Could not load the interface: ${detail}`}); w.loadFile(statusFile).catch(() => {}); } });
   if (status.origin) w.loadURL(status.origin).catch(() => {}); else w.loadFile(statusFile).catch(() => {});
   return w;
 }
 function refreshTray() {
-  tray?.setToolTip(`Pravrudhi — Engine ${status.phase === 'running' ? 'running' : 'stopped'}`);
-  tray?.setContextMenu(Menu.buildFromTemplate([{label:`Engine ${status.phase === 'running' ? 'running' : 'stopped'}`,enabled:false},{label:'Open Pravrudhi',click:focus},{label:'Restart engine',click:safe(() => serialize(start))},{label:'Quit',click:() => app.quit()}]));
+  const state = trayState(status.phase === 'running', engineController, focus, ()=>app.quit(), safe);
+  tray?.setToolTip(state.tooltip);
+  tray?.setContextMenu(Menu.buildFromTemplate(state.items));
 }
-async function shutdown() { controller?.abort(); engine = null; await Promise.all([...children].map(terminate)); }
-if (!app.requestSingleInstanceLock()) app.quit();
-else {
-  app.on('second-instance', () => { if (settings) focus(); });
+async function shutdown() { controller?.abort(); engine = null; await processes.shutdown(); }
+const instanceReady = singleInstance(app, focus);
+if (instanceReady) {
   app.on('window-all-closed', () => app.quit());
-  app.on('before-quit', event => { if (!quitting) { event.preventDefault(); quitting = true; shutdown().finally(() => app.quit()); } });
+  app.on('before-quit', event => { if (!quitting) { event.preventDefault(); quitting = true; shutdown().catch(e => { console.error(e); smokeExitCode = 1; }).finally(() => smoke ? app.exit(smokeExitCode) : app.quit()); } });
   for (const signal of ['SIGINT','SIGTERM']) process.on(signal, () => app.quit());
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     stateFile = path.join(app.getPath('userData'), 'desktop-state.json'); settings = readState(stateFile);
-    workspace = path.resolve(process.env.PRAVRUDHI_WORKSPACE || settings.workspace || app.getPath('home')); settings.workspace = workspace;
-    const handlers = {'engine:status':() => ({...status,workspace,shellVersion:app.getVersion()}), 'engine:locate':locate,'engine:restart':() => serialize(start),'engine:stop':() => serialize(stop),'engine:doctor':doctor,'engine:updates':updates,'engine:workspace':() => shell.openPath(workspace)};
+    workspace = defaultWorkspace({env:process.env.PRAVRUDHI_WORKSPACE,saved:settings.workspace,binary:await discoverEngine({saved:settings.enginePath}),home:app.getPath('home')}); settings.workspace = workspace;
+    const handlers = {'engine:status':() => ({...status,workspace,shellVersion:app.getVersion()}), 'engine:locate':locate,'engine:restart':() => serialize(start),'engine:stop':() => serialize(stop),'engine:doctor':doctor,'engine:updates':updates,'engine:workspace':engineController.openWorkspace, 'engine:health':api.health, 'engine:update-state':api.update, 'engine:backlog':api.backlog, 'engine:inbox':api.inbox, 'engine:open':async()=>{ if (!status.origin) throw new Error('Engine is not connected.'); for (const w of windows) await w.loadURL(status.origin); }};
     for (const [channel, handler] of Object.entries(handlers)) ipcMain.handle(channel, (event) => {
       const url = event.senderFrame?.url;
       if (!windows.has(BrowserWindow.fromWebContents(event.sender)) || event.senderFrame !== event.sender.mainFrame || !(url === statusURL || linkPolicy(url,status.origin) === 'internal')) throw new Error('Untrusted desktop request');
@@ -157,14 +197,14 @@ else {
       {label:'File',submenu:[{label:'New Window',accelerator:'CmdOrCtrl+N',click:createWindow},{label:'Locate engine…',click:safe(locate)},{type:'separator'},{role:'quit'}]},
       {role:'editMenu'},
       {label:'View',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{type:'separator'},{role:'toggleDevTools'},{role:'togglefullscreen'}]},
-      {label:'Engine',submenu:[{label:'Restart engine',click:safe(() => serialize(start))},{label:'Stop engine',click:safe(() => serialize(stop))},{label:'Open workspace folder',click:safe(() => shell.openPath(workspace))},{label:'Choose workspace…',click:safe(async () => { const r = await dialog.showOpenDialog({properties:['openDirectory']}); if (!r.canceled) { workspace = r.filePaths[0]; settings.workspace = workspace; persist(); await serialize(start); } })},{type:'separator'},{label:'Check for updates',click:safe(updates)}]},
+      {label:'Engine',submenu:[...engineMenu(engineController,safe),{label:'Connection and diagnostics',click:statusScreens},{label:'Choose workspace…',click:safe(async () => { const r = await dialog.showOpenDialog({properties:['openDirectory']}); if (!r.canceled) { workspace = r.filePaths[0]; settings.workspace = workspace; delete settings.engineURL; persist(); await serialize(start); } })}]},
       {label:'Help',submenu:[{label:'Documentation',click:safe(() => shell.openExternal(docs))},{label:'About Pravrudhi',click:safe(() => dialog.showMessageBox({message:'Pravrudhi',detail:`Desktop ${app.getVersion()}\nEngine ${status.version}\n${status.binary || 'No engine located'}\nWorkspace: ${workspace}`}))}]}
     ]));
     // A bundled, generated bitmap keeps the tray independent of system icon themes.
     const pixels = Buffer.alloc(24 * 24 * 4);
     for (let y=3;y<21;y++) for(let x=5;x<19;x++) if(x<9 || (y<13 && (y<7 || y>9 || x>14))) { const i=(y*24+x)*4; pixels[i]=168; pixels[i+1]=208; pixels[i+2]=120; pixels[i+3]=255; }
     tray = new Tray(nativeImage.createFromBitmap(pixels,{width:24,height:24})); tray.on('click',focus); refreshTray();
-    createWindow(); safe(() => serialize(start))();
+    createWindow(); instanceReady(); serialize(start).catch(e => smoke ? finishSmoke(e) : dialog.showErrorBox('Pravrudhi',e.message));
     app.on('activate',focus);
-  }).catch(e => { dialog.showErrorBox('Pravrudhi',e.message); app.quit(); });
+  }).catch(e => { if (smoke) finishSmoke(e); else { dialog.showErrorBox('Pravrudhi',e.message); app.quit(); } });
 }

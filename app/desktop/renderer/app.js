@@ -1,13 +1,14 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let previousChecks = '', pending = false;
+let previousChecks = '', pending = false, apiOrigin = null, apiBusy = false, lastActivity = 0;
+const activityInterval = 30000;
 async function action(name) {
   if (pending) return;
   pending = true; $('action-error').textContent = '';
   try { await window.desktop[name](); } catch(e) { $('action-error').textContent = e.message; }
   finally { pending = false; await refresh(); }
 }
-for (const [id,name] of Object.entries({'locate':'locateEngine','restart':'restart','stop':'stop','doctor':'doctor','open-workspace':'openWorkspace'})) $(id).addEventListener('click', () => action(name));
+for (const [id,name] of Object.entries({'open-engine':'openEngine','updates':'checkForUpdates','locate':'locateEngine','restart':'restart','stop':'stop','doctor':'doctor','open-workspace':'openWorkspace'})) $(id).addEventListener('click', () => action(name));
 function copyButton(text,label) {
   const button = document.createElement('button'); button.className = 'secondary'; button.textContent = label;
   button.addEventListener('click', async () => {
@@ -28,8 +29,17 @@ async function refresh() {
     $('detail').textContent = s.detail; $('workspace').textContent = s.workspace;
     $('shell-version').textContent = `Shell ${s.shellVersion} · Engine ${s.version}`;
     $('doctor').disabled = !s.binary || s.doctorBusy;
+    document.body.dataset.doctorReady = String(!s.doctorBusy && (s.checks.length > 0 || Boolean(s.doctorError)));
+    $('open-engine').disabled = s.phase !== 'running';
+    $('updates').disabled = s.phase !== 'running';
+    if (!s.origin) {
+      apiOrigin = null; document.body.dataset.apiReady = 'false';
+      for (const id of ['health','update','backlog','inbox']) $(id+'-value').textContent = 'Waiting for engine connection';
+    } else if (!apiBusy && (apiOrigin !== s.origin || Date.now() - lastActivity >= activityInterval)) {
+      refreshActivity(s.origin);
+    }
     $('stop').disabled = !['starting','running'].includes(s.phase);
-    $('doctor-state').textContent = s.doctorBusy ? 'Running pravrudhi doctor --json…' : s.doctorError || (s.checks.length ? 'Checks reported by your installed engine. Recovery commands are copied, never executed by the shell.' : 'Checks appear here if the engine cannot start.');
+    $('doctor-state').textContent = s.doctorBusy ? 'Running pravrudhi doctor --json…' : s.doctorError || (s.checks.length ? 'Checks reported by your installed engine. Recovery commands are copied, never executed by the shell.' : 'Doctor runs when the engine connects.');
     const key = JSON.stringify(s.checks);
     if (key !== previousChecks) {
       previousChecks = key; $('checks').replaceChildren();
@@ -45,5 +55,22 @@ async function refresh() {
       }
     }
   } catch(e) { $('action-error').textContent = e.message; }
+}
+async function refreshActivity(origin) {
+  apiBusy = true;
+  const errors = [];
+  const fields = [
+    ['health',()=>window.desktop.health(),value=>value.ok === true ? `Healthy · ${value.version || 'version not reported'}` : 'Engine reports unhealthy'],
+    ['update',()=>window.desktop.updateState(),value=>`${value.current?.version || value.current?.tag || 'Version not reported'} · ${value.update_available ? `Update available: ${value.latest?.tag || 'new release'}` : value.latest ? 'Up to date' : 'Latest release unavailable'}`],
+    ['backlog',()=>window.desktop.backlogCount(),String],
+    ['inbox',()=>window.desktop.pendingInboxCount(),String]
+  ];
+  await Promise.allSettled(fields.map(async ([id,read,format])=> {
+    try { $(id+'-value').textContent = format(await read()); }
+    catch (error) { $(id+'-value').textContent = error.message; errors.push(error.message); }
+  }));
+  apiOrigin = origin; lastActivity = Date.now(); apiBusy = false;
+  document.body.dataset.apiError = errors.join('; ');
+  document.body.dataset.apiReady = 'true';
 }
 async function tick() { await refresh(); setTimeout(tick,500); } tick();
