@@ -1,0 +1,28 @@
+# Phrases that mean "this account has hit a usage limit, try again later" for each coding agent.
+#
+# These are strings the vendors' own CLIs print when a rate limit or quota is exhausted, matched against an agent
+# run's combined stdout/stderr case-insensitively. Matching is deliberately loose in both directions: a wrong match
+# only costs an unnecessary cooldown (the route is skipped for a while and then tried again), while missing a real
+# limit is worse, because it gets recorded as an ordinary loss against the route's success rate and can sink a route
+# that never actually failed.
+patterns:
+  claude-code:
+    - "usage limit reached"
+    - "5-hour limit"
+    - "rate_limit_error"
+    - "claude usage limit"
+  codex:
+    - "usage limit"
+    - "quota"
+    - "429"
+  hosted:
+    - "freetieronly"
+    - "exceeded your current quota"
+    - "insufficient_quota"
+
+# Minutes to wait before trying an agent again after it reports a limit. "default" applies to any agent id not
+# listed by name (codex, orca:* and anything added later).
+cooldown_minutes:
+  default: 60
+  claude-code: 300
+  hosted: 60

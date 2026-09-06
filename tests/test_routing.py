@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from pravrudhi.application import availability
 from pravrudhi.application.routing import (
     Outcome,
     RoutingError,
@@ -146,6 +147,32 @@ def test_the_hosted_qwen_coder_route_is_permitted_only_at_mechanical() -> None:
     assert "qwen-coder" in [r.id for r in t.permitted("mechanical")]
     for tier in ("standard", "design", "critical"):
         assert "qwen-coder" not in [r.id for r in t.permitted(tier)]
+
+
+def test_choose_drops_a_cooling_route_and_says_so(tmp_path: Path) -> None:
+    doc = {
+        "minimum_trials": 3,
+        "confidence": 0.95,
+        "routes": [
+            {"id": "codex-cheap", "agent": "codex", "model": "m", "relative_cost": 1.0, "tiers": ["mechanical"]},
+            {"id": "claude-dear", "agent": "claude-code", "model": "m", "relative_cost": 5.0, "tiers": ["mechanical"]},
+        ],
+        "declared": {"mechanical": ["codex-cheap", "claude-dear"]},
+    }
+    t = _table(tmp_path, doc)
+    availability.mark_limited(tmp_path, "codex", minutes=60)
+    c = choose(t, [], "mechanical", root=tmp_path)
+    assert c.route.id == "claude-dear", "the only non-cooling route must be picked even though it costs more"
+    assert "dropped cooling route" in c.reason
+
+
+def test_choose_without_root_ignores_cooldowns(tmp_path: Path) -> None:
+    """A caller that does not pass `root` gets the old, cooldown-blind behaviour -- required so every existing call
+    site that has not been updated to pass `root` keeps choosing exactly as it did before."""
+    t = _table(tmp_path)
+    availability.mark_limited(tmp_path, "codex", minutes=60)
+    c = choose(t, [], "mechanical")
+    assert c.route.id == "cheap"
 
 
 def test_report_covers_every_tier(tmp_path: Path) -> None:

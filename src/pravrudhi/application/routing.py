@@ -35,6 +35,7 @@ from typing import Any
 
 import yaml
 
+from pravrudhi.application import availability
 from pravrudhi_kernel.stats import wilson_ci
 
 PACKAGED_CONFIG = Path(__file__).resolve().parents[1] / "assets" / "configs" / "routing.yaml"
@@ -60,7 +61,10 @@ class Route:
 @dataclass(frozen=True)
 class Outcome:
     """One completed dispatch. `accepted` is the swarm's own verdict: the diff was in scope and the task's check
-    passed. It is the only success signal available without a human reading the change."""
+    passed. It is the only success signal available without a human reading the change.
+
+    `limited` marks a dispatch that ended in a vendor usage limit rather than an ordinary pass or fail: it is not
+    evidence about the route's quality, so it must never move `accepted`'s trial count either way."""
 
     tier: str
     route_id: str
@@ -68,6 +72,7 @@ class Outcome:
     accepted: bool
     wall_s: float
     at: str = ""
+    limited: bool = False
 
 
 @dataclass(frozen=True)
@@ -145,15 +150,23 @@ def log_path(root: Path) -> Path:
     return Path(root) / ".pravrudhi" / "routing.jsonl"
 
 
-def record_outcome(root: Path, outcome: Outcome) -> None:
+def record_outcome(root: Path, outcome: Outcome, table: Table | None = None) -> None:
     """Append one outcome. Operational state, deliberately not the ledger: this is what the engine spent on its own
-    upkeep, and no evidence document may cite it."""
+    upkeep, and no evidence document may cite it.
+
+    A `limited` outcome additionally starts a cooldown for the route's agent, so the very next dispatch does not
+    walk straight back into the same usage limit. `table` is accepted so a caller that already loaded one is not
+    made to pay for a second `load_table()`; it is loaded here when omitted."""
     p = log_path(root)
     p.parent.mkdir(parents=True, exist_ok=True)
     row = asdict(outcome)
     row["at"] = outcome.at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     with p.open("a") as fh:
         fh.write(json.dumps(row, sort_keys=True) + "\n")
+    if outcome.limited:
+        route = (table or load_table()).routes.get(outcome.route_id)
+        if route is not None:
+            availability.mark_limited(root, route.agent)
 
 
 def outcomes(root: Path) -> list[Outcome]:
@@ -167,17 +180,22 @@ def outcomes(root: Path) -> list[Outcome]:
         try:
             d = json.loads(line)
             out.append(Outcome(tier=d["tier"], route_id=d["route_id"], task_id=d.get("task_id", ""),
-                               accepted=bool(d["accepted"]), wall_s=float(d.get("wall_s", 0.0)), at=d.get("at", "")))
+                               accepted=bool(d["accepted"]), wall_s=float(d.get("wall_s", 0.0)), at=d.get("at", ""),
+                               limited=bool(d.get("limited", False))))
         except (json.JSONDecodeError, KeyError, TypeError, ValueError):
             continue  # a corrupt line must not blind the router to the rest
     return out
 
 
 def records(table: Table, rows: list[Outcome], tier: str) -> list[Record]:
-    """What the log says about each route permitted at this tier, including routes with no trials at all."""
+    """What the log says about each route permitted at this tier, including routes with no trials at all.
+
+    A `limited` outcome is excluded here rather than merely uncounted as a loss: it is not evidence about the
+    route's quality, so it must not appear in `trials` either, or a route that is otherwise flawless would look
+    unproven just because its account happened to be rate-limited a few times."""
     out: list[Record] = []
     for route in table.permitted(tier):
-        mine = [o for o in rows if o.tier == tier and o.route_id == route.id]
+        mine = [o for o in rows if o.tier == tier and o.route_id == route.id and not o.limited]
         n = len(mine)
         k = sum(1 for o in mine if o.accepted)
         lo, hi = wilson_ci(k, n) if n else (0.0, 1.0)
@@ -190,7 +208,7 @@ def records(table: Table, rows: list[Outcome], tier: str) -> list[Record]:
     return out
 
 
-def choose(table: Table, rows: list[Outcome], tier: str) -> Choice:
+def choose(table: Table, rows: list[Outcome], tier: str, root: Path | None = None) -> Choice:
     """The cheapest route that is not distinguishably worse than the best one at this tier.
 
     "Distinguishably worse" compares two intervals, not an interval against a point: a route is ruled out only when
@@ -202,18 +220,37 @@ def choose(table: Table, rows: list[Outcome], tier: str) -> Choice:
     The test is deliberately weak. With a handful of trials almost nothing is distinguishable, so the router spends
     cheaply until the log gives it a reason not to, which is the correct default when the expensive option's
     advantage is unproven.
+
+    `root` is optional so every existing caller keeps working unchanged; passing it lets the router also see which
+    agents are cooling down from a recent usage-limit hit (`availability.usable_routes`) and route around them. A
+    route whose agent is cooling is dropped from scoring, not merely deprioritised, because a limited account cannot
+    do the work at all right now. If every permitted route is cooling, dropping them all would leave nothing to
+    dispatch, so the cheapest one is returned anyway and the reason says the fallback was forced.
     """
     permitted = table.permitted(tier)
     if not permitted:
         raise RoutingError(f"no route is permitted at tier {tier!r}; check configs/routing.yaml")
-    considered = tuple(r.id for r in permitted)
-    rs = records(table, rows, tier)
+
+    usable = availability.usable_routes(root, permitted) if root is not None else permitted
+    if root is not None and not usable:
+        cheapest = min(permitted, key=lambda r: (r.relative_cost, r.id))
+        reason = (f"every route permitted at this tier is cooling down from a recent usage-limit hit; forcing "
+                  f"{cheapest.id} anyway rather than stall")
+        return Choice(tier, cheapest, reason, tuple(r.id for r in permitted), tuple(records(table, rows, tier)))
+
+    considered = tuple(r.id for r in usable)
+    usable_ids = set(considered)
+    dropped = [r.id for r in permitted if r.id not in usable_ids]
+    cooling_suffix = f"; dropped cooling route(s) {', '.join(dropped)}" if dropped else ""
+
+    rs_all = records(table, rows, tier)
+    rs = [r for r in rs_all if r.route_id in usable_ids]
 
     seasoned = [r for r in rs if r.trials >= table.minimum_trials]
     if not seasoned:
-        first = permitted[0]
+        first = usable[0]
         return Choice(tier, first, f"no route has {table.minimum_trials} outcomes at this tier yet, so the "
-                                   f"declared order decides", considered, tuple(rs))
+                                   f"declared order decides{cooling_suffix}", considered, tuple(rs_all))
 
     best = max(seasoned, key=lambda r: (r.rate, -r.relative_cost))
     viable = [r for r in rs if r.trials < table.minimum_trials or r.hi >= best.lo]
@@ -224,16 +261,16 @@ def choose(table: Table, rows: list[Outcome], tier: str) -> Choice:
 
     if pick.route_id == best.route_id:
         reason = (f"{pick.route_id} has the best measured success rate at this tier "
-                  f"({pick.successes}/{pick.trials}) and nothing cheaper matches it")
+                  f"({pick.successes}/{pick.trials}) and nothing cheaper matches it{cooling_suffix}")
     elif pick.trials < table.minimum_trials:
         reason = (f"{pick.route_id} is cheaper than {best.route_id} and has only {pick.trials} outcomes, "
-                  f"too few to rule out; trying it")
+                  f"too few to rule out; trying it{cooling_suffix}")
     else:
         reason = (f"{pick.route_id} costs {pick.relative_cost:g} against {best.route_id}'s "
                   f"{best.relative_cost:g} and their intervals overlap "
                   f"({pick.successes}/{pick.trials} against {best.successes}/{best.trials}), so the extra "
-                  f"spend is not yet justified")
-    return Choice(tier, route, reason, considered, tuple(rs))
+                  f"spend is not yet justified{cooling_suffix}")
+    return Choice(tier, route, reason, considered, tuple(rs_all))
 
 
 def report(root: Path, table: Table | None = None) -> list[dict[str, Any]]:
@@ -243,7 +280,7 @@ def report(root: Path, table: Table | None = None) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for tier in t.declared or {r: () for r in ("mechanical", "standard", "design", "critical")}:
         try:
-            c = choose(t, rows, tier)
+            c = choose(t, rows, tier, root=root)
         except RoutingError as e:
             out.append({"tier": tier, "error": str(e)})
             continue

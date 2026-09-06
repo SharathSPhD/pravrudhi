@@ -50,9 +50,14 @@ export { IS_DEMO as DEMO } from "./api";
 
 let cache: Promise<DemoBundle> | null = null;
 
+// The snapshot is served beside the app, not at the origin root. GitHub Pages puts this site under
+// /pravrudhi/app/, so a root-absolute "/demo.json" asked the wrong origin path and 404ed: every page that reads
+// recorded data failed there while the same build worked on a root-served host. The base path is compiled in.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export function demo(): Promise<DemoBundle> {
   if (!cache) {
-    cache = fetch("/demo.json", { cache: "force-cache" }).then((r) => {
+    cache = fetch(`${basePath}/demo.json`, { cache: "force-cache" }).then((r) => {
       if (!r.ok) throw new Error("demo snapshot missing");
       return r.json() as Promise<DemoBundle>;
     });
