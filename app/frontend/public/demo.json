@@ -3669,9 +3669,9 @@
     ],
     "routing": [
       {
-        "agent": "hosted",
-        "model": "qwen3-coder-plus",
-        "reason": "no route has 3 outcomes at this tier yet, so the declared order decides",
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "no route has 3 outcomes at this tier yet, so the declared order decides; dropped cooling route(s) qwen-coder, local-glm",
         "records": [
           {
             "hi": 1.0,
@@ -3707,25 +3707,25 @@
             "trials": 1
           }
         ],
-        "relative_cost": 0.2,
-        "route": "qwen-coder",
+        "relative_cost": 2.9,
+        "route": "sonnet",
         "tier": "mechanical"
       },
       {
-        "agent": "hosted",
-        "model": "qwen3-coder-plus",
-        "reason": "qwen-coder is cheaper than sonnet and has only 0 outcomes, too few to rule out; trying it",
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet has the best measured success rate at this tier (19/25) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.9075531089521192,
-            "lo": 0.5952915551476452,
-            "mean_wall_s": 185.23087293641098,
-            "rate": 0.7916666666666666,
+            "hi": 0.8850384226967327,
+            "lo": 0.5656994004476144,
+            "mean_wall_s": 198.2468642033171,
+            "rate": 0.76,
             "relative_cost": 2.9,
             "route_id": "sonnet",
             "successes": 19,
             "tier": "standard",
-            "trials": 24
+            "trials": 25
           },
           {
             "hi": 1.0,
@@ -3739,25 +3739,25 @@
             "trials": 0
           }
         ],
-        "relative_cost": 0.2,
-        "route": "qwen-coder",
+        "relative_cost": 2.9,
+        "route": "sonnet",
         "tier": "standard"
       },
       {
-        "agent": "hosted",
-        "model": "qwen3-coder-plus",
-        "reason": "qwen-coder is cheaper than sonnet and has only 0 outcomes, too few to rule out; trying it",
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet has the best measured success rate at this tier (22/25) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.9565574496068442,
-            "lo": 0.6899571185214243,
-            "mean_wall_s": 273.0182601440465,
-            "rate": 0.875,
+            "hi": 0.9583325864293191,
+            "lo": 0.7004380781662651,
+            "mean_wall_s": 288.12617584955876,
+            "rate": 0.88,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 21,
+            "successes": 22,
             "tier": "design",
-            "trials": 24
+            "trials": 25
           },
           {
             "hi": 1.0,
@@ -3793,14 +3793,14 @@
             "trials": 0
           }
         ],
-        "relative_cost": 0.2,
-        "route": "qwen-coder",
+        "relative_cost": 2.9,
+        "route": "sonnet",
         "tier": "design"
       },
       {
-        "agent": "hosted",
-        "model": "qwen3-coder-plus",
-        "reason": "qwen-coder is cheaper than astra and has only 0 outcomes, too few to rule out; trying it",
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (12/16 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
         "records": [
           {
             "hi": 1.0,
@@ -3814,15 +3814,15 @@
             "trials": 0
           },
           {
-            "hi": 0.882788120898909,
-            "lo": 0.45350458827515605,
-            "mean_wall_s": 375.3215002502381,
-            "rate": 0.7142857142857143,
+            "hi": 0.8981809801576265,
+            "lo": 0.5050123107060135,
+            "mean_wall_s": 395.41258041102265,
+            "rate": 0.75,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 10,
+            "successes": 12,
             "tier": "critical",
-            "trials": 14
+            "trials": 16
           },
           {
             "hi": 1.0,
@@ -3847,8 +3847,8 @@
             "trials": 0
           }
         ],
-        "relative_cost": 0.2,
-        "route": "qwen-coder",
+        "relative_cost": 2.9,
+        "route": "sonnet",
         "tier": "critical"
       }
     ],
@@ -4274,9 +4274,9 @@
     ]
   },
   "version": {
-    "commit": "132d716",
+    "commit": "46050a6",
     "engine": "0.2.3",
-    "exported_at": "2026-09-06T19:35:42.706Z",
+    "exported_at": "2026-09-06T20:02:09.446Z",
     "kernel": "0.1.0"
   }
 }

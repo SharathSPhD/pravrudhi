@@ -1,9 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, History, Package, Server, Settings, Download, Target, MessageSquare, LineChart, Bot, Activity } from "lucide-react";
+import {
+  Sparkles,
+  History,
+  Package,
+  Server,
+  Settings,
+  Download,
+  Target,
+  MessageSquare,
+  LineChart,
+  Bot,
+  Activity,
+  Inbox as InboxIcon,
+  Library,
+  Layers,
+} from "lucide-react";
 import type { ComponentType } from "react";
+import { inbox } from "@/lib/inbox";
 
 interface NavItem {
   href: string;
@@ -15,8 +32,11 @@ const NAV: NavItem[] = [
   { href: "/", label: "Improve", icon: Sparkles },
   { href: "/objectives", label: "Objectives", icon: Target },
   { href: "/progress", label: "Progress", icon: LineChart },
+  { href: "/inbox", label: "Inbox", icon: InboxIcon },
+  { href: "/candidates", label: "Candidates", icon: Layers },
   { href: "/swarm", label: "Swarm", icon: Bot },
   { href: "/heartbeat", label: "Heartbeat", icon: Activity },
+  { href: "/catalogue", label: "Catalogue", icon: Library },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/runs", label: "Runs", icon: History },
   { href: "/models", label: "Models", icon: Package },
@@ -27,6 +47,21 @@ const NAV: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [pendingInbox, setPendingInbox] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    inbox()
+      .then((items) => {
+        if (!cancelled) setPendingInbox(items.filter((i) => !i.signed).length);
+      })
+      .catch(() => {
+        /* no engine reachable yet — the badge just stays at zero */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
@@ -50,7 +85,12 @@ export function Sidebar() {
               }`}
             >
               <Icon size={16} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {href === "/inbox" && pendingInbox > 0 && (
+                <span className="rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-medium text-[#06110c]">
+                  {pendingInbox}
+                </span>
+              )}
             </Link>
           );
         })}
