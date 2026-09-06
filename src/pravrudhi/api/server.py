@@ -9,8 +9,9 @@ import json
 import os
 import re
 import subprocess
+import threading
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, FastAPI, Header, HTTPException
 from fastapi.routing import APIRoute
@@ -23,6 +24,7 @@ from pravrudhi.api.identity import CurrentUserDep, User, auth_mode
 from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.api.schemas import (
     AgentsResponse,
+    ApplyResultResponse,
     CandidateDetailResponse,
     CandidatesResponse,
     DispatchResponse,
@@ -54,6 +56,7 @@ from pravrudhi.api.schemas import (
     SwarmResponse,
     TokenResponse,
     ToolsResponse,
+    UpdateConfigResponse,
     UpdateStatusResponse,
     WorkspaceResponse,
     WorkspacesResponse,
@@ -154,6 +157,21 @@ class ProviderKeyRequest(BaseModel):
     base_url: str | None = None
 
 
+class UpdateConfigRequest(BaseModel):
+    """The operator's update policy, set from the settings page."""
+
+    channel: Literal["dev", "release"] = "release"
+    auto_apply: bool = False
+    check_interval_min: int = 1440
+    keep_previous: int = 2
+
+
+class UpdateApplyRequest(BaseModel):
+    """Which channel to apply from. Falls back to the saved config's channel when unset."""
+
+    channel: Literal["dev", "release"] | None = None
+
+
 def create_app(root: Path) -> FastAPI:
     root = Path(root)
     app = FastAPI(title="pravrudhi", version=__version__)
@@ -172,6 +190,10 @@ def create_app(root: Path) -> FastAPI:
             app.add_api_route(route.path, route.endpoint, methods=["GET"], response_model=TokenResponse)
             break
     ledger = root / "research" / "ledger.jsonl"
+    # Guards /update/apply and /update/rollback: both run for real, in-process, on the threadpool FastAPI already
+    # runs sync routes on, so a second click while one is in flight must be refused rather than started twice.
+    _update_lock = threading.Lock()
+    _update_busy = False
 
     @api.get("/doctor")
     def doctor() -> DoctorResponse:
@@ -263,6 +285,68 @@ def create_app(root: Path) -> FastAPI:
         from pravrudhi.application.updates import status as update_status
 
         return UpdateStatusResponse.model_validate(update_status())
+
+    @api.get("/update/config")
+    def update_config_get() -> UpdateConfigResponse:
+        from dataclasses import asdict
+
+        from pravrudhi.application.update_apply import load_config
+
+        return UpdateConfigResponse.model_validate(asdict(load_config(root)))
+
+    @api.put("/update/config")
+    def update_config_put(req: UpdateConfigRequest) -> UpdateConfigResponse:
+        from dataclasses import asdict
+
+        from pravrudhi.application.update_apply import UpdateConfig, save_config
+
+        config = UpdateConfig(
+            channel=req.channel,
+            auto_apply=req.auto_apply,
+            check_interval_min=req.check_interval_min,
+            keep_previous=req.keep_previous,
+        )
+        save_config(root, config)
+        return UpdateConfigResponse.model_validate(asdict(config))
+
+    @api.post("/update/apply")
+    def update_apply_ep(req: UpdateApplyRequest) -> ApplyResultResponse:
+        """Apply an update. Runs on FastAPI's sync-route threadpool, so it never blocks the event loop; a second
+        call while one is already running is refused with 409 rather than a 200 that quietly says nothing
+        happened, so the interface can tell the two apart."""
+        nonlocal _update_busy
+        from dataclasses import asdict
+
+        from pravrudhi.application.update_apply import apply as apply_update
+
+        with _update_lock:
+            if _update_busy:
+                raise HTTPException(409, "an update is already in progress")
+            _update_busy = True
+        try:
+            result = apply_update(root, channel=req.channel)
+        finally:
+            with _update_lock:
+                _update_busy = False
+        return ApplyResultResponse.model_validate(asdict(result))
+
+    @api.post("/update/rollback")
+    def update_rollback_ep() -> ApplyResultResponse:
+        nonlocal _update_busy
+        from dataclasses import asdict
+
+        from pravrudhi.application.update_apply import rollback as rollback_update
+
+        with _update_lock:
+            if _update_busy:
+                raise HTTPException(409, "an update is already in progress")
+            _update_busy = True
+        try:
+            result = rollback_update(root)
+        finally:
+            with _update_lock:
+                _update_busy = False
+        return ApplyResultResponse.model_validate(asdict(result))
 
     @api.get("/candidates")
     def candidates() -> CandidatesResponse:

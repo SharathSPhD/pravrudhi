@@ -106,7 +106,7 @@
   },
   "engine": {
     "candidates": 179,
-    "version": "0.2.0"
+    "version": "0.2.2"
   },
   "external": [
     {
@@ -2171,6 +2171,15 @@
       "selection_policy": "efe",
       "spent_gpu_h": 1.43,
       "track": "lora"
+    },
+    {
+      "candidates": 12,
+      "night": 13,
+      "promoted": [],
+      "pruned": 12,
+      "selection_policy": "greedy",
+      "spent_gpu_h": 1.002,
+      "track": "lora"
     }
   ],
   "objectives": {
@@ -3149,6 +3158,17 @@
   "recorded": true,
   "runs": [
     {
+      "candidates": 12,
+      "id": "n13-lora",
+      "night": 13,
+      "policy": "greedy",
+      "promoted": [],
+      "pruned": 12,
+      "spent_gpu_h": 1.002,
+      "status": "finished",
+      "target": "model"
+    },
+    {
       "candidates": 20,
       "id": "n12-lora",
       "night": 12,
@@ -3224,35 +3244,24 @@
       "spent_gpu_h": 0.0,
       "status": "finished",
       "target": "harness"
-    },
-    {
-      "candidates": 6,
-      "id": "n5-harness",
-      "night": 5,
-      "policy": "greedy",
-      "promoted": [],
-      "pruned": 0,
-      "spent_gpu_h": 0.0,
-      "status": "finished",
-      "target": "harness"
     }
   ],
   "status": {
     "badges": {
-      "amber": 20,
+      "amber": 13,
       "green": 2,
       "grey": 19,
-      "red": 138
+      "red": 145
     },
     "candidates": 179,
     "chain_ok": true,
-    "events": 2308,
+    "events": 2345,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "1307531bf6f6dd6fb0efc05fa884100a1f35904515a72fdf2517f200e1cd0d34",
+    "ledger_head": "a7c03149f324b0fca150d414599c42ace9935456f4781963404217b483154a23",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -3410,6 +3419,24 @@
           "c-0166": "pruned"
         },
         "spent_gpu_h": 1.4301853332975103
+      },
+      "13": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0167": "pruned",
+          "c-0168": "pruned",
+          "c-0169": "pruned",
+          "c-0170": "pruned",
+          "c-0171": "pruned",
+          "c-0172": "pruned",
+          "c-0173": "pruned",
+          "c-0174": "pruned",
+          "c-0175": "pruned",
+          "c-0176": "pruned",
+          "c-0177": "pruned",
+          "c-0178": "pruned"
+        },
+        "spent_gpu_h": 1.0020981569556493
       }
     },
     "promoted": {
@@ -3420,13 +3447,604 @@
         "c-0045"
       ]
     },
-    "pruned": 112,
-    "state_hash": "933e103b1aa76a2788684de63177f25b476846be4c2f10d680fbfe804e1e3a72"
+    "pruned": 119,
+    "state_hash": "73a8d5a521430ef3719a889bdb204bbc180ad28ac7ea2c71d1aa784ea8eb9f73"
+  },
+  "swarm": {
+    "agents": [
+      {
+        "available": true,
+        "name": "claude-code",
+        "reason": "ready"
+      },
+      {
+        "available": false,
+        "name": "codex",
+        "reason": "codex CLI installed but not signed in (run `codex login`)"
+      },
+      {
+        "available": true,
+        "name": "orca:claude",
+        "reason": "ready"
+      },
+      {
+        "available": true,
+        "name": "orca:codex",
+        "reason": "ready"
+      },
+      {
+        "available": true,
+        "name": "orca:local",
+        "reason": "ready"
+      }
+    ],
+    "routing": [
+      {
+        "agent": "hosted",
+        "model": "qwen3-coder-plus",
+        "reason": "no route has 3 outcomes at this tier yet, so the declared order decides",
+        "records": [
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 0.2,
+            "route_id": "qwen-coder",
+            "successes": 0,
+            "tier": "mechanical",
+            "trials": 0
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 2.9,
+            "route_id": "sonnet",
+            "successes": 0,
+            "tier": "mechanical",
+            "trials": 0
+          }
+        ],
+        "relative_cost": 0.2,
+        "route": "qwen-coder",
+        "tier": "mechanical"
+      },
+      {
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet has the best measured success rate at this tier (16/18) and nothing cheaper matches it",
+        "records": [
+          {
+            "hi": 0.9689811315464172,
+            "lo": 0.6719975513339578,
+            "mean_wall_s": 214.3632595221926,
+            "rate": 0.8888888888888888,
+            "relative_cost": 2.9,
+            "route_id": "sonnet",
+            "successes": 16,
+            "tier": "standard",
+            "trials": 18
+          }
+        ],
+        "relative_cost": 2.9,
+        "route": "sonnet",
+        "tier": "standard"
+      },
+      {
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet has the best measured success rate at this tier (19/22) and nothing cheaper matches it",
+        "records": [
+          {
+            "hi": 0.9525108273576373,
+            "lo": 0.6666458812053,
+            "mean_wall_s": 269.29634727518584,
+            "rate": 0.8636363636363636,
+            "relative_cost": 2.9,
+            "route_id": "sonnet",
+            "successes": 19,
+            "tier": "design",
+            "trials": 22
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 6.9,
+            "route_id": "opus",
+            "successes": 0,
+            "tier": "design",
+            "trials": 0
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 10.0,
+            "route_id": "astra",
+            "successes": 0,
+            "tier": "design",
+            "trials": 0
+          }
+        ],
+        "relative_cost": 2.9,
+        "route": "sonnet",
+        "tier": "design"
+      },
+      {
+        "agent": "claude-code",
+        "model": "sonnet",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (7/8 against 5/5), so the extra spend is not yet justified",
+        "records": [
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 6.9,
+            "route_id": "opus",
+            "successes": 0,
+            "tier": "critical",
+            "trials": 0
+          },
+          {
+            "hi": 0.9775830911367038,
+            "lo": 0.5291051942301386,
+            "mean_wall_s": 359.7542853343184,
+            "rate": 0.875,
+            "relative_cost": 2.9,
+            "route_id": "sonnet",
+            "successes": 7,
+            "tier": "critical",
+            "trials": 8
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.5655085052479191,
+            "mean_wall_s": 128.6,
+            "rate": 1.0,
+            "relative_cost": 10.0,
+            "route_id": "astra",
+            "successes": 5,
+            "tier": "critical",
+            "trials": 5
+          }
+        ],
+        "relative_cost": 2.9,
+        "route": "sonnet",
+        "tier": "critical"
+      }
+    ],
+    "selfbuild_runs": [],
+    "subagent_runs": [
+      {
+        "accepted": true,
+        "at": "2026-09-06T07:07:35Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsdomain_coverage.yaml",
+          "proposalssources.yaml",
+          "proposalsbuild_manifest.py",
+          "proposalscommon.py",
+          "proposalsdedupe.py",
+          "proposalsfetch_sources.py",
+          "proposalsrequirements.txt",
+          "proposalssplit_holdout.py",
+          "proposalsvalidate_corpus.py"
+        ],
+        "objective": "math-reasoning",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "corpus",
+        "task_id": "math-reasoning:corpus",
+        "wall_s": 274.999476961093
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T07:07:35Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalseval_holdout.py",
+          "proposalsreward.py",
+          "proposalsreward_audit.py",
+          "proposalsrl_config.yaml",
+          "proposalstrain_rl.py"
+        ],
+        "objective": "math-reasoning",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "rl",
+        "task_id": "math-reasoning:rl",
+        "wall_s": 217.5258165448904
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T07:07:35Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalscompare_candidates.py",
+          "proposalsevaluation_config.yaml",
+          "proposalsbaseline_results.json",
+          "proposalsbenchmarks.json",
+          "proposalsobjective.json",
+          "proposalsrl_candidate.json",
+          "proposalsstats.py"
+        ],
+        "objective": "math-reasoning",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "math-reasoning:candidate-evaluation",
+        "wall_s": 182.24073414783925
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T07:07:35Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalssft_lora.yaml",
+          "proposalscheck_adapter_loads.py",
+          "proposalseval_compare.py",
+          "proposalsmatheval_utils.py",
+          "proposalstrain_sft_lora.py"
+        ],
+        "objective": "math-reasoning",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "finetune",
+        "task_id": "math-reasoning:finetune",
+        "wall_s": 144.27001784997992
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T07:07:35Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsrun_baseline_eval.py",
+          "proposalsrun_baseline_eval.sh",
+          "proposalssummarize_results.py",
+          "proposalstasks.yaml"
+        ],
+        "objective": "math-reasoning",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "baseline-evaluation",
+        "task_id": "math-reasoning:baseline-evaluation",
+        "wall_s": 129.05147711304016
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsbaseline_results.example.json",
+          "proposalsbenchmarks.example.json",
+          "proposalsobjective.example.json",
+          "proposalsretrieval_candidate.example.json",
+          "proposalsrun_example.sh",
+          "proposalsevaluate.cpython-313.pyc",
+          "proposalsevaluate.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "prabhasa-nyaya:candidate-evaluation",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsretrieval.yaml",
+          "proposalsconfig_loader.cpython-313.pyc",
+          "proposalseval_retrieval.cpython-313.pyc",
+          "proposalsgraph_index.cpython-313.pyc",
+          "proposalshybrid_retrieve.cpython-313.pyc",
+          "proposalsschemas.cpython-313.pyc",
+          "proposalsconfig_loader.py",
+          "proposalseval_retrieval.py",
+          "proposalsgraph_index.py",
+          "proposalshybrid_retrieve.py",
+          "proposalsschemas.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "retrieval",
+        "task_id": "prabhasa-nyaya:retrieval",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsrl_grpo.yaml",
+          "proposalsaudit_reward.cpython-313.pyc",
+          "proposalsdata_contracts.cpython-313.pyc",
+          "proposalsheld_out_eval.cpython-313.pyc",
+          "proposalsoutput_parser.cpython-313.pyc",
+          "proposalsreward_function.cpython-313.pyc",
+          "proposalstrain_rl.cpython-313.pyc",
+          "proposalsaudit_reward.py",
+          "proposalsdata_contracts.py",
+          "proposalsheld_out_eval.py",
+          "proposalsoutput_parser.py",
+          "proposalsreward_function.py",
+          "proposalstrain_rl.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "rl",
+        "task_id": "prabhasa-nyaya:rl",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalssft_lora.yaml",
+          "proposalscheck_adapter_loads.cpython-313.pyc",
+          "proposalseval_compare.cpython-313.pyc",
+          "proposalstrain_sft_lora.cpython-313.pyc",
+          "proposalscheck_adapter_loads.py",
+          "proposalseval_compare.py",
+          "proposalstrain_sft_lora.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "finetune",
+        "task_id": "prabhasa-nyaya:finetune",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsdomain_coverage.yaml",
+          "proposalssources.yaml",
+          "proposalsbuild_manifest.cpython-313.pyc",
+          "proposalscommon.cpython-313.pyc",
+          "proposalsdedupe.cpython-313.pyc",
+          "proposalsfetch_sources.cpython-313.pyc",
+          "proposalssplit_holdout.cpython-313.pyc",
+          "proposalsvalidate_corpus.cpython-313.pyc",
+          "proposalsbuild_manifest.py",
+          "proposalscommon.py",
+          "proposalsdedupe.py",
+          "proposalsfetch_sources.py",
+          "proposalsrequirements.txt",
+          "proposalssplit_holdout.py",
+          "proposalsvalidate_corpus.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "corpus",
+        "task_id": "prabhasa-nyaya:corpus",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T04:28:10Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalseval_config.yaml",
+          "proposals.gitkeep",
+          "proposalscitation_grounding_eval.cpython-313.pyc",
+          "proposalscommon.cpython-313.pyc",
+          "proposalsildc_cjpe_eval.cpython-313.pyc",
+          "proposalsiltur_eval.cpython-313.pyc",
+          "proposalsrun_baseline.cpython-313.pyc",
+          "proposalscitation_grounding_eval.py",
+          "proposalscommon.py",
+          "proposalsildc_cjpe_eval.py",
+          "proposalsiltur_eval.py",
+          "proposalsrun_baseline.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "re-judged after the escape detector was narrowed: the paths it named were the operator's concurrent edits in main, not the agent's; the worktree holds a valid proposal that compiles"
+        ],
+        "route": "claude-code",
+        "step": "baseline-evaluation",
+        "task_id": "prabhasa-nyaya:baseline-evaluation",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsrl_grpo.yaml",
+          "proposalsaudit_reward.py",
+          "proposalsdata_contracts.py",
+          "proposalsheld_out_eval.py",
+          "proposalsoutput_parser.py",
+          "proposalsreward_function.py",
+          "proposalstrain_rl.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
+        ],
+        "route": "claude-code",
+        "step": "rl",
+        "task_id": "prabhasa-nyaya:rl",
+        "wall_s": 285.42271093279123
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsretrieval.yaml",
+          "proposalsconfig_loader.py",
+          "proposalseval_retrieval.py",
+          "proposalsgraph_index.py",
+          "proposalshybrid_retrieve.py",
+          "proposalsschemas.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
+        ],
+        "route": "claude-code",
+        "step": "retrieval",
+        "task_id": "prabhasa-nyaya:retrieval",
+        "wall_s": 275.9118133019656
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsdomain_coverage.yaml",
+          "proposalssources.yaml",
+          "proposalsbuild_manifest.py",
+          "proposalscommon.py",
+          "proposalsdedupe.py",
+          "proposalsfetch_sources.py",
+          "proposalsrequirements.txt",
+          "proposalssplit_holdout.py",
+          "proposalsvalidate_corpus.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
+        ],
+        "route": "claude-code",
+        "step": "corpus",
+        "task_id": "prabhasa-nyaya:corpus",
+        "wall_s": 221.48404820100404
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalseval_config.yaml",
+          "proposals.gitkeep",
+          "proposalscitation_grounding_eval.py",
+          "proposalscommon.py",
+          "proposalsildc_cjpe_eval.py",
+          "proposalsiltur_eval.py",
+          "proposalsrun_baseline.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
+        ],
+        "route": "claude-code",
+        "step": "baseline-evaluation",
+        "task_id": "prabhasa-nyaya:baseline-evaluation",
+        "wall_s": 156.9219978870824
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsbaseline_results.example.json",
+          "proposalsbenchmarks.example.json",
+          "proposalsobjective.example.json",
+          "proposalsretrieval_candidate.example.json",
+          "proposalsrun_example.sh",
+          "proposalsevaluate.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "prabhasa-nyaya:candidate-evaluation",
+        "wall_s": 156.128034502035
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:26:17Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalssft_lora.yaml",
+          "proposalscheck_adapter_loads.py",
+          "proposalseval_compare.py",
+          "proposalstrain_sft_lora.py"
+        ],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcdelegate.py, supabase/, tests/test_delegate_escape.py, tests/test_supabase_schema.py"
+        ],
+        "route": "claude-code",
+        "step": "finetune",
+        "task_id": "prabhasa-nyaya:finetune",
+        "wall_s": 142.59893053304404
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:18:55Z",
+        "files": [],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:finetune')\nfatal: 'agent/prabhasa-nyaya:finetune' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
+        ],
+        "route": "claude-code",
+        "step": "finetune",
+        "task_id": "prabhasa-nyaya:finetune",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:18:55Z",
+        "files": [],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:candidate-evaluation')\nfatal: 'agent/prabhasa-nyaya:candidate-evaluation' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "prabhasa-nyaya:candidate-evaluation",
+        "wall_s": 0.0
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T04:18:55Z",
+        "files": [],
+        "objective": "prabhasa-nyaya",
+        "reasons": [
+          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:rl')\nfatal: 'agent/prabhasa-nyaya:rl' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
+        ],
+        "route": "claude-code",
+        "step": "rl",
+        "task_id": "prabhasa-nyaya:rl",
+        "wall_s": 0.0
+      }
+    ]
   },
   "version": {
-    "commit": "7c340ce",
-    "engine": "0.2.0",
-    "exported_at": "2026-09-06T14:42:28.628Z",
+    "commit": "737577d",
+    "engine": "0.2.2",
+    "exported_at": "2026-09-06T15:01:35.754Z",
     "kernel": "0.1.0"
   }
 }

@@ -59,8 +59,37 @@ def test_existing_keys_are_unchanged(tmp_path: Path) -> None:
     assert demo["recorded"] is True
     assert set(demo["engine"]) == {"version", "candidates"}
     assert demo["engine"]["version"] == demo["version"]["engine"]
-    for key in ("status", "models", "external", "nights", "runs", "objectives", "recipes", "plans", "featured_run"):
+    for key in (
+        "status", "models", "external", "nights", "runs", "objectives", "recipes", "plans", "featured_run", "swarm",
+    ):
         assert key in demo
+
+
+def test_swarm_block_has_the_four_fields(tmp_path: Path) -> None:
+    demo = _demo(tmp_path)
+    swarm = demo["swarm"]
+    assert set(swarm) == {"agents", "routing", "subagent_runs", "selfbuild_runs"}
+
+    assert swarm["agents"] and all(set(a) == {"name", "available", "reason"} for a in swarm["agents"])
+    assert all(isinstance(a["available"], bool) for a in swarm["agents"])
+
+    assert isinstance(swarm["routing"], list)
+
+    assert isinstance(swarm["subagent_runs"], list) and len(swarm["subagent_runs"]) <= 20
+    assert isinstance(swarm["selfbuild_runs"], list) and len(swarm["selfbuild_runs"]) <= 20
+    for run in (*swarm["subagent_runs"], *swarm["selfbuild_runs"]):
+        assert isinstance(run, dict)
+        assert isinstance(run["accepted"], bool)
+
+
+def test_swarm_run_records_carry_no_absolute_path(tmp_path: Path) -> None:
+    demo = _demo(tmp_path)
+    swarm = demo["swarm"]
+    abs_path = re.compile(r"/(?:[\w.\-]+/)+[\w.\-]+")
+    for run in (*swarm["subagent_runs"], *swarm["selfbuild_runs"]):
+        for value in _leaf_strings(run):
+            assert not abs_path.search(value), value
+            assert str(tmp_path) not in value
 
 
 def test_no_field_carries_a_token_secret_or_key_pattern(tmp_path: Path) -> None:

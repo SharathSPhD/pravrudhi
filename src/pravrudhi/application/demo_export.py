@@ -13,6 +13,7 @@ sequence of a real run as it happened.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -23,6 +24,7 @@ from pravrudhi import KERNEL_VERSION
 from pravrudhi import __version__ as ENGINE_VERSION
 from pravrudhi.agents.registry import survey as agent_survey
 from pravrudhi.api.runs import models_listing
+from pravrudhi.application import routing, selfbuild, subagents
 from pravrudhi.application.external import external_rows
 from pravrudhi.application.intent import compile_intent
 from pravrudhi.application.objectives import load_all
@@ -37,6 +39,12 @@ from pravrudhi_kernel.ledger import replay
 from pravrudhi_kernel.ledger.verify import iter_events
 
 MAX_EVENTS = 400
+MAX_SWARM_RUNS = 20
+
+# A whole-string absolute path, or one embedded in free text (an exception message, a agent's own words):
+# matched so it can be collapsed to its relative-to-root or bare-filename form before the record leaves this
+# machine, since a run record may otherwise carry this checkout's own filesystem layout.
+_ABS_PATH = re.compile(r"/(?:[\w.\-]+/)+[\w.\-]+")
 
 
 # The public site's page list, mirrored from app/frontend/src/components/Sidebar.tsx NAV (a TypeScript constant this
@@ -122,6 +130,35 @@ def _replay_run(ledger: Path, night: int, track: str) -> list[dict[str, Any]]:
     return events[:MAX_EVENTS]
 
 
+def _strip_paths(value: Any, root: Path) -> Any:
+    """Replace this checkout's own absolute paths in a run record with their root-relative form, and collapse
+    any other absolute path (from a different machine or worktree) to its bare filename."""
+    if isinstance(value, dict):
+        return {k: _strip_paths(v, root) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_strip_paths(v, root) for v in value]
+    if isinstance(value, str):
+        root_str = str(root)
+        value = value.replace(root_str + "/", "").replace(root_str, ".")
+        return _ABS_PATH.sub(lambda m: Path(m.group(0)).name, value)
+    return value
+
+
+def _swarm(root: Path) -> dict[str, Any]:
+    """The same shapes the live `/api/swarm` route serves: agent availability, the routing table's live
+    per-tier choice, and the last 20 runs of both the objective swarm and the self-build swarm, newest first."""
+    return {
+        "agents": [{"name": a.name, "available": a.available, "reason": a.reason} for a in agent_survey(root)],
+        "routing": routing.report(root),
+        "subagent_runs": [
+            _strip_paths(asdict(r), root) for r in reversed(subagents.runs(root)[-MAX_SWARM_RUNS:])
+        ],
+        "selfbuild_runs": [
+            _strip_paths(asdict(r), root) for r in reversed(selfbuild.runs(root)[-MAX_SWARM_RUNS:])
+        ],
+    }
+
+
 def build_demo(root: Path) -> dict[str, Any]:
     root = Path(root)
     ledger = root / "research" / "ledger.jsonl"
@@ -163,6 +200,7 @@ def build_demo(root: Path) -> dict[str, Any]:
             "problems": [{"file": f, "reason": r} for f, r in objective_problems(root)],
         },
         "recipes": availability(),
+        "swarm": _swarm(root),
         "plans": {
             o.id: {
                 "objective": o.id,

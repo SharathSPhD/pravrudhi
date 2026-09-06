@@ -4,12 +4,19 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import {
   agents,
+  applyUpdate,
   deleteProviderKey,
+  IS_DEMO,
   providers,
   putProviderKey,
+  putUpdateConfig,
+  rollbackUpdate,
+  updateConfig,
   updateStatus,
   type AgentStatus,
+  type ApplyResult,
   type ProviderInfo,
+  type UpdateConfig,
   type UpdateStatus,
 } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
@@ -153,8 +160,23 @@ function ProvidersSection() {
   );
 }
 
-function UpdatesLine() {
+interface ActionState {
+  pending: boolean;
+  result: ApplyResult | null;
+  error: string | null;
+}
+
+const IDLE_ACTION: ActionState = { pending: false, result: null, error: null };
+
+function UpdatesSection() {
   const [info, setInfo] = useState<UpdateStatus | null>(null);
+  const [config, setConfig] = useState<UpdateConfig | null>(null);
+  const [configUnsupported, setConfigUnsupported] = useState(false);
+  const [channel, setChannel] = useState<"dev" | "release">("release");
+  const [autoApply, setAutoApply] = useState(false);
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [applyState, setApplyState] = useState<ActionState>(IDLE_ACTION);
+  const [rollbackState, setRollbackState] = useState<ActionState>(IDLE_ACTION);
 
   useEffect(() => {
     let cancelled = false;
@@ -163,26 +185,138 @@ function UpdatesLine() {
         if (!cancelled) setInfo(data);
       })
       .catch(() => {
-        /* no update info available; the line is simply omitted */
+        /* no update info available; the section renders nothing until it has some */
       });
+    if (!IS_DEMO) {
+      updateConfig()
+        .then((data) => {
+          if (cancelled) return;
+          setConfig(data);
+          setChannel(data.channel);
+          setAutoApply(data.auto_apply);
+        })
+        .catch(() => {
+          if (!cancelled) setConfigUnsupported(true);
+        });
+    }
     return () => {
       cancelled = true;
     };
   }, []);
 
+  const dirty = config !== null && (channel !== config.channel || autoApply !== config.auto_apply);
+
+  async function handleSaveConfig() {
+    if (config === null) return;
+    setSavingConfig(true);
+    try {
+      const saved = await putUpdateConfig({ ...config, channel, auto_apply: autoApply });
+      setConfig(saved);
+      setChannel(saved.channel);
+      setAutoApply(saved.auto_apply);
+    } catch {
+      /* the selector keeps the attempted values so the operator can retry */
+    } finally {
+      setSavingConfig(false);
+    }
+  }
+
+  async function handleApply() {
+    setApplyState({ pending: true, result: null, error: null });
+    try {
+      const result = await applyUpdate(channel);
+      setApplyState({ pending: false, result, error: null });
+    } catch {
+      setApplyState({ pending: false, result: null, error: "could not reach the engine" });
+    }
+  }
+
+  async function handleRollback() {
+    setRollbackState({ pending: true, result: null, error: null });
+    try {
+      const result = await rollbackUpdate();
+      setRollbackState({ pending: false, result, error: null });
+    } catch {
+      setRollbackState({ pending: false, result: null, error: "could not reach the engine" });
+    }
+  }
+
   if (info === null) return null;
 
   return (
-    <p className="text-sm text-[var(--color-text-dim)]">
-      Running {info.current.version}.{" "}
-      {info.update_available && info.latest ? (
-        <>
-          Update available ({info.latest.tag}) — run: <code className="text-[var(--color-text)]">{info.how}</code>
-        </>
-      ) : (
-        "Up to date."
-      )}
-    </p>
+    <div>
+      <h2 className="mb-3 text-sm font-medium text-[var(--color-text)]">Updates</h2>
+      <div className="space-y-3 rounded-lg border border-[var(--color-border)] p-4 text-sm">
+        <p className="text-[var(--color-text-dim)]">
+          Running {info.current.version}.{" "}
+          {info.update_available && info.latest ? `Latest release: ${info.latest.tag}.` : "Up to date."}
+        </p>
+
+        {IS_DEMO ? (
+          <p className="text-xs text-[var(--color-text-dim)]">This is a recorded run: update controls are disabled.</p>
+        ) : (
+          <>
+            {configUnsupported && (
+              <p className="text-xs text-[var(--color-text-dim)]">engine does not report update config yet.</p>
+            )}
+            {!configUnsupported && config !== null && (
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="flex items-center gap-2">
+                  <span className="text-[var(--color-text-dim)]">Channel</span>
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value as "dev" | "release")}
+                    className="rounded-md border border-[var(--color-border)] bg-transparent px-2 py-1 text-sm"
+                  >
+                    <option value="release">release</option>
+                    <option value="dev">dev</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-[var(--color-text-dim)]">
+                  <input type="checkbox" checked={autoApply} onChange={(e) => setAutoApply(e.target.checked)} />
+                  Auto-apply
+                </label>
+                <button
+                  type="button"
+                  disabled={savingConfig || !dirty}
+                  onClick={handleSaveConfig}
+                  className="rounded-md border border-[var(--color-border)] px-3 py-1 text-sm disabled:opacity-50"
+                >
+                  {savingConfig ? "Saving…" : "Save"}
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={applyState.pending}
+                onClick={handleApply}
+                className="rounded-md border border-[var(--color-border)] px-3 py-1 text-sm disabled:opacity-50"
+              >
+                {applyState.pending ? "Updating…" : "Update now"}
+              </button>
+              <button
+                type="button"
+                disabled={rollbackState.pending}
+                onClick={handleRollback}
+                className="rounded-md border border-[var(--color-border)] px-3 py-1 text-sm disabled:opacity-50"
+              >
+                {rollbackState.pending ? "Rolling back…" : "Roll back"}
+              </button>
+            </div>
+            {applyState.result && (
+              <p className="text-xs text-[var(--color-text-dim)]">{applyState.result.reason}</p>
+            )}
+            {applyState.error && <p className="text-xs text-red-500">{applyState.error}</p>}
+            {rollbackState.result && (
+              <p className="text-xs text-[var(--color-text-dim)]">{rollbackState.result.reason}</p>
+            )}
+            {rollbackState.error && <p className="text-xs text-red-500">{rollbackState.error}</p>}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -254,7 +388,7 @@ export default function SettingsPage() {
           <ProvidersSection />
         </div>
 
-        <UpdatesLine />
+        <UpdatesSection />
       </div>
     </div>
   );

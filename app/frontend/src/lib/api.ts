@@ -78,6 +78,20 @@ async function postJSON<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function putJSON<T>(path: string, body: unknown): Promise<T> {
+  const token = await localToken();
+  const res = await fetch(`${detectBase()}${path}`, {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      ...(token ? { "x-pravrudhi-token": token } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new ApiError(res.status, path);
+  return (await res.json()) as T;
+}
+
 async function deleteJSON<T>(path: string): Promise<T> {
   const token = await localToken();
   const res = await fetch(`${detectBase()}${path}`, {
@@ -304,6 +318,43 @@ export async function updateStatus(): Promise<UpdateStatus> {
     };
   }
   return getJSON<UpdateStatus>("/api/update");
+}
+
+// The operator's saved update policy, and applying or rolling back an update. Distinct from `updateStatus`
+// above: that check only reaches GitHub to compare versions, these actually touch the checkout.
+
+export interface UpdateConfig {
+  channel: "dev" | "release";
+  auto_apply: boolean;
+  check_interval_min: number;
+  keep_previous: number;
+}
+
+export interface ApplyResult {
+  applied: boolean;
+  version: string | null;
+  reason: string;
+  rolled_back: boolean;
+}
+
+export async function updateConfig(): Promise<UpdateConfig> {
+  if (IS_DEMO) throw new ApiError(501, "/api/update/config");
+  return getJSON<UpdateConfig>("/api/update/config");
+}
+
+export async function putUpdateConfig(config: UpdateConfig): Promise<UpdateConfig> {
+  if (IS_DEMO) throw new ApiError(501, "/api/update/config");
+  return putJSON<UpdateConfig>("/api/update/config", config);
+}
+
+export async function applyUpdate(channel?: "dev" | "release"): Promise<ApplyResult> {
+  if (IS_DEMO) throw new ApiError(501, "/api/update/apply");
+  return postJSON<ApplyResult>("/api/update/apply", { channel: channel ?? null });
+}
+
+export async function rollbackUpdate(): Promise<ApplyResult> {
+  if (IS_DEMO) throw new ApiError(501, "/api/update/rollback");
+  return postJSON<ApplyResult>("/api/update/rollback", {});
 }
 
 export async function external(): Promise<ExternalRow[]> {

@@ -77,6 +77,26 @@ class UpdateStatusResponse(BaseModel):
     how: str
 
 
+class UpdateConfigResponse(BaseModel):
+    """The operator's update policy: which channel to track, whether to apply automatically, how often to
+    check, and how many previous installs to keep around for rollback."""
+
+    channel: Literal["dev", "release"]
+    auto_apply: bool
+    check_interval_min: int
+    keep_previous: int
+
+
+class ApplyResultResponse(BaseModel):
+    """What an apply or rollback attempt actually did. `reason` is shown verbatim to the operator: it is the
+    only place a refused apply explains itself."""
+
+    applied: bool
+    version: str | None
+    reason: str
+    rolled_back: bool
+
+
 class StatusResponse(RootModel[UninitialisedStatus | InitialisedStatus]):
     """Missing and replayed ledgers were conflated by an untyped status object."""
 
