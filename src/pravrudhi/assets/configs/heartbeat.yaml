@@ -1,0 +1,11 @@
+# Defaults for the heartbeat: how often it wakes, how much it does per wake, and when it must do nothing at all.
+#
+# An operator override may live at .pravrudhi/heartbeat.yaml inside a workspace; this packaged file is what a
+# fresh workspace uses until one is written. `quiet_hours` are hour-of-day integers (0-23, UTC). `allow_gpu`
+# gates whether the heartbeat may ever dispatch a step that trains or intensively exercises a model on the GPU;
+# it stays false so an autonomous wake-up never starts GPU work without the operator opting in, and even when
+# true, application/heartbeat.py still refuses such a step while a night is already in progress.
+interval_min: 60
+max_dispatch_per_beat: 1
+quiet_hours: []
+allow_gpu: false

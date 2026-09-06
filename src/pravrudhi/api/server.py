@@ -33,6 +33,7 @@ from pravrudhi.api.schemas import (
     ExternalResultsResponse,
     FleetResponse,
     HealthResponse,
+    HeartbeatResponse,
     InboxListingResponse,
     LiveAgentsResponse,
     LoomResponse,
@@ -279,6 +280,14 @@ def create_app(root: Path) -> FastAPI:
     @api.get("/status")
     def status_ep() -> StatusResponse:
         return StatusResponse.model_validate(status(root))
+
+    @api.get("/heartbeat")
+    def heartbeat_ep(n: int = 100) -> HeartbeatResponse:
+        from pravrudhi.application.heartbeat import history
+
+        beats = [b.to_dict() for b in history(root, max(1, min(n, 1000)))]
+        beats.reverse()
+        return HeartbeatResponse.model_validate({"beats": beats})
 
     @api.get("/update")
     def update_ep() -> UpdateStatusResponse:

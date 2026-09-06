@@ -1,0 +1,61 @@
+import type { HeartbeatBeat } from "@/lib/heartbeat";
+
+function sortNewestFirst(beats: HeartbeatBeat[]): HeartbeatBeat[] {
+  return [...beats].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+}
+
+export function HeartbeatTimeline({ beats }: { beats: HeartbeatBeat[] }) {
+  const ordered = sortNewestFirst(beats);
+
+  return (
+    <div className="space-y-2">
+      {ordered.map((beat, i) => (
+        <div
+          key={`${beat.at}-${i}`}
+          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+        >
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-mono text-[11px] text-[var(--color-text-dim)]">{beat.at}</span>
+            {beat.chose ? (
+              <span className="font-mono text-[13px] text-[var(--color-text)]">
+                {beat.chose.objective} · {beat.chose.step}
+              </span>
+            ) : (
+              <span className="text-[10px] uppercase tracking-wide text-[var(--color-text-dim)]">no dispatch</span>
+            )}
+            {beat.result && (
+              <span
+                className={`ml-auto inline-flex items-center gap-1.5 text-xs font-medium ${
+                  beat.result.accepted ? "text-[var(--color-accent)]" : "text-[var(--color-danger)]"
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "currentColor" }} />
+                {beat.result.accepted ? "accepted" : "rejected"}
+              </span>
+            )}
+          </div>
+          <div className="mt-1 text-[11px] text-[var(--color-text-dim)]">
+            looked at: {beat.looked_at.length > 0 ? beat.looked_at.join(", ") : "—"}
+          </div>
+          <div className="mt-1 text-[11px] text-[var(--color-text-dim)]">{beat.reason}</div>
+          {beat.result && (
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-dim)]">
+              <span className="font-mono">{beat.result.agent}</span>
+              <span>{beat.result.wall_s.toFixed(1)}s</span>
+              {beat.result.files.length > 0 && (
+                <span className="truncate font-mono">{beat.result.files.join(", ")}</span>
+              )}
+            </div>
+          )}
+          {beat.result && beat.result.reasons.length > 0 && (
+            <ul className="mt-1 list-inside list-disc text-[11px] text-[var(--color-text-dim)]">
+              {beat.result.reasons.map((reason, j) => (
+                <li key={j}>{reason}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}

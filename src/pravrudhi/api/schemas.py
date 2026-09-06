@@ -97,6 +97,18 @@ class ApplyResultResponse(BaseModel):
     rolled_back: bool
 
 
+class BeatOut(BaseModel):
+    at: str
+    looked_at: list[str]
+    chose: dict[str, str] | None
+    reason: str
+    result: dict[str, JsonValue] | None
+
+
+class HeartbeatResponse(BaseModel):
+    beats: list[BeatOut]
+
+
 class StatusResponse(RootModel[UninitialisedStatus | InitialisedStatus]):
     """Missing and replayed ledgers were conflated by an untyped status object."""
 

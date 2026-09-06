@@ -564,6 +564,30 @@ def update_cmd(
 DEMO_DEST_OPT = typer.Option(Path("app/frontend/public/demo.json"), "--dest", help="where the snapshot is written")
 
 
+@app.command("heartbeat")
+def heartbeat_cmd(
+    root: Path = ROOT_OPT,
+    loop: bool = typer.Option(False, "--loop", help="keep beating at the configured interval"),
+    as_json: bool = typer.Option(False, "--json"),
+) -> None:
+    """One heartbeat: find the most neglected undone objective step and dispatch it; with --loop, keep going."""
+    import time as _time
+
+    from pravrudhi.agents.registry import build_agent
+    from pravrudhi.application.heartbeat import beat, load_config
+
+    while True:
+        rec = beat(root, dispatch=lambda n, m: build_agent(root, n, m))
+        if as_json:
+            typer.echo(json.dumps(rec.to_dict(), sort_keys=True))
+        else:
+            chosen = f"{rec.chose['objective']}/{rec.chose['step']}" if rec.chose else "nothing"
+            typer.echo(f"{rec.at} looked at {len(rec.looked_at)} objectives, chose {chosen}: {rec.reason}")
+        if not loop:
+            return
+        _time.sleep(load_config(root).interval_min * 60)
+
+
 @app.command("demo-export")
 def demo_export_cmd(
     root: Path = ROOT_OPT,

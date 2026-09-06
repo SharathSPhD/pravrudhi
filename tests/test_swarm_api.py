@@ -161,3 +161,13 @@ def test_update_endpoint_serves_the_settings_page(tmp_path):
     body = r.json()
     assert body["current"]["version"] and body["current"]["kernel_version"]
     assert set(body) == {"current", "latest", "update_available", "how"}
+
+
+def test_heartbeat_endpoint_is_empty_before_the_first_beat(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from pravrudhi.api.server import create_app
+
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/api/heartbeat?n=5", headers={"host": "127.0.0.1:8008"})
+    assert r.status_code == 200 and r.json() == {"beats": []}
