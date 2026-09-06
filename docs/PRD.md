@@ -87,4 +87,4 @@ performance claims require supporting evidence; this document sets no unevidence
 The current scope excludes interpreting free prose into an autonomous plan, choosing recipes on the user's behalf
 and inventing benchmarks for unmeasured domains. It does not promise improvement for every model, task or budget.
 Reimplementing the training systems represented by the recipe catalogue is outside the product's purpose.
-Desktop packaging, shared multi-user engine operation and billing are outside the current release scope.
+Shared multi-user engine operation and billing are outside the current release scope. A desktop application is in scope as the milestone after the multi-user layer: a native window onto a locally running engine, which it detects and guides rather than installs, never bundling a Python runtime; the shell is attempted with Tauri and falls back to Electron under a pre-declared abort condition, Linux first and macOS second.

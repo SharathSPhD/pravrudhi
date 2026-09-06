@@ -70,10 +70,12 @@ result does not establish which objective caused the run. Stronger attribution a
 across model configurations remain open design questions.
 
 A hosted account flow for connecting private engines, remote deployment arrangements, and broader administration
-controls remain separate from the recorded public site. Desktop packaging, shared engine tenancy and billing
+controls remain separate from the recorded public site. Shared engine tenancy and billing
 have no commitment here. Broader target support should be decided against a concrete evaluation contract.
 
 What happens when a sealed pool runs out of unused items is undecided. Studies and nights draw repeatedly
 against the same fixed, kernel-owned pool under an exposure cap; no policy yet governs what happens once that
 pool is exhausted — reseal against fresh held-out data, rotate in a second pool, or refuse further runs until an
 operator intervenes. This affects every track that seals a pool, not only the one that first exhausts it.
+
+A desktop application is scheduled after the multi-user layer: a window onto a locally running engine, detected and guided rather than installed, with no bundled Python runtime; Tauri attempted first, Electron as the declared fallback, Linux before macOS.
