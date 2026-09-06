@@ -42,6 +42,9 @@ from pravrudhi.api.schemas import (
     ObjectivesResponse,
     ObservationsResponse,
     PlanResponse,
+    ProviderKeyRemovedResponse,
+    ProviderKeyResponse,
+    ProvidersResponse,
     RecipesResponse,
     SignResponse,
     StatusResponse,
@@ -98,6 +101,13 @@ class SignRequest(BaseModel):
     pack: str
     decision: str  # approve | reject | defer
     note: str = ""
+
+
+class ProviderKeyRequest(BaseModel):
+    """A bring-your-own key to validate and store, with an optional base URL for an OpenAI-compatible endpoint."""
+
+    key: str
+    base_url: str | None = None
 
 
 def create_app(root: Path) -> FastAPI:
@@ -388,6 +398,45 @@ def create_app(root: Path) -> FastAPI:
             return {"slug": req.slug, "path": str(ensure_workspace(user.id, req.slug))}
         except ValueError as e:
             raise HTTPException(422, str(e)) from e
+
+    @api.get("/providers", response_model=ProvidersResponse)
+    async def providers_ep(user: User | None = CurrentUserDep) -> list[dict[str, Any]]:
+        """The bring-your-own-key registry, marked configured or not for this caller. Never the key or a
+        prefix of it — only the shape a valid key for that provider is expected to have."""
+        from pravrudhi.application.credentials import PROVIDERS
+        from pravrudhi.application.credentials import store_for as credential_store_for
+
+        configured = set(credential_store_for(root, user).configured())
+        return [
+            {"id": p.id, "title": p.title, "configured": p.id in configured, "key_prefix": p.key_prefix}
+            for p in PROVIDERS.values()
+        ]
+
+    @api.post("/providers/{provider_id}/key", response_model=ProviderKeyResponse)
+    async def set_provider_key(
+        provider_id: str, req: ProviderKeyRequest, user: User | None = CurrentUserDep
+    ) -> dict[str, Any]:
+        """Validate a bring-your-own key against the provider and store it. The validation reason is redacted
+        before it leaves the process, since a probe failure can otherwise echo the key back in its message."""
+        from pravrudhi.application.credentials import PROVIDERS, redact, validate
+        from pravrudhi.application.credentials import store_for as credential_store_for
+
+        if provider_id not in PROVIDERS:
+            raise HTTPException(404, "unknown provider")
+        validated, reason = validate(provider_id, req.key, base_url=req.base_url)
+        credential_store_for(root, user).put(provider_id, req.key)
+        return {"provider": provider_id, "configured": True, "validated": validated, "reason": redact(reason)}
+
+    @api.delete("/providers/{provider_id}/key", response_model=ProviderKeyRemovedResponse)
+    async def delete_provider_key(provider_id: str, user: User | None = CurrentUserDep) -> dict[str, Any]:
+        """Remove a stored bring-your-own key."""
+        from pravrudhi.application.credentials import PROVIDERS
+        from pravrudhi.application.credentials import store_for as credential_store_for
+
+        if provider_id not in PROVIDERS:
+            raise HTTPException(404, "unknown provider")
+        credential_store_for(root, user).delete(provider_id)
+        return {"provider": provider_id, "configured": False}
 
     @api.get("/recipes")
     def recipes_ep() -> RecipesResponse:

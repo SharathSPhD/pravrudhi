@@ -556,6 +556,37 @@ class WorkspacesResponse(BaseModel):
     workspaces: list[WorkspaceResponse]
 
 
+class ProviderResponse(BaseModel):
+    """The bring-your-own-key registry had no HTTP contract, and a naive one could type a field to carry
+    the key itself rather than just its shape."""
+
+    id: str
+    title: str
+    configured: bool
+    key_prefix: str
+
+
+class ProvidersResponse(RootModel[list[ProviderResponse]]):
+    """The provider collection previously left its entries untyped."""
+
+
+class ProviderKeyResponse(BaseModel):
+    """Storing a bring-your-own key had no response contract, and one typed loosely could carry the key
+    itself back to the caller instead of just whether it validated."""
+
+    provider: str
+    configured: Literal[True]
+    validated: bool
+    reason: str
+
+
+class ProviderKeyRemovedResponse(BaseModel):
+    """Removing a bring-your-own key had no declared response distinguishing it from a stored one."""
+
+    provider: str
+    configured: Literal[False]
+
+
 class CitationResponse(BaseModel):
     """The ledger row a chat reply stands on. Prose could previously assert a result with nothing behind it;
     a citation is the sequence number a reader can replay for themselves."""

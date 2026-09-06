@@ -78,6 +78,16 @@ async function postJSON<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function deleteJSON<T>(path: string): Promise<T> {
+  const token = await localToken();
+  const res = await fetch(`${detectBase()}${path}`, {
+    method: "DELETE",
+    headers: token ? { "x-pravrudhi-token": token } : {},
+  });
+  if (!res.ok) throw new ApiError(res.status, path);
+  return (await res.json()) as T;
+}
+
 export interface HealthResponse {
   ok: boolean;
   version: string;
@@ -241,6 +251,60 @@ export async function hosts(): Promise<HostsResponse> {
 export async function agents(): Promise<AgentStatus[]> {
   if (IS_DEMO) return (await import("./demo")).demoAgents();
   return getJSON<AgentStatus[]>("/api/agents");
+}
+
+// ---------------------------------------------------------------------------
+// Bring-your-own provider keys. The engine stores a key (see `application.credentials`) but never returns
+// it — a provider row says only whether a key is configured, never what it is.
+
+export interface ProviderInfo {
+  id: string;
+  title: string;
+  configured: boolean;
+}
+
+// `reason` explains a rejected key (from the provider's own probe) and is empty on success.
+export interface ProviderKeyResult {
+  ok: boolean;
+  reason: string;
+}
+
+export async function providers(): Promise<ProviderInfo[]> {
+  if (IS_DEMO) return [];
+  return getJSON<ProviderInfo[]>("/api/providers");
+}
+
+export async function putProviderKey(id: string, key: string): Promise<ProviderKeyResult> {
+  if (IS_DEMO) throw new ApiError(501, `/api/providers/${id}/key`);
+  return postJSON<ProviderKeyResult>(`/api/providers/${encodeURIComponent(id)}/key`, { key });
+}
+
+export async function deleteProviderKey(id: string): Promise<ProviderKeyResult> {
+  if (IS_DEMO) throw new ApiError(501, `/api/providers/${id}/key`);
+  return deleteJSON<ProviderKeyResult>(`/api/providers/${encodeURIComponent(id)}/key`);
+}
+
+// Whether this checkout is behind the newest tagged release (see `application.updates`), and the exact
+// command that would catch it up. Same path as `status()` above; the engine layers these fields onto the
+// same response rather than opening a second endpoint for what is still "the engine's status".
+export interface UpdateStatus {
+  current: { version: string; kernel_version: string; git_describe?: string };
+  latest: { tag: string; url: string } | null;
+  update_available: boolean;
+  how: string;
+}
+
+export async function updateStatus(): Promise<UpdateStatus> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    return {
+      current: { version: d.engine.version, kernel_version: d.engine.version },
+      latest: null,
+      update_available: false,
+      how: "",
+    };
+  }
+  return getJSON<UpdateStatus>("/api/status");
 }
 
 export async function external(): Promise<ExternalRow[]> {

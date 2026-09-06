@@ -49,6 +49,8 @@ VERIFY_OPT = typer.Option(
     "--verify",
     help="Verify the hash chain and compare against the committed state; exit 1 on any difference.",
 )
+BUILD_PLAN_ARG = typer.Argument(..., help="Self-build plan YAML; see application.selfbuild.PACKAGED_EXAMPLE.")
+BUILD_RUN_OPT = typer.Option(False, "--run", help="Dispatch the plan; otherwise preview only.")
 
 
 @app.callback(invoke_without_command=True)
@@ -489,6 +491,47 @@ def objective_subagents(
         return
     for r in dispatch_plan(obj, plan, root=root, build_agent=lambda n, m: build_agent(root, n, m), log=typer.echo):
         typer.echo(f"{'ACCEPT' if r.accepted else 'REJECT'} {r.step} [{r.route}] {r.wall_s:.0f}s")
+
+
+@app.command("build")
+def build_cmd(plan: Path = BUILD_PLAN_ARG, run: bool = BUILD_RUN_OPT, root: Path = ROOT_OPT) -> None:
+    """Preview or dispatch a self-build plan against the engine's own tree, one task per line."""
+    from pravrudhi.agents.registry import build_agent as make_agent
+    from pravrudhi.application.selfbuild import SelfBuildError, load_plan, preview, run_plan
+
+    try:
+        tasks = load_plan(plan)
+    except SelfBuildError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+
+    if not run:
+        for t in preview(tasks, root):
+            typer.echo(f"{t['task_id']:32s} {t['tier']:10s} {t['agent']}/{t['model'] or 'default'}")
+        typer.echo("(preview; add --run to dispatch)")
+        return
+
+    for r in run_plan(root, tasks, build_agent=lambda n, m: make_agent(root, n, m), log=typer.echo):
+        typer.echo(f"{'ACCEPT' if r.accepted else 'REJECT'} {r.task_id} [{r.route}] {r.wall_s:.0f}s")
+
+
+@app.command("update")
+def update_cmd() -> None:
+    """Is a newer release available, and the exact command that would catch this checkout up."""
+    from pravrudhi.application.updates import status
+
+    st = status()
+    cur = st["current"]
+    typer.echo(f"running {cur['version']} (kernel {cur['kernel_version']})" + (
+        f", git {cur['git_describe']}" if "git_describe" in cur else ""
+    ))
+    if st["latest"] is None:
+        typer.echo("could not reach GitHub to check for a newer release")
+    elif st["update_available"]:
+        typer.echo(f"update available: {st['latest']['tag']} ({st['latest']['url']})")
+        typer.echo(f"  {st['how']}")
+    else:
+        typer.echo(f"up to date with the latest release ({st['latest']['tag']})")
 
 
 @app.command("routing")
