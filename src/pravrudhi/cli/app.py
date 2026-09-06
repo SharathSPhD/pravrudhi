@@ -51,6 +51,15 @@ VERIFY_OPT = typer.Option(
 )
 BUILD_PLAN_ARG = typer.Argument(..., help="Self-build plan YAML; see application.selfbuild.PACKAGED_EXAMPLE.")
 BUILD_RUN_OPT = typer.Option(False, "--run", help="Dispatch the plan; otherwise preview only.")
+REQUESTS_JSON_OPT = typer.Option(False, "--json")
+REQUEST_ID_ARG = typer.Argument(..., help="request id, e.g. r-1a2b3c4d")
+REQUEST_TEXT_ARG = typer.Argument(..., help="the operator's ask, verbatim")
+REQUEST_INDEX_ARG = typer.Argument(..., help="criterion index, 0-based")
+REQUEST_STATE_ARG = typer.Argument(
+    ..., help="captured | clarified | planned | in_progress | delivered | verified | declined"
+)
+REQUEST_KIND_OPT = typer.Option(..., "--kind", help="commit | ledger_seq | file | command | screenshot | url")
+REQUEST_REF_OPT = typer.Option(..., "--ref")
 
 
 @app.callback(invoke_without_command=True)
@@ -882,3 +891,92 @@ def app_cmd(
     if frontend_dir(root) is None:
         typer.echo("no frontend build at app/frontend/out; serving the API only (build with: cd app/frontend && npm run build)")
     serve(root, host=host, port=port, open_browser=not no_browser)
+
+
+@app.command("requests")
+def requests_cmd(root: Path = ROOT_OPT, as_json: bool = REQUESTS_JSON_OPT) -> None:
+    """The operator's asks: id, state, criteria met, days waiting, and the first 60 characters of the ask."""
+    from pravrudhi.application.requests import backlog
+
+    data = backlog(root)
+    if as_json:
+        typer.echo(json.dumps(data, indent=2, sort_keys=True))
+        return
+    if not data["requests"]:
+        typer.echo("no requests captured yet")
+        return
+    typer.echo(f"{'id':10} {'state':12} {'met':6} {'days':>6}  ask")
+    for r in data["requests"]:
+        met, total = r["progress"]
+        ask = r["text"].strip().replace("\n", " ")[:60]
+        typer.echo(f"{r['id']:10} {r['state']:12} {f'{met}/{total}':6} {r['staleness_days']:>6}  {ask}")
+
+
+@app.command("requests-show")
+def requests_show_cmd(request_id: str = REQUEST_ID_ARG, root: Path = ROOT_OPT) -> None:
+    """The full ask, each criterion with who wrote it and whether it is met, and its evidence."""
+    from pravrudhi.application.requests import get
+
+    req = get(root, request_id)
+    if req is None:
+        typer.echo(f"no request {request_id}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"{req.id}  [{req.state}]  asked {req.asked_at}")
+    typer.echo(req.text)
+    typer.echo("")
+    if not req.criteria:
+        typer.echo("no acceptance criteria yet")
+    for i, c in enumerate(req.criteria):
+        typer.echo(f"[{i}] ({c.source}) {'met' if c.met else 'unmet'}  {c.text}")
+        for e in c.evidence:
+            typer.echo(f"      {e.kind}: {e.ref}" + (f"  {e.note}" if e.note else ""))
+
+
+@app.command("requests-capture")
+def requests_capture_cmd(text: str = REQUEST_TEXT_ARG, root: Path = ROOT_OPT) -> None:
+    """Record an ask verbatim. Idempotent: re-running the same text returns the existing request."""
+    from pravrudhi.application.requests import capture
+
+    req = capture(root, text)
+    typer.echo(f"{req.id}  [{req.state}]  {req.text}")
+
+
+@app.command("requests-met")
+def requests_met_cmd(
+    request_id: str = REQUEST_ID_ARG,
+    index: int = REQUEST_INDEX_ARG,
+    kind: str = REQUEST_KIND_OPT,
+    ref: str = REQUEST_REF_OPT,
+    note: str = NOTE_OPT,
+    root: Path = ROOT_OPT,
+) -> None:
+    """Mark one acceptance criterion met, with the evidence that makes it so."""
+    from pravrudhi.application.requests import Evidence, RequestError, meet
+
+    try:
+        req = meet(root, request_id, index, [Evidence(kind=kind, ref=ref, note=note)])
+    except RequestError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(f"{req.id}[{index}] met: {req.criteria[index].text}")
+
+
+@app.command("requests-advance")
+def requests_advance_cmd(
+    request_id: str = REQUEST_ID_ARG,
+    state: str = REQUEST_STATE_ARG,
+    note: str = NOTE_OPT,
+    root: Path = ROOT_OPT,
+) -> None:
+    """Move a request along the state machine, refusing an illegal move or a close without evidence."""
+    from pravrudhi.application.requests import STATES, RequestError, advance
+
+    if state not in STATES:
+        typer.echo(f"unknown state {state!r}; expected one of {', '.join(STATES)}", err=True)
+        raise typer.Exit(code=2)
+    try:
+        req = advance(root, request_id, state, note=note)
+    except RequestError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(code=1) from e
+    typer.echo(f"{req.id} -> {req.state}")

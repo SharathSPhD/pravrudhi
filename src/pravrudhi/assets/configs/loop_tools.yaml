@@ -1,0 +1,22 @@
+# Command prefixes LoopAgent's run_command tool may execute inside its own worktree.
+#
+# A command is permitted only when it equals one of these prefixes exactly, or starts with one followed by a
+# space - so `git status` also permits `git status --short`, but not `git stash` and not `git status-ish`.
+# Anything else is refused and named in the tool result rather than run.
+
+allow_prefixes:
+  - "git status"
+  - "git diff"
+  - "git log"
+  - "git show"
+  - "ls"
+  - "cat"
+  - "rg"
+  - "uv run pytest"
+  - "uv run mypy"
+  - "uv run ruff"
+  - "uv run python -m compileall"
+
+# Per-call ceiling for run_command. The loop's own wall-clock budget (max_steps / timeout_s on LoopAgent.run) is
+# the outer bound; this is the inner one, so one hung command cannot eat the whole session.
+command_timeout_s: 120

@@ -25,6 +25,7 @@ from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.api.schemas import (
     AgentsResponse,
     ApplyResultResponse,
+    BacklogResponse,
     CandidateDetailResponse,
     CandidatesResponse,
     DispatchResponse,
@@ -51,6 +52,9 @@ from pravrudhi.api.schemas import (
     ProviderKeyResponse,
     ProvidersResponse,
     RecipesResponse,
+    RequestAdvanceRequest,
+    RequestEvidenceRequest,
+    RequestResponse,
     SignResponse,
     StatusResponse,
     SubagentsResponse,
@@ -66,6 +70,12 @@ from pravrudhi.application.doctor import run_doctor
 from pravrudhi.application.evidence import render_h1
 from pravrudhi.application.external import external_rows
 from pravrudhi.application.night import inbox_listing
+from pravrudhi.application.requests import Evidence, Request, RequestError
+from pravrudhi.application.requests import advance as advance_request
+from pravrudhi.application.requests import backlog as requests_backlog
+from pravrudhi.application.requests import get as get_request
+from pravrudhi.application.requests import meet as meet_criterion
+from pravrudhi.application.requests import staleness as request_staleness
 from pravrudhi.application.status import status
 from pravrudhi.hosts.fleet import fleet_report
 from pravrudhi_kernel.ledger import LedgerWriter, replay
@@ -623,6 +633,37 @@ def create_app(root: Path) -> FastAPI:
         if p.parent != base or not p.is_file():
             raise HTTPException(404, "no such evidence document")
         return EvidenceResponse.model_validate({"name": name, "markdown": p.read_text()})
+
+    def _request_response(req: Request) -> RequestResponse:
+        return RequestResponse.model_validate(
+            {**req.to_dict(), "staleness_days": round(request_staleness(req), 2), "progress": list(req.progress())}
+        )
+
+    @api.get("/requests")
+    def requests_ep() -> BacklogResponse:
+        return BacklogResponse.model_validate(requests_backlog(root))
+
+    @api.get("/requests/{rid}")
+    def request_ep(rid: str) -> RequestResponse:
+        req = get_request(root, rid)
+        if req is None:
+            raise HTTPException(404, f"no request {rid}")
+        return _request_response(req)
+
+    @api.post("/requests/{rid}/advance")
+    def request_advance_ep(rid: str, req: RequestAdvanceRequest) -> RequestResponse:
+        try:
+            return _request_response(advance_request(root, rid, req.state, note=req.note))
+        except RequestError as e:
+            raise HTTPException(409, str(e)) from e
+
+    @api.post("/requests/{rid}/criteria/{index}/evidence")
+    def request_evidence_ep(rid: str, index: int, req: RequestEvidenceRequest) -> RequestResponse:
+        evidence = [Evidence(kind=req.kind, ref=req.ref, note=req.note)]
+        try:
+            return _request_response(meet_criterion(root, rid, index, evidence))
+        except RequestError as e:
+            raise HTTPException(409, str(e)) from e
 
     @api.post("/inbox/sign")
     def sign(req: SignRequest, x_pravrudhi_operator: str | None = Header(default=None)) -> SignResponse:

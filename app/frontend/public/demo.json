@@ -1903,6 +1903,17 @@
   },
   "heartbeat": [
     {
+      "at": "2026-09-06T20:31:13Z",
+      "chose": null,
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "every objective's plan is fully dispatched and accepted",
+      "result": null
+    },
+    {
       "at": "2026-09-06T19:28:15Z",
       "chose": {
         "objective": "code-harness",
@@ -3746,18 +3757,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (22/25) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet has the best measured success rate at this tier (23/26) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.9583325864293191,
-            "lo": 0.7004380781662651,
-            "mean_wall_s": 288.12617584955876,
-            "rate": 0.88,
+            "hi": 0.959968281788505,
+            "lo": 0.7102370691310166,
+            "mean_wall_s": 284.0514716524631,
+            "rate": 0.8846153846153846,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 22,
+            "successes": 23,
             "tier": "design",
-            "trials": 25
+            "trials": 26
           },
           {
             "hi": 1.0,
@@ -3800,7 +3811,7 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (12/16 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (15/20 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
         "records": [
           {
             "hi": 1.0,
@@ -3814,15 +3825,15 @@
             "trials": 0
           },
           {
-            "hi": 0.8981809801576265,
-            "lo": 0.5050123107060135,
-            "mean_wall_s": 395.41258041102265,
+            "hi": 0.888139947210597,
+            "lo": 0.5312949900419365,
+            "mean_wall_s": 391.8278252079035,
             "rate": 0.75,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 12,
+            "successes": 15,
             "tier": "critical",
-            "trials": 16
+            "trials": 20
           },
           {
             "hi": 1.0,
@@ -4274,9 +4285,9 @@
     ]
   },
   "version": {
-    "commit": "46050a6",
+    "commit": "d66d3c5",
     "engine": "0.2.3",
-    "exported_at": "2026-09-06T20:02:09.446Z",
+    "exported_at": "2026-09-06T20:38:48.969Z",
     "kernel": "0.1.0"
   }
 }

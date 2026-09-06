@@ -769,3 +769,64 @@ class ChatThreadDetailResponse(BaseModel):
 
     id: str
     turns: list[ChatTurnResponse]
+
+
+class EvidenceItemResponse(BaseModel):
+    """One fact supporting a criterion: a commit, a ledger sequence, a file, or a command whose output was seen."""
+
+    kind: str
+    ref: str
+    note: str
+
+
+class CriterionResponse(BaseModel):
+    """One checkable part of an ask. `source` distinguishes what the operator said from the engine's reading."""
+
+    text: str
+    source: Literal["operator", "engine"]
+    met: bool
+    evidence: list[EvidenceItemResponse]
+
+
+class RequestNoteResponse(BaseModel):
+    at: str
+    note: str
+
+
+class RequestResponse(BaseModel):
+    """One captured ask, with its acceptance criteria and how long it has waited."""
+
+    id: str
+    asked_at: str
+    text: str
+    state: Literal["captured", "clarified", "planned", "in_progress", "delivered", "verified", "declined"]
+    criteria: list[CriterionResponse]
+    notes: list[RequestNoteResponse]
+    session: str
+    staleness_days: float
+    progress: list[int]
+
+
+class BacklogResponse(BaseModel):
+    """What is outstanding: the operator's requests, oldest-waiting-open first."""
+
+    total: int
+    open: int
+    by_state: dict[str, int]
+    oldest_open_days: float
+    requests: list[RequestResponse]
+
+
+class RequestAdvanceRequest(BaseModel):
+    """Move a request to a new state, with a note explaining why."""
+
+    state: Literal["captured", "clarified", "planned", "in_progress", "delivered", "verified", "declined"]
+    note: str = ""
+
+
+class RequestEvidenceRequest(BaseModel):
+    """Evidence that marks one acceptance criterion met."""
+
+    kind: str
+    ref: str
+    note: str = ""

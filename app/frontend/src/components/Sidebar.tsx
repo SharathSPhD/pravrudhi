@@ -18,9 +18,11 @@ import {
   Inbox as InboxIcon,
   Library,
   Layers,
+  ListChecks,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { inbox } from "@/lib/inbox";
+import { requests } from "@/lib/requests";
 
 interface NavItem {
   href: string;
@@ -33,6 +35,7 @@ const NAV: NavItem[] = [
   { href: "/objectives", label: "Objectives", icon: Target },
   { href: "/progress", label: "Progress", icon: LineChart },
   { href: "/inbox", label: "Inbox", icon: InboxIcon },
+  { href: "/requests", label: "Requests", icon: ListChecks },
   { href: "/candidates", label: "Candidates", icon: Layers },
   { href: "/swarm", label: "Swarm", icon: Bot },
   { href: "/heartbeat", label: "Heartbeat", icon: Activity },
@@ -48,12 +51,20 @@ const NAV: NavItem[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const [pendingInbox, setPendingInbox] = useState(0);
+  const [openRequests, setOpenRequests] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     inbox()
       .then((items) => {
         if (!cancelled) setPendingInbox(items.filter((i) => !i.signed).length);
+      })
+      .catch(() => {
+        /* no engine reachable yet — the badge just stays at zero */
+      });
+    requests()
+      .then((snapshot) => {
+        if (!cancelled) setOpenRequests(snapshot?.open ?? 0);
       })
       .catch(() => {
         /* no engine reachable yet — the badge just stays at zero */
@@ -89,6 +100,11 @@ export function Sidebar() {
               {href === "/inbox" && pendingInbox > 0 && (
                 <span className="rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-medium text-[#06110c]">
                   {pendingInbox}
+                </span>
+              )}
+              {href === "/requests" && openRequests > 0 && (
+                <span className="rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-medium text-[#06110c]">
+                  {openRequests}
                 </span>
               )}
             </Link>

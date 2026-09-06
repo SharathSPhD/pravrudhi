@@ -33,6 +33,19 @@ routes:
       stopped loop, which is what the operator asked for on 2026-09-06: the system must run unattended when the
       paid accounts are spent.
 
+  - id: qwen-loop
+    agent: loop
+    model: qwen3-coder-plus
+    relative_cost: 0.3
+    tiers: [mechanical, standard]
+    sentinel: true
+    note: >-
+      The same hosted free-tier model as qwen-coder, but driven through Pravrudhi's own tool-calling loop
+      (read_file, write_file, list_dir, search, run_command) instead of one single-shot JSON reply. Declared
+      after qwen-coder, its cheaper single-shot sibling: standby arbitration between sentinels is by
+      relative_cost, not declared order, so qwen-coder still takes over first when the paid routes are cooling
+      and qwen-loop is reached only if qwen-coder's own quota is also spent.
+
   - id: haiku
     agent: claude-code
     model: haiku
@@ -81,7 +94,7 @@ routes:
 # Declared order decides before there is measured evidence, and it is also the tie-break the fallback path walks.
 # The sentinels sit last at every tier on purpose: they take over, they do not compete.
 declared:
-  mechanical: [qwen-coder, sonnet, local-glm]
-  standard: [sonnet, qwen-coder]
+  mechanical: [qwen-coder, qwen-loop, sonnet, local-glm]
+  standard: [sonnet, qwen-coder, qwen-loop]
   design: [sonnet, opus, astra, qwen-coder]
   critical: [opus, sonnet, astra, qwen-coder]
