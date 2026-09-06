@@ -46,3 +46,4 @@ paper/*.toc
 # --- os ---
 .DS_Store
 paper/*.pdf
+.playwright-mcp/
