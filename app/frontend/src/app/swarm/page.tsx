@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { DispatchesTable } from "@/components/swarm/DispatchesTable";
+import { DispatchPanel } from "@/components/swarm/DispatchPanel";
 import { FleetTable } from "@/components/swarm/FleetTable";
 import { LivePanel } from "@/components/swarm/LivePanel";
 import { RoutingTable } from "@/components/swarm/RoutingTable";
@@ -47,6 +48,8 @@ export default function SwarmPage() {
         {!failed && data && (
           <>
             <LivePanel />
+
+            <DispatchPanel />
 
             <section>
               <h2 className="mb-3 text-sm font-medium text-[var(--color-text)]">Fleet</h2>

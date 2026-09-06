@@ -830,3 +830,46 @@ class RequestEvidenceRequest(BaseModel):
     kind: str
     ref: str
     note: str = ""
+
+
+class JobRequest(BaseModel):
+    """An ad hoc brief for the dispatch board: what to do, where it may write, and how it is checked. `validate`
+    is reserved on BaseModel (see `SubagentPreviewResponse`), so the wire field keeps its name and the Python
+    attribute takes `validate_cmd` instead."""
+
+    title: str
+    brief: str
+    allowed_paths: list[str]
+    model_config = ConfigDict(populate_by_name=True)
+    validate_cmd: str = Field(default="uv run pytest -q", alias="validate")
+    tier: str = "standard"
+    policy: str = "proposal"
+    agent: str | None = None
+
+
+class JobResponse(BaseModel):
+    """One dispatch-board job: what was asked, where it stands, and -- once it has run -- its verdict. Not
+    evidence: a record of what the swarm did with this brief, like a `SubagentRunResponse`."""
+
+    id: str
+    title: str
+    brief: str
+    allowed_paths: list[str]
+    model_config = ConfigDict(populate_by_name=True)
+    validate_cmd: str = Field(alias="validate")
+    tier: str
+    policy: str
+    agent: str | None
+    state: Literal["queued", "running", "accepted", "rejected", "cancelled"]
+    created: str
+    started: str | None
+    ended: str | None
+    route: str | None
+    accepted: bool | None
+    reasons: list[str]
+    files: list[str]
+    wall_s: float
+
+
+class JobsResponse(RootModel[list[JobResponse]]):
+    """The dispatch board's jobs, newest first."""

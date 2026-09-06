@@ -36,6 +36,9 @@ from pravrudhi.api.schemas import (
     HealthResponse,
     HeartbeatResponse,
     InboxListingResponse,
+    JobRequest,
+    JobResponse,
+    JobsResponse,
     LiveAgentsResponse,
     LoomResponse,
     MarkdownResponse,
@@ -240,6 +243,47 @@ def create_app(root: Path) -> FastAPI:
     def swarm_live_ep() -> list[dict[str, Any]]:
         """The agent processes actually running on this machine right now, not what the run logs say happened."""
         return _scan_live_agents()
+
+    @api.get("/jobs", response_model=JobsResponse)
+    def jobs_ep(n: int = 50) -> list[dict[str, Any]]:
+        """Every dispatch-board job, newest first. A read route: it answers on a workspace that has never
+        dispatched anything, returning an empty list rather than an error."""
+        from pravrudhi.application import dispatchboard
+
+        return [j.to_dict() for j in dispatchboard.jobs(root, max(1, min(n, 500)))]
+
+    @api.post("/jobs", response_model=JobResponse)
+    def submit_job(req: JobRequest) -> dict[str, Any]:
+        """Queue an ad hoc brief and, if the board has room, start it in the background. Refused outright if it
+        names no allowed path, a path that escapes the workspace, an unknown tier, or the queue is already full."""
+        from pravrudhi.agents.registry import build_agent
+        from pravrudhi.application import dispatchboard
+
+        try:
+            job = dispatchboard.submit(
+                root,
+                title=req.title,
+                brief=req.brief,
+                allowed_paths=tuple(req.allowed_paths),
+                validate=req.validate_cmd,
+                tier=req.tier,
+                policy=req.policy,
+                agent=req.agent,
+            )
+        except dispatchboard.DispatchError as e:
+            raise HTTPException(422, str(e)) from e
+        dispatchboard.run_next(root, lambda name, model: build_agent(root, name, model), log=print)
+        return (dispatchboard.get(root, job.id) or job).to_dict()
+
+    @api.post("/jobs/{job_id}/cancel", response_model=JobResponse)
+    def cancel_job(job_id: str) -> dict[str, Any]:
+        """Stop a queued job. A job already running or finished is returned unchanged."""
+        from pravrudhi.application import dispatchboard
+
+        try:
+            return dispatchboard.cancel(root, job_id).to_dict()
+        except dispatchboard.DispatchError as e:
+            raise HTTPException(404, str(e)) from e
 
     @api.get("/external", response_model_exclude_unset=True)
     def external() -> ExternalResultsResponse:

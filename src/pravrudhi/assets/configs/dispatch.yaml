@@ -1,0 +1,7 @@
+# How many jobs the dispatch board runs at once and how deep its queue may grow.
+#
+# `max_concurrent` bounds simultaneous background dispatches so a burst of submissions cannot start more agent
+# processes than the machine (and the account's rate limits) can sustain. `max_queued` bounds the backlog itself:
+# past this many queued jobs, a submission is refused rather than accepted and left to wait indefinitely.
+max_concurrent: 2
+max_queued: 20
