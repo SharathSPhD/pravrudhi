@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pravrudhi"
-version = "0.1.0"
+version = "0.2.0"
 description = "Recursive self-improvement engine for language-model systems: run a budgeted night over your own model and harness."
 readme = "README.md"
 requires-python = ">=3.13,<3.14"
@@ -28,6 +28,7 @@ dependencies = [
   "fastapi>=0.115",
   "PyJWT[crypto]>=2.8,<3.0",
   "uvicorn>=0.30",
+  "httpx>=0.27",
 ]
 
 [project.scripts]
@@ -44,7 +45,6 @@ dev = [
   "ruff>=0.12",
   "mypy>=1.16",
   "types-PyYAML>=6.0",
-  "httpx>=0.27",
 ]
 
 [tool.uv.workspace]

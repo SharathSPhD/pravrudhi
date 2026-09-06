@@ -441,10 +441,11 @@ wheels = [
 
 [[package]]
 name = "pravrudhi"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "numpy" },
     { name = "pravrudhi-kernel" },
     { name = "pyarrow" },
@@ -457,7 +458,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "hypothesis" },
     { name = "mypy" },
     { name = "pytest" },
@@ -469,6 +469,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "numpy", specifier = ">=2.3" },
     { name = "pravrudhi-kernel", editable = "pravrudhi_kernel" },
     { name = "pyarrow", specifier = ">=17" },
@@ -481,7 +482,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.27" },
     { name = "hypothesis", specifier = ">=6.130" },
     { name = "mypy", specifier = ">=1.16" },
     { name = "pytest", specifier = ">=8.3" },

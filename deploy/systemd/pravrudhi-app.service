@@ -1,0 +1,15 @@
+# The developer channel's running app: the engine's API and web interface on one local port, kept up by systemd.
+# Installed by deploy/systemd/install.sh, which substitutes @ROOT@ with the checkout it was run from.
+[Unit]
+Description=Pravrudhi app (developer channel)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/.venv/bin/python -m pravrudhi app --root @ROOT@ --no-browser --port 8200
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

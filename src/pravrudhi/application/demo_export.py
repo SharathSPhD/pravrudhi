@@ -17,6 +17,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from pravrudhi import __version__
 from pravrudhi.api.runs import models_listing
 from pravrudhi.application.external import external_rows
 from pravrudhi.application.intent import compile_intent
@@ -107,7 +108,7 @@ def build_demo(root: Path) -> dict[str, Any]:
         })
     return {
         "recorded": True,
-        "engine": {"version": "0.1.0", "candidates": len(st.candidates)},
+        "engine": {"version": __version__, "candidates": len(st.candidates)},
         "status": status(root),
         "models": models_listing(root),
         "external": external_rows(ledger),

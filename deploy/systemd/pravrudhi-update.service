@@ -1,0 +1,11 @@
+# One developer-channel update attempt. `pravrudhi update --apply --channel dev` carries every safeguard itself
+# (dirty tree, non-fast-forward, red smoke, a run in progress, PRAVRUDHI_NO_UPDATE): this unit only asks, and
+# restarts the app when something was applied.
+[Unit]
+Description=Pravrudhi developer-channel update
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/deploy/systemd/dev-update.sh @ROOT@
