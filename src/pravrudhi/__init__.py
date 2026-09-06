@@ -2,6 +2,6 @@
 
 from pravrudhi_kernel import __version__ as KERNEL_VERSION
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = ["KERNEL_VERSION", "__version__"]
