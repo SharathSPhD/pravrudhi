@@ -484,3 +484,34 @@ def test_apply_dev_happy_path(tmp_path: Path) -> None:
     assert result.applied is True
     assert result.version == "abc1234"
     assert result.rolled_back is False
+
+
+def test_apply_release_hands_the_installer_absolute_wheel_paths(tmp_path: Path, monkeypatch) -> None:
+    """A relative root produced a wheel path relative to the workspace, which the install step, running from the
+    release directory, could not find. Both end-user installs hit this on the first real release."""
+    monkeypatch.chdir(tmp_path)
+    version = "0.2.0"
+    wheel_name = f"pravrudhi-{version}-py3-none-any.whl"
+    data = b"wheel-bytes"
+    digest = hashlib.sha256(data).hexdigest()
+    url_map = {
+        RELEASES_URL: json.dumps({
+            "tag_name": f"v{version}",
+            "assets": [
+                {"name": wheel_name, "browser_download_url": "https://x/w"},
+                {"name": "SHA256SUMS", "browser_download_url": "https://x/s"},
+            ],
+        }).encode(),
+        "https://x/w": data,
+        "https://x/s": f"{digest}  {wheel_name}\n".encode(),
+    }
+    seen: list[list[str]] = []
+
+    def runner(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+        seen.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="pravrudhi 0.2.0", stderr="")
+
+    result = apply(Path("."), channel="release", fetch=fake_fetch(url_map), runner=runner)
+    assert result.applied, result.reason
+    install = next(c for c in seen if c[:3] == ["uv", "pip", "install"])
+    assert all(Path(a).is_absolute() for a in install[4:]), install

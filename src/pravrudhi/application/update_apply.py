@@ -266,6 +266,7 @@ def prune_old_releases(root: Path, keep_previous: int) -> None:
 
 
 def rollback(root: Path) -> ApplyResult:
+    root = Path(root).resolve()
     """Switch `current` back to the most recent previous install that `prune_old_releases` kept around."""
     releases_dir = _releases_dir(root)
     if not releases_dir.is_dir():
@@ -369,8 +370,15 @@ def _apply_dev(root: Path, runner: RunnerFn) -> ApplyResult:
 def apply(
     root: Path, *, channel: Channel | None = None, fetch: FetchFn | None = None, runner: RunnerFn | None = None
 ) -> ApplyResult:
-    """Apply an update if every safeguard clears; otherwise refuse and leave the checkout untouched."""
-    root = Path(root)
+    """Apply an update if every safeguard clears; otherwise refuse and leave the checkout untouched.
+
+    The root is resolved first. With the default root `.` every path under it was relative, and the install
+    step, which runs `uv pip install` from inside the release directory, was handed a wheel path relative to the
+    workspace and looked for `.pravrudhi/releases/<v>/.pravrudhi/releases/<v>/…`. The first real release-channel
+    apply on both end-user installs failed that way; the safeguard rolled back, as it should, but nothing could
+    ever have been applied.
+    """
+    root = Path(root).resolve()
     if updates_disabled():
         return ApplyResult(False, None, "PRAVRUDHI_NO_UPDATE=1: automatic updates are disabled", False)
     if run_in_progress(root):
