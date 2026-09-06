@@ -137,7 +137,8 @@ def render_page(
     commits_html = _render_commits(commits)
     links = []
     if app_present:
-        links.append('<li><a href="./app/">Live app</a></li>')
+        links.append('<li><a href="./app/progress">Progress dashboard</a></li>')
+        links.append('<li><a href="./app/">Live app (recorded demo)</a></li>')
     if paper_present:
         links.append('<li><a href="./paper/main.pdf">Paper (PDF)</a></li>')
     links_html = "".join(links)
