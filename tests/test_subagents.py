@@ -52,7 +52,7 @@ def test_allowed_paths_are_scoped_to_a_scratch_directory_and_never_touch_protect
     tasks = tasks_from_plan(OBJECTIVE, PLAN, root=tmp_path)
     for task in tasks:
         for pattern in task.spec.allowed_paths:
-            assert pattern.startswith(f".pravrudhi/subagents/{OBJECTIVE.id}/")
+            assert pattern.startswith(f"proposals/{OBJECTIVE.id}/")
             assert not pattern.startswith(("research/", "gates/", "pravrudhi_kernel/"))
 
 

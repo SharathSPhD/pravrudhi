@@ -42,20 +42,33 @@ def _tier_for(capability: Capability) -> str:
 
 
 def _scratch_dir(objective: Objective, step: IntentStepProposal) -> str:
-    return f".pravrudhi/subagents/{objective.id}/{step.id}"
+    """Where a step's subagent may write.
+
+    This was `.pravrudhi/subagents/...` until the first real run was about to be made: that directory is gitignored,
+    so nothing an agent wrote there would have appeared in its worktree's diff, every verdict would have read
+    "no change produced", and the brief itself told the agent not to touch `.pravrudhi/`. A proposal has to live
+    where a diff can see it. `proposals/` is a tracked location that stays out of `research/`, `gates/` and the
+    kernel, and the operator merges from it deliberately."""
+    return f"proposals/{objective.id}/{step.id}"
 
 
 def _prompt_for(objective: Objective, step: IntentStepProposal, scratch: str, validate: str) -> str:
     recipes = ", ".join(step.recipe_ids) if step.recipe_ids else "none catalogued"
+    unspecified = ", ".join(q.name for q in step.quantities if q.value is None) or "none"
     return (
         f"Objective (verbatim intent): {objective.intent}\n\n"
-        f"Step {step.id!r}, capability {step.capability!r}.\n"
-        f"Candidate recipe ids: {recipes}.\n"
-        f"Success criterion: {step.check.criterion}\n\n"
-        "Everything you write is a PROPOSAL toward this step, not evidence: nothing you produce may write to "
-        "the ledger, research/, gates/ or pravrudhi_kernel/.\n"
-        f"Write only under {scratch}/.\n"
-        f"Validate your work with `{validate}`."
+        f"Step {step.id!r}, capability {step.capability!r}. Consumes: {', '.join(step.consumes)}. "
+        f"Produces: {', '.join(step.produces)}.\n"
+        f"Candidate recipe ids (see `pravrudhi recipes`): {recipes}.\n"
+        f"Success criterion: {step.check.criterion}\n"
+        f"Quantities the objective leaves unspecified: {unspecified} - propose a value and say why, never present "
+        "one as measured.\n\n"
+        "Everything you write is a PROPOSAL toward this step, not evidence: nothing you produce may write to the "
+        "ledger, research/, gates/ or pravrudhi_kernel/, and no number you state may be presented as a result.\n"
+        f"Deliverable, written only under {scratch}/ using RELATIVE paths: a README.md stating the approach, the "
+        "exact commands or configs to run it (as files), and what would count as success; plus any scripts. "
+        "Scripts must at least compile.\n"
+        f"Validate with `{validate}`."
     )
 
 
@@ -70,7 +83,9 @@ def tasks_from_plan(objective: Objective, plan: IntentPlanProposal, *, root: Pat
     for step in plan.steps:
         scratch = _scratch_dir(objective, step)
         (Path(root) / scratch).mkdir(parents=True, exist_ok=True)
-        validate = "uv run pytest -q"
+        # A step's deliverable is proposals, not engine code: require that something was written and that any
+        # Python in it compiles. The full test suite is the wrong check here and would also take minutes per step.
+        validate = f'test -n "$(ls -A {scratch})" && uv run python -m compileall -q {scratch}'
         spec = TaskSpec(
             task_id=f"{objective.id}:{step.id}",
             prompt=_prompt_for(objective, step, scratch, validate),
