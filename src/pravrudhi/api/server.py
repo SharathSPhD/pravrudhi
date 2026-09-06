@@ -24,10 +24,13 @@ from pravrudhi.api.identity import CurrentUserDep, User, auth_mode
 from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.api.schemas import (
     AgentsResponse,
+    AppetiteResponse,
     ApplyResultResponse,
     BacklogResponse,
     CandidateDetailResponse,
     CandidatesResponse,
+    DiffResponse,
+    DiffsResponse,
     DispatchResponse,
     DoctorResponse,
     EvidenceResponse,
@@ -298,6 +301,40 @@ def create_app(root: Path) -> FastAPI:
 
         live = [{**row, "observation": asdict(row["observation"])} for row in watch_sandboxes(root)]
         return {"live": live, "recent_violations": sandbox_violations(root, 50)}
+
+    @api.get("/diffs", response_model=DiffsResponse)
+    def diffs_ep(n: int = 20) -> list[dict[str, Any]]:
+        """Dispatched tasks with a readable worktree, newest first -- the file list a diff viewer opens onto."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.diffs import recent as recent_diffs
+
+        return [asdict(s) for s in recent_diffs(root, max(1, min(n, 200)))]
+
+    @api.get("/diffs/{task_id}", response_model=DiffResponse)
+    def diff_ep(task_id: str) -> dict[str, Any]:
+        """One dispatched task's worktree, diffed against the commit its branch forked from. A worktree that no
+        longer exists, or a task id that would resolve outside `.worktrees/`, comes back as an empty diff with
+        `reason` set rather than a 404 -- the caller is asking about a task, not a resource that may not exist yet."""
+        from dataclasses import asdict
+
+        from pravrudhi.application.diffs import worktree_diff
+
+        return asdict(worktree_diff(root, task_id))
+
+    @api.get("/appetite")
+    def appetite_ep() -> AppetiteResponse:
+        """What the engine wants right now: every drive's operands, the largest eligible deficit, and the
+        sentence generated from those fields. A drive whose input cannot be measured reports unknown with the
+        reason, never a number nobody computed."""
+        from pravrudhi.application import kshudha
+
+        drives = kshudha.measure(root)
+        state = kshudha.select(drives, state=kshudha.load_state(root))
+        return AppetiteResponse.model_validate(
+            {"drives": [d.to_dict() for d in drives], "appetite": state.to_dict(),
+             "sentence": kshudha.sentence(state)}
+        )
 
     @api.get("/external", response_model_exclude_unset=True)
     def external() -> ExternalResultsResponse:

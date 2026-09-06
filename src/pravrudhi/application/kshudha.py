@@ -1,0 +1,620 @@
+"""Kṣudhā: a measurable appetite, so the engine seeks capability rather than waiting to be told.
+
+Six drives (design doc §5.2) each answer one question honestly: how far is this from where it should be, using
+only numbers this codebase actually keeps. A measurement that cannot be taken is `unknown`, never a guessed
+number — an engine that invents a deficit to keep moving is worse than one that says plainly it does not know.
+
+This module is a pure calculator (`measure`, the per-drive builder functions, `sentence`) plus a small
+deterministic selector (`select`) that carries hysteresis across calls through an explicit, caller-supplied
+`AppetiteState`. The design (§5.1) calls for a sqlite state store at `.pravrudhi/appetite/state.sqlite3`; this
+module uses a JSON file at `.pravrudhi/appetite.json` instead, because every other store in this codebase
+(`application/requests.py`, `application/availability.py`) is a single JSON file with an atomic tmp-write-replace,
+not sqlite, and there is no reason for this one store to be the exception.
+
+`measure(root)` reads the five sources this codebase actually has: `doctor.run_doctor` for `sthiti`
+(continuity), `tools`/`recipes`/`agents.registry` for `samarthya` (capability), `objectives`/`external` for
+`unnati_avakasha` (benchmark headroom), `availability`'s cooling routes for `sadhana` (resources), and
+`requests` for `seva` (obligations). The sixth drive in the design, `pramana_navyata` (evidence freshness), has
+no source module in this codebase yet, so it is always reported `unknown` — exactly the "unknown, never
+fabricated" rule applied to a whole drive rather than one reading.
+
+`select` does not dispatch anything; `heartbeat.py` remains the only periodic dispatcher (design §5.1), and
+wiring this module into it is a separate task. `select` only turns a list of `Drive` readings, a persisted
+`AppetiteState`, and whether an operator ask is currently overdue, into one `Appetite` decision: which drive
+wins, what it would do, and why every other drive did not.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import yaml
+
+from pravrudhi.agents import registry as agents_registry
+from pravrudhi.application import availability, doctor, objectives, recipes, requests, tools
+
+PACKAGED_CONFIG = Path(__file__).resolve().parents[1] / "assets" / "configs" / "appetite.yaml"
+
+DRIVE_IDS: tuple[str, ...] = (
+    "sthiti", "samarthya", "pramana_navyata", "unnati_avakasha", "sadhana", "seva",
+)
+WIRE_NAMES: dict[str, str] = {
+    "sthiti": "continuity",
+    "samarthya": "capability",
+    "pramana_navyata": "freshness",
+    "unnati_avakasha": "benchmark_headroom",
+    "sadhana": "resources",
+    "seva": "obligations",
+}
+
+Phase = Literal["hungry", "sated"]
+
+
+def clip(x: float) -> float:
+    """Bound a policy value to [0,1] (design §5.2)."""
+    return max(0.0, min(1.0, x))
+
+
+def _now_iso(moment: datetime | None = None) -> str:
+    aware = moment if (moment and moment.tzinfo) else (moment.replace(tzinfo=UTC) if moment else datetime.now(UTC))
+    return aware.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Configuration
+
+
+@dataclass(frozen=True)
+class AppetiteConfig:
+    """Weights, targets and satiation thresholds. Every value here is a policy choice, not a measured result."""
+
+    policy_version: str = "1"
+    weights: dict[str, float] = field(default_factory=dict)
+    targets: dict[str, float] = field(default_factory=dict)
+    hungry_threshold: float = 0.6
+    sated_threshold: float = 0.3
+    cooldown_beats: int = 2
+    sthiti_check_weights: dict[str, float] = field(default_factory=dict)
+    benchmark_headroom_scale: float = 0.05
+    resource_min_routes: int = 1
+    seva_overdue_days: float = 7.0
+    seva_age_scale_days: float = 14.0
+
+    def weight(self, drive_id: str) -> float:
+        return float(self.weights.get(drive_id, 1.0))
+
+    def target(self, drive_id: str) -> float:
+        return float(self.targets.get(drive_id, 1.0))
+
+
+def load_config(path: Path | None = None) -> AppetiteConfig:
+    raw: dict[str, Any] = yaml.safe_load((path or PACKAGED_CONFIG).read_text(encoding="utf-8")) or {}
+    return AppetiteConfig(
+        policy_version=str(raw.get("policy_version") or "1"),
+        weights={str(k): float(v) for k, v in (raw.get("weights") or {}).items()},
+        targets={str(k): float(v) for k, v in (raw.get("targets") or {}).items()},
+        hungry_threshold=float(raw.get("hungry_threshold", 0.6)),
+        sated_threshold=float(raw.get("sated_threshold", 0.3)),
+        cooldown_beats=int(raw.get("cooldown_beats", 2)),
+        sthiti_check_weights={str(k): float(v) for k, v in (raw.get("sthiti_check_weights") or {}).items()},
+        benchmark_headroom_scale=float(raw.get("benchmark_headroom_scale", 0.05)),
+        resource_min_routes=int(raw.get("resource_min_routes", 1)),
+        seva_overdue_days=float(raw.get("seva_overdue_days", 7.0)),
+        seva_age_scale_days=float(raw.get("seva_age_scale_days", 14.0)),
+    )
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Drive and Appetite
+
+
+@dataclass(frozen=True)
+class Drive:
+    id: str
+    wire_name: str
+    value: float | None
+    target: float
+    deficit: float | None
+    weight: float
+    eligible: bool
+    blocked_reason: str
+    sources: tuple[str, ...]
+    unknown: bool
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id, "wire_name": self.wire_name, "value": self.value, "target": self.target,
+            "deficit": self.deficit, "weight": self.weight, "eligible": self.eligible,
+            "blocked_reason": self.blocked_reason, "sources": list(self.sources), "unknown": self.unknown,
+        }
+
+    @property
+    def pressure(self) -> float:
+        """weight × deficit (design §5.3 step 4); 0.0 when the deficit is unknown, never a fabricated score."""
+        return self.weight * self.deficit if self.deficit is not None else 0.0
+
+
+@dataclass(frozen=True)
+class Appetite:
+    as_of: str
+    policy_version: str
+    drives: tuple[Drive, ...]
+    largest_unmet: str | None
+    selected: str | None
+    action: dict[str, Any] | None
+    next_wake: str
+    resting_reason: str | None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "as_of": self.as_of, "policy_version": self.policy_version,
+            "drives": [d.to_dict() for d in self.drives], "largest_unmet": self.largest_unmet,
+            "selected": self.selected, "action": self.action, "next_wake": self.next_wake,
+            "resting_reason": self.resting_reason,
+        }
+
+
+def _unknown(drive_id: str, cfg: AppetiteConfig, reason: str, sources: tuple[str, ...] = ()) -> Drive:
+    return Drive(
+        id=drive_id, wire_name=WIRE_NAMES[drive_id], value=None, target=cfg.target(drive_id), deficit=None,
+        weight=cfg.weight(drive_id), eligible=False, blocked_reason=reason, sources=sources, unknown=True,
+    )
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Per-drive builders — pure functions over already-fetched data, so a test can hand-calculate a fixture without
+# touching the filesystem.
+
+
+def sthiti_drive(checks: list[dict[str, Any]], cfg: AppetiteConfig) -> Drive:
+    """continuity: deficit is the weighted fraction of `doctor.run_doctor` checks that failed (design §5.2)."""
+    if not checks:
+        return _unknown("sthiti", cfg, "doctor reported no health predicates")
+    total_w = 0.0
+    fail_w = 0.0
+    sources: list[str] = []
+    for check in checks:
+        name = str(check.get("name", ""))
+        w = cfg.sthiti_check_weights.get(name, 1.0)
+        ok = bool(check.get("ok"))
+        total_w += w
+        if not ok:
+            fail_w += w
+        sources.append(f"doctor:{name}={'ok' if ok else 'fail'}")
+    if total_w <= 0:
+        return _unknown("sthiti", cfg, "every health predicate has zero configured weight", tuple(sources))
+    deficit = clip(fail_w / total_w)
+    return Drive(
+        id="sthiti", wire_name="continuity", value=1.0 - deficit, target=cfg.target("sthiti"), deficit=deficit,
+        weight=cfg.weight("sthiti"), eligible=True, blocked_reason="", sources=tuple(sources), unknown=False,
+    )
+
+
+def samarthya_drive(
+    tool_rows: list[dict[str, Any]], recipe_rows: list[dict[str, Any]],
+    agent_statuses: list[agents_registry.AgentStatus], cfg: AppetiteConfig,
+) -> Drive:
+    """capability: `C = qualified / total` over catalogued tools, recipes and coding-agent routes (design §5.2).
+
+    "Qualified" here means "detected present on this host by tools.py/recipes.py/agents.registry", the honest
+    proxy this codebase can measure today; it is not yet the design's stricter "admitted with resolving task
+    evidence" (no admission ledger exists in this codebase), and that gap is a real property of `C`, not hidden.
+    """
+    items: list[tuple[str, bool]] = (
+        [(f"tool:{t['id']}", bool(t["available"])) for t in tool_rows]
+        + [(f"recipe:{r['id']}", bool(r["available"])) for r in recipe_rows]
+        + [(f"agent:{a.name}", bool(a.available)) for a in agent_statuses]
+    )
+    if not items:
+        return _unknown("samarthya", cfg, "no tool, recipe or agent catalogue was readable")
+    target = cfg.target("samarthya")
+    if target <= 0:
+        return _unknown("samarthya", cfg, "capability target must be > 0")
+    qualified = sum(1 for _, ok in items if ok)
+    total = len(items)
+    c = qualified / total
+    deficit = clip((target - c) / target)
+    sources = tuple(f"{name}={'available' if ok else 'absent'}" for name, ok in items)
+    return Drive(
+        id="samarthya", wire_name="capability", value=c, target=target, deficit=deficit,
+        weight=cfg.weight("samarthya"), eligible=True, blocked_reason="", sources=sources, unknown=False,
+    )
+
+
+def pramana_navyata_drive(cfg: AppetiteConfig) -> Drive:
+    """freshness: no evidence-freshness source exists in this codebase yet, so this drive is always unknown."""
+    return _unknown("pramana_navyata", cfg, "no evidence-freshness source is wired into the engine yet")
+
+
+def unnati_avakasha_drive(
+    benchmarks: list[tuple[str, str, float | None, float | None]], cfg: AppetiteConfig,
+) -> Drive:
+    """benchmark headroom: `H_b = clip(sign × (target_delta - current_delta) / scale)`, averaged (design §5.2).
+
+    `benchmarks` is `(label, direction, target_delta, current_delta)` per declared objective benchmark, gathered
+    from `objectives.load_all` and `objectives.progress`. Direction is "up" or "down" (`Benchmark.direction`);
+    an absent target or an unmeasured (`state != "measured"`) delta makes that one benchmark unknown, never a
+    fabricated headroom.
+    """
+    scale = cfg.benchmark_headroom_scale
+    headrooms: list[float] = []
+    sources: list[str] = []
+    for label, direction, target_delta, current_delta in benchmarks:
+        if target_delta is None or current_delta is None or scale <= 0:
+            sources.append(f"{label}: unknown (no target, no measured delta, or scale<=0)")
+            continue
+        sign = 1.0 if direction == "up" else -1.0
+        h = clip(sign * (target_delta - current_delta) / scale)
+        headrooms.append(h)
+        sources.append(f"{label}: target_delta={target_delta!r} current_delta={current_delta!r} headroom={h:.4f}")
+    if not headrooms:
+        return _unknown(
+            "unnati_avakasha", cfg, "no declared benchmark has both a target_delta and a measured delta",
+            tuple(sources),
+        )
+    deficit = clip(sum(headrooms) / len(headrooms))
+    return Drive(
+        id="unnati_avakasha", wire_name="benchmark_headroom", value=deficit, target=cfg.target("unnati_avakasha"),
+        deficit=deficit, weight=cfg.weight("unnati_avakasha"), eligible=True, blocked_reason="",
+        sources=tuple(sources), unknown=False,
+    )
+
+
+def sadhana_drive(all_route_ids: list[str], available_route_ids: list[str], cooling_ids: set[str], cfg: AppetiteConfig) -> Drive:
+    """resources: `a_r = clip(usable / resource_min_routes)`; `D_A = 1-a_r` (design §5.2), one tracked resource —
+    a usable coding-agent route: ready per `agents.registry.survey` and not presently cooling per `availability`.
+    """
+    required = cfg.resource_min_routes
+    if required <= 0:
+        return _unknown("sadhana", cfg, "resource_min_routes must be > 0")
+    usable = [rid for rid in available_route_ids if rid not in cooling_ids]
+    a = clip(len(usable) / required)
+    deficit = 1.0 - a
+    sources = (
+        f"routes_total={len(all_route_ids)}", f"routes_available={len(available_route_ids)}",
+        f"routes_cooling={len(cooling_ids)}", f"usable={len(usable)}", f"required_min={required}",
+    )
+    return Drive(
+        id="sadhana", wire_name="resources", value=a, target=cfg.target("sadhana"), deficit=deficit,
+        weight=cfg.weight("sadhana"), eligible=True, blocked_reason="", sources=sources, unknown=False,
+    )
+
+
+def seva_drive(backlog: dict[str, Any], cfg: AppetiteConfig) -> Drive:
+    """obligations: `D_R = clip((R_target-R_verified)/R_target)`; `D_seva = max(D_R, deadline debt)` (design §5.2).
+
+    A zero-request `backlog` ("total" == 0) is "no cohort", reported unknown rather than as perfect delivery.
+    """
+    total = int(backlog.get("total", 0))
+    if total <= 0:
+        return _unknown("seva", cfg, "no requests captured yet (no cohort)")
+    target = cfg.target("seva")
+    if target <= 0:
+        return _unknown("seva", cfg, "obligation target must be > 0")
+    verified = int((backlog.get("by_state") or {}).get("verified", 0))
+    r_verified = verified / total
+    d_r = clip((target - r_verified) / target)
+    oldest_days = float(backlog.get("oldest_open_days", 0.0))
+    age_scale = cfg.seva_age_scale_days
+    d_age = clip(oldest_days / age_scale) if age_scale > 0 else 0.0
+    deficit = max(d_r, d_age)
+    sources = (
+        f"captured={total}", f"verified={verified}", f"R_verified={r_verified:.4f}",
+        f"oldest_open_days={oldest_days:.2f}",
+    )
+    return Drive(
+        id="seva", wire_name="obligations", value=r_verified, target=target, deficit=deficit,
+        weight=cfg.weight("seva"), eligible=True, blocked_reason="", sources=sources, unknown=False,
+    )
+
+
+def seva_overdue(backlog: dict[str, Any], cfg: AppetiteConfig) -> bool:
+    """Whether the oldest open request has waited longer than policy allows (design §5.3 step 4 / §4.4)."""
+    return float(backlog.get("oldest_open_days", 0.0)) > cfg.seva_overdue_days
+
+
+# --------------------------------------------------------------------------------------------------------------
+# measure(): ties the pure builders to this codebase's actual modules.
+
+
+def _benchmark_tuples(root: Path) -> list[tuple[str, str, float | None, float | None]]:
+    ledger = Path(root) / "research" / "ledger.jsonl"
+    out: list[tuple[str, str, float | None, float | None]] = []
+    for obj in objectives.load_all(root):
+        rows = objectives.progress(obj, ledger) if ledger.exists() else []
+        by_metric = {p.benchmark: p for p in rows}
+        for b in obj.benchmarks:
+            label = f"{obj.id}:{b.id}"
+            p = by_metric.get(b.metric)
+            current = p.delta if (p is not None and p.state == "measured") else None
+            out.append((label, b.direction, obj.target_delta, current))
+    return out
+
+
+def measure(root: Path, config: AppetiteConfig | None = None) -> list[Drive]:
+    """The six drives (design §5.2), read from this workspace's own stores. Never raises: a source that cannot
+    be read yields that one drive `unknown`, not a crash and not a fabricated number."""
+    cfg = config or load_config()
+    root = Path(root)
+    drives: list[Drive] = []
+
+    try:
+        report = doctor.run_doctor(root)
+        drives.append(sthiti_drive(list(report.get("checks") or []), cfg))
+    except OSError:
+        drives.append(_unknown("sthiti", cfg, "doctor.run_doctor raised an OS error"))
+
+    try:
+        tool_rows = tools.availability()
+        recipe_rows = recipes.availability()
+        agent_statuses = agents_registry.survey(root)
+        drives.append(samarthya_drive(tool_rows, recipe_rows, agent_statuses, cfg))
+    except (OSError, KeyError, ValueError):
+        drives.append(_unknown("samarthya", cfg, "the tool, recipe or agent catalogue could not be read"))
+
+    drives.append(pramana_navyata_drive(cfg))
+
+    try:
+        drives.append(unnati_avakasha_drive(_benchmark_tuples(root), cfg))
+    except (OSError, KeyError, ValueError):
+        drives.append(_unknown("unnati_avakasha", cfg, "objective or ledger data could not be read"))
+
+    try:
+        statuses = agents_registry.survey(root)
+        all_ids = [s.name for s in statuses]
+        available_ids = [s.name for s in statuses if s.available]
+        cooling_ids = set(availability.cooling(root).keys())
+        drives.append(sadhana_drive(all_ids, available_ids, cooling_ids, cfg))
+    except OSError:
+        drives.append(_unknown("sadhana", cfg, "agent survey or cooldown state could not be read"))
+
+    try:
+        drives.append(seva_drive(requests.backlog(root), cfg))
+    except OSError:
+        drives.append(_unknown("seva", cfg, "the request backlog could not be read"))
+
+    return drives
+
+
+# --------------------------------------------------------------------------------------------------------------
+# Selector state
+
+
+@dataclass
+class DriveState:
+    phase: Phase = "sated"
+    cooldown: int = 0
+    since: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"phase": self.phase, "cooldown": self.cooldown, "since": self.since}
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> DriveState:
+        phase = d.get("phase")
+        return DriveState(
+            phase="hungry" if phase == "hungry" else "sated",
+            cooldown=int(d.get("cooldown", 0)),
+            since=str(d.get("since", "")),
+        )
+
+
+@dataclass
+class AppetiteState:
+    """Everything `select` needs to remember between beats: which drive is committed, and each drive's hysteresis
+    phase and satiation cooldown. Mutated in place by `select`; the caller persists it with `save_state`."""
+
+    beat: int = 0
+    committed: str | None = None
+    drives: dict[str, DriveState] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "beat": self.beat, "committed": self.committed,
+            "drives": {k: v.to_dict() for k, v in self.drives.items()},
+        }
+
+    @staticmethod
+    def from_dict(d: dict[str, Any]) -> AppetiteState:
+        rows = d.get("drives") or {}
+        return AppetiteState(
+            beat=int(d.get("beat", 0)),
+            committed=d.get("committed") or None,
+            drives={str(k): DriveState.from_dict(v) for k, v in rows.items() if isinstance(v, dict)},
+        )
+
+
+def store_path(root: Path) -> Path:
+    return Path(root) / ".pravrudhi" / "appetite.json"
+
+
+def load_state(root: Path) -> AppetiteState:
+    """The persisted selector state, or a fresh one. A corrupt file starts over rather than crashing (the same
+    rule `requests.load` and `availability._read` already follow for their own JSON stores)."""
+    path = store_path(root)
+    if not path.exists():
+        return AppetiteState()
+    try:
+        raw = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return AppetiteState()
+    return AppetiteState.from_dict(raw) if isinstance(raw, dict) else AppetiteState()
+
+
+def save_state(root: Path, state: AppetiteState) -> Path:
+    path = store_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(state.to_dict(), indent=2, sort_keys=False))
+    tmp.replace(path)
+    return path
+
+
+# --------------------------------------------------------------------------------------------------------------
+# select()
+
+ACTION_DESCRIPTIONS: dict[str, str] = {
+    "sthiti": "diagnosing and restoring the failing continuity check",
+    "samarthya": "closing the largest capability gap",
+    "pramana_navyata": "refreshing the most stale evidence",
+    "unnati_avakasha": "running a budgeted benchmark trial toward its target",
+    "sadhana": "waiting for a usable resource route",
+    "seva": "the oldest unmet request criterion",
+}
+
+
+def _update_phase(drive: Drive, prior: DriveState, cfg: AppetiteConfig, as_of: str) -> DriveState:
+    """One drive's hysteresis step (design §5.3): hungry at `hungry_threshold`, sated only once the deficit falls
+    to `sated_threshold` or below, and a `cooldown_beats`-beat cooldown before a just-sated drive can go hungry
+    again. Between the two thresholds a drive simply keeps its prior phase — this is what stops a deficit
+    oscillating in the 0.3-0.6 band from flipping the selection every beat."""
+    if drive.deficit is None:
+        return prior
+    if prior.cooldown > 0:
+        return DriveState(phase="sated", cooldown=prior.cooldown - 1, since=prior.since)
+    if prior.phase == "hungry":
+        if drive.deficit <= cfg.sated_threshold:
+            return DriveState(phase="sated", cooldown=cfg.cooldown_beats, since=as_of)
+        return DriveState(phase="hungry", cooldown=0, since=prior.since or as_of)
+    if drive.deficit >= cfg.hungry_threshold:
+        return DriveState(phase="hungry", cooldown=0, since=as_of)
+    return DriveState(phase="sated", cooldown=0, since=prior.since)
+
+
+def _force_hungry(prior: DriveState, as_of: str) -> DriveState:
+    if prior.phase == "hungry":
+        return prior
+    return DriveState(phase="hungry", cooldown=0, since=as_of)
+
+
+def select(
+    drives: list[Drive], *, state: AppetiteState, overdue: bool = False, config: AppetiteConfig | None = None,
+    now: datetime | None = None,
+) -> Appetite:
+    """One heartbeat's worth of §5.3: freeze the drives, apply cooldown, honour an overdue ask or a failing
+    continuity check outright, otherwise continue whatever is already committed, otherwise pick the largest
+    eligible pressure among drives that have crossed into hungry, otherwise take a cheap diagnostic for an
+    unknown drive, otherwise rest. Deterministic in (drives, state, overdue, config, now): no I/O, no hidden
+    clock read when `now` is supplied. Mutates `state` in place; the caller persists it via `save_state`.
+    """
+    cfg = config or load_config()
+    as_of = _now_iso(now)
+    state.beat += 1
+
+    by_id = {d.id: d for d in drives}
+    phases: dict[str, Phase] = {}
+    final: list[Drive] = []
+    for d in drives:
+        prior = state.drives.get(d.id, DriveState())
+        was_cooling = prior.cooldown > 0
+        updated = prior if d.unknown else _update_phase(d, prior, cfg, as_of)
+        state.drives[d.id] = updated
+        phases[d.id] = updated.phase
+        if not d.unknown and was_cooling:
+            beats_left = updated.cooldown + 1  # this heartbeat plus whatever remains after it
+            reason = f"sated; cooling down for {beats_left} more heartbeat(s)"
+            final.append(replace(d, eligible=False, blocked_reason=reason))
+        else:
+            final.append(d)
+    final_by_id = {d.id: d for d in final}
+
+    selected: str | None = None
+    action: dict[str, Any] | None = None
+
+    seva = by_id.get("seva")
+    sthiti = by_id.get("sthiti")
+    if overdue and seva is not None and not seva.unknown:
+        selected = "seva"
+        state.drives["seva"] = _force_hungry(state.drives.get("seva", DriveState()), as_of)
+        final_by_id["seva"] = replace(final_by_id["seva"], eligible=True, blocked_reason="")
+    elif sthiti is not None and not sthiti.unknown and (sthiti.deficit or 0.0) > 0.0:
+        selected = "sthiti"
+        state.drives["sthiti"] = _force_hungry(state.drives.get("sthiti", DriveState()), as_of)
+        final_by_id["sthiti"] = replace(final_by_id["sthiti"], eligible=True, blocked_reason="")
+    elif (
+        state.committed is not None and state.committed in final_by_id
+        and phases.get(state.committed) == "hungry" and final_by_id[state.committed].eligible
+    ):
+        selected = state.committed
+    else:
+        hungry = [d for d in final if phases.get(d.id) == "hungry" and d.eligible and d.deficit is not None]
+        if hungry:
+            hungry.sort(key=lambda d: (-d.pressure, state.drives[d.id].since or as_of, d.id))
+            selected = hungry[0].id
+        else:
+            diagnostics = sorted((d for d in final if d.unknown and d.weight > 0), key=lambda d: d.id)
+            if diagnostics:
+                selected = diagnostics[0].id
+                action = {
+                    "drive": selected, "kind": "diagnostic",
+                    "description": f"a cheap diagnostic for {WIRE_NAMES[selected]}",
+                }
+
+    if selected is not None and action is None:
+        action = {
+            "drive": selected,
+            "kind": "obligation" if selected == "seva" else ("continuity_repair" if selected == "sthiti" else "action"),
+            "description": ACTION_DESCRIPTIONS[selected],
+        }
+    state.committed = selected
+
+    known = [d for d in final if d.deficit is not None]
+    largest_unmet = None
+    if known:
+        known.sort(key=lambda d: (-d.pressure, d.id))
+        largest_unmet = known[0].id
+
+    if selected is not None:
+        resting_reason = None
+        next_wake = "next heartbeat"
+    else:
+        resting_reason = (
+            "no eligible drive has crossed the hungry threshold" if largest_unmet is None
+            else f"no eligible drive has crossed the hungry threshold; {largest_unmet} is the largest unmet"
+        )
+        next_wake = "next heartbeat, or sooner if an ask becomes overdue or a continuity check fails"
+
+    return Appetite(
+        as_of=as_of, policy_version=cfg.policy_version, drives=tuple(final), largest_unmet=largest_unmet,
+        selected=selected, action=action, next_wake=next_wake, resting_reason=resting_reason,
+    )
+
+
+# --------------------------------------------------------------------------------------------------------------
+# sentence()
+
+
+def sentence(appetite: Appetite) -> str:
+    """"I am working on X because Y has the largest eligible deficit; Z is waiting for W." (design §5.4) —
+    built only from `appetite`'s own fields; the model is never asked to introspect or invent a motive."""
+    by_id = {d.id: d for d in appetite.drives}
+    blocked = sorted(
+        (d for d in appetite.drives if not d.eligible and d.deficit is not None),
+        key=lambda d: (-d.pressure, d.id),
+    )
+    if appetite.selected is not None:
+        d = by_id[appetite.selected]
+        what = appetite.action["description"] if appetite.action else d.wire_name
+        base = f"I am working on {what} because {d.wire_name} has the largest eligible deficit"
+        if blocked:
+            top = blocked[0]
+            waiting_for = top.blocked_reason or "an unspecified blocker"
+            return f"{base}; {top.wire_name} is waiting for {waiting_for}."
+        return base + "."
+    largest = by_id.get(appetite.largest_unmet) if appetite.largest_unmet else None
+    if largest is not None:
+        waiting_for = largest.blocked_reason or "capacity"
+        return f"I am resting because no eligible drive has an unmet deficit; {largest.wire_name} is waiting for {waiting_for}."
+    return "I am resting because every drive is satisfied."
+
+
+__all__ = [
+    "ACTION_DESCRIPTIONS", "Appetite", "AppetiteConfig", "AppetiteState", "DRIVE_IDS", "Drive", "DriveState",
+    "WIRE_NAMES", "clip", "load_config", "load_state", "measure", "pramana_navyata_drive", "sadhana_drive",
+    "save_state", "select", "sentence", "seva_drive", "seva_overdue", "samarthya_drive", "sthiti_drive",
+    "store_path", "unnati_avakasha_drive",
+]

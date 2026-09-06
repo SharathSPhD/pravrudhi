@@ -613,6 +613,26 @@ PUBLISH_MSG_OPT = typer.Option(
 )
 
 
+@app.command("appetite")
+def appetite_cmd(root: Path = ROOT_OPT, as_json: bool = typer.Option(False, "--json")) -> None:
+    """What the engine wants right now, and why, from measured drives rather than introspection."""
+    from dataclasses import asdict
+
+    from pravrudhi.application import kshudha
+
+    drives = kshudha.measure(root)
+    app_state = kshudha.select(drives, state=kshudha.load_state(root))
+    if as_json:
+        typer.echo(json.dumps(asdict(app_state), default=str, sort_keys=True))
+        return
+    for d in drives:
+        value = "unknown" if d.unknown else f"deficit {d.deficit:.2f}"
+        blocked = "" if d.eligible else f"   blocked: {d.blocked_reason}"
+        typer.echo(f"{d.wire_name:<20} {value:<16} weight {d.weight:.2f}{blocked}")
+    typer.echo("")
+    typer.echo(kshudha.sentence(app_state))
+
+
 @app.command("publish")
 def publish_cmd(
     root: Path = ROOT_OPT,

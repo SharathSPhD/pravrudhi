@@ -1,0 +1,55 @@
+# Kṣudhā policy: drive weights, targets and satiation thresholds for application/kshudha.py.
+#
+# An operator override may live at .pravrudhi/appetite_policy.yaml inside a workspace (application/kshudha.py's
+# `load_config` takes any path); this packaged file is what a fresh workspace uses until one is written. Weights
+# are equal by default: operator priority and hard invariants (an overdue request, a failing continuity check)
+# act before any weighting, so unequal weights are not needed to make obligations matter more than exploration.
+# A target change is a policy revision recorded here, never something a single action's success is allowed to
+# move on its own (design doc §5.2: docs/superpowers/specs/2026-09-06-appetite-and-intake-design.md).
+policy_version: "1"
+
+weights:
+  sthiti: 1.0
+  samarthya: 1.0
+  pramana_navyata: 1.0
+  unnati_avakasha: 1.0
+  sadhana: 1.0
+  seva: 1.0
+
+# What each drive treats as "satisfied" (design §5.2). sthiti's target is descriptive only — its deficit is the
+# plain weighted fraction of failing checks, not a division by this number. unnati_avakasha's target is likewise
+# descriptive; its deficit is the averaged headroom itself, not a division by this number.
+targets:
+  sthiti: 1.0
+  samarthya: 0.8
+  pramana_navyata: 1.0
+  unnati_avakasha: 1.0
+  sadhana: 1.0
+  seva: 0.9
+
+# Hysteresis (design §5.3): a drive becomes hungry at this deficit and stays selected until its post-action
+# deficit falls to at most the sated threshold. Between the two, a drive keeps its prior phase rather than
+# flipping every beat, and a just-sated drive gets `cooldown_beats` heartbeats before it can go hungry again.
+hungry_threshold: 0.6
+sated_threshold: 0.3
+cooldown_beats: 2
+
+# Per-check weight for the sthiti drive's doctor.py checks (initialised, ledger, docker, gpu, pools, prereg); a
+# check name not listed here defaults to 1.0.
+sthiti_check_weights: {}
+
+# Normalising scale for unnati_avakasha's benchmark-headroom formula: H_b = clip(sign * (target_delta -
+# current_delta) / scale). A typical accuracy-delta target is a few percentage points, so 0.05 is a conservative
+# proposed default, not a measured constant.
+benchmark_headroom_scale: 0.05
+
+# sadhana's one tracked resource today is "a coding-agent route that is ready (agents.registry.survey) and not
+# presently cooling down (availability.cooling)"; this is the minimum usable-route count the drive treats as
+# fully resourced: a_r = clip(usable / resource_min_routes).
+resource_min_routes: 1
+
+# seva's unresolved-deadline component (design §4.4): an open request older than this many days is "overdue" and
+# wins the next discretionary dispatch outright (design §5.3 step 4). seva_age_scale_days normalises the
+# deadline-debt term of D_seva so a request well inside the deadline contributes little to it.
+seva_overdue_days: 7.0
+seva_age_scale_days: 14.0

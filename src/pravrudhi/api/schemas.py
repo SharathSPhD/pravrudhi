@@ -157,6 +157,39 @@ class SandboxesResponse(BaseModel):
 
 
 
+class DriveResponse(BaseModel):
+    """One appetite drive. `unknown` with a `blocked_reason` is a real answer: a measurement nobody could take
+    must never arrive as a number."""
+
+    id: str
+    wire_name: str
+    value: float | None
+    target: float
+    deficit: float | None
+    weight: float
+    eligible: bool
+    blocked_reason: str
+    sources: list[str]
+    unknown: bool
+
+
+class AppetiteStateResponse(BaseModel):
+    as_of: str
+    policy_version: str
+    drives: list[DriveResponse]
+    largest_unmet: str | None
+    selected: str | None
+    action: dict[str, JsonValue] | None
+    next_wake: str
+    resting_reason: str | None
+
+
+class AppetiteResponse(BaseModel):
+    drives: list[DriveResponse]
+    appetite: AppetiteStateResponse
+    sentence: str
+
+
 class StatusResponse(RootModel[UninitialisedStatus | InitialisedStatus]):
     """Missing and replayed ledgers were conflated by an untyped status object."""
 
@@ -636,6 +669,57 @@ class DispatchResponse(BaseModel):
 
     objective: str
     started: int
+
+
+class DiffLineResponse(BaseModel):
+    """One rendered line of a hunk, with its unified-diff role."""
+
+    kind: Literal["context", "add", "del"]
+    text: str
+
+
+class DiffHunkResponse(BaseModel):
+    """One `@@ ... @@` region of a file's diff."""
+
+    header: str
+    lines: list[DiffLineResponse]
+
+
+class FileDiffResponse(BaseModel):
+    """One file's diff against its worktree's base commit. `too_large` marks a file whose own 2000-line cap, or
+    the diff's overall 400 KB cap, cut its hunks short -- never silently."""
+
+    path: str
+    added: int
+    removed: int
+    hunks: list[DiffHunkResponse]
+    binary: bool = False
+    too_large: bool = False
+
+
+class DiffResponse(BaseModel):
+    """A dispatched task's worktree diffed against the commit its branch forked from. `reason` is set, and
+    `files` empty, when the worktree no longer exists or could not be read."""
+
+    files: list[FileDiffResponse]
+    base: str
+    head: str
+    truncated: bool = False
+    reason: str = ""
+
+
+class TaskSummaryResponse(BaseModel):
+    """One dispatched task with a readable worktree, summarised for a diff list."""
+
+    task_id: str
+    files: int
+    added: int
+    removed: int
+    truncated: bool
+
+
+class DiffsResponse(RootModel[list[TaskSummaryResponse]]):
+    """The recent dispatched tasks with a readable worktree, newest first."""
 
 
 class SelfBuildRunResponse(BaseModel):
