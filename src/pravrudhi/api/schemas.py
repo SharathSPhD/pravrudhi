@@ -554,3 +554,62 @@ class WorkspacesResponse(BaseModel):
 
     owner: str
     workspaces: list[WorkspaceResponse]
+
+
+class CitationResponse(BaseModel):
+    """The ledger row a chat reply stands on. Prose could previously assert a result with nothing behind it;
+    a citation is the sequence number a reader can replay for themselves."""
+
+    seq: int
+    what: str
+
+
+class ChatToolCallResponse(BaseModel):
+    """One tool the assistant actually ran this turn. The raw result stays server-side: what the client needs
+    is that the call happened and what it found, not a second copy of the replayed state."""
+
+    tool: str
+    args: dict[str, JsonValue]
+    result_summary: str
+
+
+class ChatResponse(BaseModel):
+    """One conversational turn, after the honesty pass. `refusals` was the missing half: a reply that had a
+    number silently deleted from it looked like a reply that never made the claim."""
+
+    thread_id: str
+    reply: str
+    citations: list[CitationResponse]
+    tool_calls: list[ChatToolCallResponse]
+    refusals: list[str]
+
+
+class ChatThreadSummaryResponse(BaseModel):
+    """A conversation in the thread list. Listing bare ids gave a client no way to order them or to show how
+    much was said."""
+
+    id: str
+    updated: str
+    turns: int
+
+
+class ChatThreadsResponse(BaseModel):
+    """The caller's conversations, most recently updated first."""
+
+    threads: list[ChatThreadSummaryResponse]
+
+
+class ChatTurnResponse(BaseModel):
+    """One turn of a conversation. `created` is the storage layer's `ts` under the name the wire contract
+    uses, so a client is not made to learn two spellings for one field."""
+
+    role: Literal["user", "assistant"]
+    content: str
+    created: str
+
+
+class ChatThreadDetailResponse(BaseModel):
+    """A conversation replayed in full."""
+
+    id: str
+    turns: list[ChatTurnResponse]

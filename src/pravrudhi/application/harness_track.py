@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -15,7 +15,7 @@ import yaml
 
 from pravrudhi.application.deliberate import DecorativeAbort, deliberate
 from pravrudhi.application.discordance import discordance
-from pravrudhi.application.propose import propose_generic, strategy_switch_rate
+from pravrudhi.application.propose import next_candidate_id, propose_generic, strategy_switch_rate
 from pravrudhi.application.spine import IMAGE, resolve_model_snapshot
 from pravrudhi.models.proposer import proposer_client
 from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, harness_array_schema, parse_harness
@@ -365,10 +365,51 @@ def harness_noise_floor(root: Path, *, rotations: int, seeds: int, k: int, night
     return out
 
 
+def load_seed_recipes(paths: Iterable[Path]) -> tuple[HarnessRecipe, ...]:
+    """Operator-supplied harness recipes, parsed through the same grammar gate a proposer candidate must pass."""
+    recipes: list[HarnessRecipe] = []
+    for path in paths:
+        parsed = parse_harness(json.loads(Path(path).read_text()))
+        if isinstance(parsed, str):
+            raise ValueError(f"{path}: {parsed}")
+        recipes.append(parsed)
+    return tuple(recipes)
+
+
+def _admit_seed(
+    w: LedgerWriter, night: int, cid: str, rec: HarnessRecipe, incumbent_id: str, bucket: dict[str, str], surface: str
+) -> None:
+    """The propose row a seed recipe needs to enter paired eval like any proposer candidate (never promoted here)."""
+    key = json.dumps(rec.model_dump(exclude={"rationale"}), sort_keys=True)
+    w.append(
+        "propose",
+        "human:operator",
+        {
+            "op": "harness",
+            "source": "operator-seed",
+            "rationale": rec.rationale,
+            "recipe": rec.model_dump(),
+            "strategy": rec.strategy,
+            "edit_family": rec.execution_family,
+            "vak": {"para": rec.rationale[:400], "pasyanti": key[:600]},
+            "diff": {"sha256": hashlib.sha256(key.encode()).hexdigest()},
+            "cost_estimate": {"gpu_h": rec.cost_est_gpu_h()},
+            "lineage": [incumbent_id],
+        },
+        epoch=0,
+        night=night,
+        candidate_id=cid,
+        surface=surface,
+        bucket=bucket,
+        provenance="agama",
+    )
+
+
 def run_harness_night(
     root: Path, *, night: int, k: int | None, budget_gpu_h: float | None, gguf: Path, log: Log = print,
     selection_policy: str | None = None,
     proposer_endpoint: str = "",
+    seed_recipes: tuple[HarnessRecipe, ...] = (),
 ) -> dict[str, Any]:
     cfg = yaml.safe_load((root / "research" / "prereg" / "harness_night.yaml").read_text())
     ctx = HarnessContext(root, cfg, night, log)
@@ -408,9 +449,14 @@ def run_harness_night(
         epoch=0,
         night=night,
     )
-    already = sum(1 for ev in iter_events(ledger) if ev.kind == "propose" and ev.night == night and ev.surface == "H3.prompt")
     recipes: dict[str, HarnessRecipe] = {}
-    if already < kk:
+    for seed_rec in seed_recipes:
+        cid = next_candidate_id(ledger)
+        _admit_seed(w, night, cid, seed_rec, ctx.incumbent_id, ctx.bucket, "H3.prompt")
+        recipes[cid] = seed_rec
+    already = sum(1 for ev in iter_events(ledger) if ev.kind == "propose" and ev.night == night and ev.surface == "H3.prompt")
+    remaining_k = kk - len(seed_recipes)
+    if remaining_k > 0 and already < kk:
         endpoint = proposer_endpoint or str(cfg["proposer"].get("endpoint", ""))
         with proposer_client(
             gguf, ctx=int(cfg["proposer"]["max_tokens"]) * 2 + 8192, endpoint=endpoint, log=log
@@ -420,7 +466,7 @@ def run_harness_night(
                 w,
                 client,
                 night=night,
-                k=kk,
+                k=remaining_k,
                 model=str(cfg["model"]),
                 bucket=ctx.bucket,
                 prompts_dir=root / "harness" / "prompts",
@@ -436,11 +482,11 @@ def run_harness_night(
                 prompt_file="harness_proposer/v1.md",
                 surface="H3.prompt",
                 op="harness",
-                json_schema=harness_array_schema(kk),
+                json_schema=harness_array_schema(remaining_k),
                 extra_context="Incumbent harness (the reference every candidate is paired against):\n"
                 + json.dumps(ctx.incumbent.harness_json(), indent=1, sort_keys=True),
             )
-            recipes = dict(acc)
+            recipes.update(dict(acc))
     outcomes: dict[str, str] = {}
     from pravrudhi.application.citta_view import build_citta
 

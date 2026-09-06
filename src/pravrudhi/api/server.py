@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from pravrudhi import KERNEL_VERSION, __version__
 from pravrudhi.agents.registry import survey
+from pravrudhi.api.chat import build_chat_router
 from pravrudhi.api.identity import CurrentUserDep, User, auth_mode
 from pravrudhi.api.localguard import install as install_local_guard
 from pravrudhi.api.schemas import (
@@ -441,6 +442,7 @@ def create_app(root: Path) -> FastAPI:
         )
 
     app.include_router(api)
+    app.include_router(build_chat_router(root))
     return app
 
 

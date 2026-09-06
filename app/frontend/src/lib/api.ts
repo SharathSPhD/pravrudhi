@@ -531,3 +531,53 @@ export async function dispatchSubagents(id: string): Promise<SubagentsResponse> 
   if (IS_DEMO) throw new ApiError(501, `/api/objectives/${id}/subagents/dispatch`);
   return postJSON<SubagentsResponse>(`/api/objectives/${encodeURIComponent(id)}/subagents/dispatch`, {});
 }
+
+// ---------------------------------------------------------------------------
+// Chat: the assistant may state a number only if a tool call in this turn returned it. Anything the model's
+// draft states that no tool backed is stripped before this response is built, and listed in `refusals` instead.
+
+export interface ChatCitation {
+  seq: number;
+  what: string;
+}
+
+export interface ChatToolCall {
+  tool: string;
+  args: Record<string, unknown>;
+  result_summary: string;
+}
+
+export interface ChatResponse {
+  thread_id: string;
+  reply: string;
+  citations: ChatCitation[];
+  tool_calls: ChatToolCall[];
+  refusals: string[];
+}
+
+export async function chat(message: string, threadId: string | null): Promise<ChatResponse> {
+  if (IS_DEMO) throw new ApiError(501, "/api/chat");
+  return postJSON<ChatResponse>("/api/chat", { message, thread_id: threadId });
+}
+
+export interface ChatThreadSummary {
+  id: string;
+  updated: string;
+  turns: number;
+}
+
+export async function chatThreads(): Promise<ChatThreadSummary[]> {
+  if (IS_DEMO) return [];
+  return (await getJSON<{ threads: ChatThreadSummary[] }>("/api/chat/threads")).threads;
+}
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+  created: string;
+}
+
+export async function chatThread(id: string): Promise<ChatTurn[]> {
+  if (IS_DEMO) throw new ApiError(501, `/api/chat/threads/${id}`);
+  return (await getJSON<{ id: string; turns: ChatTurn[] }>(`/api/chat/threads/${encodeURIComponent(id)}`)).turns;
+}
