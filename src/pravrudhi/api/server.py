@@ -54,6 +54,7 @@ from pravrudhi.api.schemas import (
     SwarmResponse,
     TokenResponse,
     ToolsResponse,
+    UpdateStatusResponse,
     WorkspaceResponse,
     WorkspacesResponse,
 )
@@ -256,6 +257,12 @@ def create_app(root: Path) -> FastAPI:
     @api.get("/status")
     def status_ep() -> StatusResponse:
         return StatusResponse.model_validate(status(root))
+
+    @api.get("/update")
+    def update_ep() -> UpdateStatusResponse:
+        from pravrudhi.application.updates import status as update_status
+
+        return UpdateStatusResponse.model_validate(update_status())
 
     @api.get("/candidates")
     def candidates() -> CandidatesResponse:

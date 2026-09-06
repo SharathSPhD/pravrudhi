@@ -285,8 +285,7 @@ export async function deleteProviderKey(id: string): Promise<ProviderKeyResult> 
 }
 
 // Whether this checkout is behind the newest tagged release (see `application.updates`), and the exact
-// command that would catch it up. Same path as `status()` above; the engine layers these fields onto the
-// same response rather than opening a second endpoint for what is still "the engine's status".
+// command that would catch it up. Its own endpoint: the check reaches GitHub, and /api/status is polled.
 export interface UpdateStatus {
   current: { version: string; kernel_version: string; git_describe?: string };
   latest: { tag: string; url: string } | null;
@@ -304,7 +303,7 @@ export async function updateStatus(): Promise<UpdateStatus> {
       how: "",
     };
   }
-  return getJSON<UpdateStatus>("/api/status");
+  return getJSON<UpdateStatus>("/api/update");
 }
 
 export async function external(): Promise<ExternalRow[]> {

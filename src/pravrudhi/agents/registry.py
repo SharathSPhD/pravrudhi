@@ -14,6 +14,7 @@ from typing import Any
 from pravrudhi.agents.cli_agents import ClaudeCodeAgent, CodexAgent
 from pravrudhi.agents.hosted_agent import HostedAgent
 from pravrudhi.agents.orca_agent import OrcaAgent
+from pravrudhi.models import hosted
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,8 @@ def build_registry(root: Path, *, include_orca: bool = True) -> dict[str, Any]:
         for agent_id in ("claude", "codex", "local"):
             a = OrcaAgent(root, agent_id=agent_id)
             agents[a.name] = a
+    if hosted.opted_in():
+        agents["hosted"] = HostedAgent(root)
     return agents
 
 
@@ -51,6 +54,9 @@ def survey(root: Path, *, include_orca: bool = True) -> list[AgentStatus]:
                 out.append(AgentStatus(name, False, f"orca is up but {need} is not on PATH"))
             else:
                 out.append(AgentStatus(name, True, "ready"))
+        elif isinstance(a, HostedAgent):
+            ok, why = hosted.available()
+            out.append(AgentStatus(name, ok, "ready" if ok else why))
         else:
             ok = a.available()
             out.append(AgentStatus(name, ok, "ready" if ok else "claude CLI not installed"))

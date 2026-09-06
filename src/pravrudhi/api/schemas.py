@@ -53,6 +53,30 @@ class InitialisedStatus(BaseModel):
     locks: Locks
 
 
+class UpdateCurrent(BaseModel):
+    version: str
+    kernel_version: str
+    git_describe: str | None = None
+    install: str | None = None
+
+
+class UpdateLatest(BaseModel):
+    tag: str
+    url: str
+    published_at: str | None = None
+
+
+class UpdateStatusResponse(BaseModel):
+    """The settings page read update fields off /api/status, which never carried them: the version line threw
+    in the browser on every visit. The check reaches GitHub, so it is its own endpoint and not part of a status
+    that the interface polls."""
+
+    current: UpdateCurrent
+    latest: UpdateLatest | None
+    update_available: bool
+    how: str
+
+
 class StatusResponse(RootModel[UninitialisedStatus | InitialisedStatus]):
     """Missing and replayed ledgers were conflated by an untyped status object."""
 

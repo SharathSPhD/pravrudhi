@@ -147,3 +147,17 @@ def test_swarm_live_survives_a_broken_ps_call(tmp_path: Path, monkeypatch) -> No
     r = c.get("/api/swarm/live")
     assert r.status_code == 200
     assert r.json() == []
+
+
+def test_update_endpoint_serves_the_settings_page(tmp_path):
+    """The settings page reads current.version from here; /api/status never carried it."""
+    from fastapi.testclient import TestClient
+
+    from pravrudhi.api.server import create_app
+
+    client = TestClient(create_app(tmp_path))
+    r = client.get("/api/update", headers={"host": "127.0.0.1:8008"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["current"]["version"] and body["current"]["kernel_version"]
+    assert set(body) == {"current", "latest", "update_available", "how"}

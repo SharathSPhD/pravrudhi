@@ -75,3 +75,12 @@ test("API health returns JSON while the page namespace returns HTML", async ({ r
   expect(home.headers()["content-type"]).toContain("text/html");
   expect(await home.text()).toMatch(/<!doctype html/i);
 });
+
+test("progress dashboard plots every benchmark the snapshot holds", async ({ page }) => {
+  await page.goto("/progress");
+  await expect(page.getByRole("heading", { name: "Progress" })).toBeVisible();
+  await expect(page.getByText(/recorded snapshot/)).toBeVisible();
+  const charts = page.locator("svg");
+  expect(await charts.count()).toBeGreaterThan(0);
+  await expect(page.getByText("Benchmarks")).toBeVisible();
+});
