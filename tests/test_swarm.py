@@ -115,3 +115,28 @@ def test_uncommitted_work_is_warned_about_because_worktrees_branch_from_head(tmp
     said = []
     run_swarm(lambda n, m: None, [A], root=tmp_path, log=said.append)
     assert any("uncommitted" in s for s in said)
+
+
+def test_a_crash_is_recorded_against_the_routed_agent_not_the_static_fallback(tmp_path):
+    """The router chose claude-code for a step; the dispatch raised before any agent ran; the record said codex.
+    A crash record that blames the wrong agent teaches the router the wrong lesson."""
+    from pravrudhi.application import routing, swarm
+
+    class Boom:
+        name = "boom"
+
+        def create_workspace(self, task_id):
+            raise RuntimeError("git worktree add failed")
+
+    seen = {}
+
+    def build(name, model):
+        seen["routed"] = name
+        return Boom()
+
+    task = swarm.SwarmTask(swarm.TaskSpec("x:y", "p", ("proposals/*",)), "critical")
+    monkey_table = routing.load_table()
+    verdicts = swarm.run_wave(build, [task], log=lambda *a: None, root=tmp_path)
+    assert verdicts[0].accepted is False and "dispatch raised" in verdicts[0].reasons[0]
+    assert verdicts[0].agent == seen["routed"], (verdicts[0].agent, seen)
+    assert routing.choose(monkey_table, [], "critical").route.agent == seen["routed"]

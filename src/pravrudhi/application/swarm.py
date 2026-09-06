@@ -118,6 +118,7 @@ def run_wave(
     """
     results: list[Verdict] = []
     chosen: dict[str, str] = {}
+    chosen_agent: dict[str, str] = {}
     table = None
     rows: list[Any] = []
     if root is not None:
@@ -139,6 +140,7 @@ def run_wave(
                 log(f"route {t.spec.task_id} [{t.tier}] -> {choice.route.id}: {choice.reason}")
             else:
                 agent_name, model = t.route()
+            chosen_agent[t.spec.task_id] = agent_name
             agent = build_agent(agent_name, model)
             if agent is None:
                 results.append(
@@ -162,7 +164,10 @@ def run_wave(
                     ))
             except Exception as e:  # an agent crashing must not take the wave with it
                 results.append(
-                    Verdict(task_id=t.spec.task_id, agent=t.route()[0], accepted=False, reasons=[f"dispatch raised: {e}"])
+                    # Name the agent that was actually routed, not the static fallback: a crash record that blames the
+                    # wrong agent teaches the router the wrong lesson.
+                    Verdict(task_id=t.spec.task_id, agent=chosen_agent.get(t.spec.task_id, t.route()[0]),
+                            accepted=False, reasons=[f"dispatch raised: {e}"])
                 )
     return results
 

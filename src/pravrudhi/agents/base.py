@@ -17,6 +17,7 @@ scientific one, since a distilled trainee would no longer be measuring the loop.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import time
 from collections.abc import Callable
@@ -87,14 +88,23 @@ class GitWorktreeMixin:
 
     root: Path
 
+    @staticmethod
+    def ref_safe(task_id: str) -> str:
+        """A task id as git will accept it in a branch name.
+
+        The first time the engine dispatched its own plan, every step failed in zero seconds: the task ids were
+        `<objective>:<step>`, and a colon is not valid in a ref. Nothing had told the swarm that a task id is also
+        a branch name. Any run of characters git refuses becomes one hyphen, so the mapping is readable and stable."""
+        return re.sub(r"[^A-Za-z0-9._-]+", "-", task_id).strip("-.") or "task"
+
     def _worktree_path(self, task_id: str) -> Path:
-        return self.root / ".worktrees" / f"agent-{task_id}"
+        return self.root / ".worktrees" / f"agent-{self.ref_safe(task_id)}"
 
     def create_workspace(self, task_id: str, base_ref: str = "HEAD") -> Path:
         wt = self._worktree_path(task_id)
         if wt.exists():
             return wt
-        branch = f"agent/{task_id}"
+        branch = f"agent/{self.ref_safe(task_id)}"
         wt.parent.mkdir(parents=True, exist_ok=True)
         r = git(["worktree", "add", "-b", branch, str(wt), base_ref], self.root)
         if r.returncode != 0 and "already exists" in (r.stderr or ""):
