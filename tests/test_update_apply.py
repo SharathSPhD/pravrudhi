@@ -571,3 +571,45 @@ def test_scheduler_wrapper_falls_back_when_the_flag_is_unknown(tmp_path: Path) -
     assert out.returncode == 0
     assert "already at 0.2.1" in out.stdout
     assert "No such option" not in out.stdout.splitlines()[-1]
+
+
+def test_the_scheduler_prefers_the_installed_release_over_the_bootstrap(tmp_path: Path) -> None:
+    """The updater that runs must be the updater that was installed.
+
+    The bootstrap venv only ever installs the first release; it is never upgraded. Calling it forever pinned the
+    update logic to the version each machine started life with, so both end-user installs re-downloaded and
+    re-installed the same release every thirty minutes: the bootstrap was 0.2.1 and the idempotency check
+    arrived in 0.2.3.
+    """
+    import os
+    import subprocess as sp
+
+    wrapper = Path(__file__).resolve().parents[1] / "deploy" / "systemd" / "release-update.sh"
+    root = tmp_path / "install"
+    for rel, tag in ((Path(".venv"), "bootstrap"), (Path(".pravrudhi/releases/current/.venv"), "current")):
+        d = root / rel / "bin"
+        d.mkdir(parents=True)
+        exe = d / "pravrudhi"
+        exe.write_text(f"#!/usr/bin/env bash\necho '{{\"ran\": \"{tag}\"}}'\n")
+        exe.chmod(0o755)
+
+    out = sp.run(["bash", str(wrapper), str(root)], capture_output=True, text=True, env={**os.environ})
+    assert out.returncode == 0
+    assert '"ran": "current"' in out.stdout, out.stdout
+
+
+def test_the_scheduler_falls_back_to_the_bootstrap_before_the_first_release(tmp_path: Path) -> None:
+    import os
+    import subprocess as sp
+
+    wrapper = Path(__file__).resolve().parents[1] / "deploy" / "systemd" / "release-update.sh"
+    root = tmp_path / "install"
+    d = root / ".venv" / "bin"
+    d.mkdir(parents=True)
+    exe = d / "pravrudhi"
+    exe.write_text('#!/usr/bin/env bash\necho \'{"ran": "bootstrap"}\'\n')
+    exe.chmod(0o755)
+
+    out = sp.run(["bash", str(wrapper), str(root)], capture_output=True, text=True, env={**os.environ})
+    assert out.returncode == 0
+    assert '"ran": "bootstrap"' in out.stdout, out.stdout

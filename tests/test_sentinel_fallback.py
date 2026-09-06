@@ -73,3 +73,27 @@ def test_the_limited_route_is_cooled_and_not_blamed(tmp_path: Path, monkeypatch:
 
     kinds = [e.kind for e in continuity.entries(tmp_path, 10)]
     assert "limited" in kinds and "fallback" in kinds, kinds
+
+
+def test_a_sentinel_never_wins_on_price(tmp_path: Path) -> None:
+    """A standby must not be chosen simply for being cheap.
+
+    Declaring it last was not enough. The chooser prefers the cheapest route whose interval overlaps the best,
+    and a free route with no trials is always cheapest and never rules itself out, so the sentinel was picked for
+    four complex multi-file tasks that a single-shot file writer cannot do.
+    """
+    table = routing.load_table()
+    rows = routing.outcomes(tmp_path)
+    for tier in ("mechanical", "standard", "design", "critical"):
+        choice = routing.choose(table, rows, tier)
+        assert not choice.route.sentinel, f"{tier} chose the standby {choice.route.id}: {choice.reason}"
+
+
+def test_the_sentinel_takes_over_when_every_ordinary_route_is_cooling(tmp_path: Path) -> None:
+    table = routing.load_table()
+    for route in table.permitted("critical"):
+        if not route.sentinel:
+            availability.mark_limited(tmp_path, route.agent)
+    choice = routing.choose(table, routing.outcomes(tmp_path), "critical", root=tmp_path)
+    assert choice.route.sentinel, choice.reason
+    assert "takes over" in choice.reason

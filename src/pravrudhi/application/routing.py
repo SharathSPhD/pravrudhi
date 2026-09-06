@@ -53,6 +53,13 @@ class Route:
     relative_cost: float
     tiers: tuple[str, ...]
     note: str = ""
+    sentinel: bool = False
+    """A standby that takes over, rather than a route that competes.
+
+    Declaring it last was not enough: the chooser prefers the cheapest route whose interval overlaps the best,
+    and a free route with no measured trials is always the cheapest and never rules itself out, so the sentinel
+    won four complex tasks it cannot do. A sentinel is now excluded from scoring outright and becomes reachable
+    only when every ordinary route at the tier is cooling down."""
 
     def pair(self) -> tuple[str, str]:
         return self.agent, self.model
@@ -131,6 +138,7 @@ def load_table(path: Path | None = None) -> Table:
             relative_cost=float(r["relative_cost"]),
             tiers=tuple(str(t) for t in (r.get("tiers") or ())),
             note=str(r.get("note") or "").strip(),
+            sentinel=bool(r.get("sentinel", False)),
         )
         for r in raw["routes"]
     }
@@ -232,6 +240,18 @@ def choose(table: Table, rows: list[Outcome], tier: str, root: Path | None = Non
         raise RoutingError(f"no route is permitted at tier {tier!r}; check configs/routing.yaml")
 
     usable = availability.usable_routes(root, permitted) if root is not None else permitted
+
+    # Sentinels stand by. They enter the running only when nothing ordinary is left standing at this tier.
+    ordinary = [r for r in usable if not r.sentinel]
+    standby = [r for r in usable if r.sentinel]
+    if ordinary:
+        usable = ordinary
+    elif standby:
+        cheapest = min(standby, key=lambda r: (r.relative_cost, r.id))
+        reason = (f"every ordinary route at this tier is cooling down from a usage limit; the standby "
+                  f"{cheapest.id} takes over")
+        return Choice(tier, cheapest, reason, tuple(r.id for r in standby), tuple(records(table, rows, tier)))
+
     if root is not None and not usable:
         cheapest = min(permitted, key=lambda r: (r.relative_cost, r.id))
         reason = (f"every route permitted at this tier is cooling down from a recent usage-limit hit; forcing "
