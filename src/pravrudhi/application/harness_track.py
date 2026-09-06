@@ -21,7 +21,7 @@ from pravrudhi.models.proposer import proposer_client
 from pravrudhi.targets.harness_grammar import BASELINE, H_GRAMMAR_DOC, HarnessRecipe, harness_array_schema, parse_harness
 from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.metrics import PoolExhausted, Rotation, draw_rotation, record_exposure
-from pravrudhi_kernel.metrics.pool import read_item
+from pravrudhi_kernel.metrics.pool import load_manifest, read_item
 from pravrudhi_kernel.sandbox import JobSpec, KernelState, admit_observation, ensure_kernel_state, run_job
 from pravrudhi_kernel.sandbox.observe import KernelHashes, kernel_hashes, sha256_file
 from pravrudhi_kernel.sandbox.runner import docker_available
@@ -29,9 +29,26 @@ from pravrudhi_kernel.sandbox.state import read_secret
 from pravrudhi_kernel.stats import Variance, sequential_boundary
 
 EXT_IMAGE = "pravrudhi/ext-scorers:latest"
-SCORER_SOURCE = Path(__file__).resolve().parents[3] / "docker" / "jobs" / "score_code.py"
+JOBS_DIR = Path(__file__).resolve().parents[3] / "docker" / "jobs"
+# pool manifest bench name -> (scorer job, whether that scorer reads the sealed pool's hidden tests)
+SCORERS: dict[str, tuple[str, bool]] = {"mbppplus": ("score_code.py", False), "apps": ("score_apps.py", True)}
 Log = Callable[[str], None]
 BASELINE_ID = "c-0000"
+
+
+def _scorer(pool_dir: Path) -> tuple[Path, bool]:
+    """Which scorer runs a pool's hidden tests, chosen by the bench name the pool was sealed under.
+
+    With one internal code pool the scorer could be a module constant. With two it cannot: the EvalPlus scorer
+    asked for an APPS task id would raise on a task EvalPlus has never heard of, every item would score zero,
+    and the ledger would record a harness that got worse rather than a scorer that was never run. The same
+    lookup names the scorer hashed into the observation, so a row cannot claim a scorer that did not produce
+    its numbers."""
+    bench = str(load_manifest(pool_dir)["bench"])
+    if bench not in SCORERS:
+        raise KeyError(f"no harness scorer for bench {bench!r}; known benches: {sorted(SCORERS)}")
+    job, needs_pool = SCORERS[bench]
+    return JOBS_DIR / job, needs_pool
 
 
 class HarnessContext:
@@ -119,10 +136,15 @@ def score_agent(ctx: HarnessContext, jd: Path, rot: Rotation) -> tuple[dict[str,
     with (sd / "in" / "answers.jsonl").open("w") as fh:
         for i in rot.item_ids:
             fh.write(json.dumps({"id": i, "task_id": json.loads(read_item(ctx.pool_dir, i)["answer"])["task_id"]}) + "\n")
+    scorer, needs_pool = _scorer(ctx.pool_dir)
+    mounts = {str(sd / "in"): "/in", str(ctx.root / ".pravrudhi" / "ext_cache"): "/cache"}
+    if needs_pool:
+        (sd / "in" / "pool").mkdir(exist_ok=True)  # the mountpoint must exist inside the read-only /in bind
+        mounts[str(ctx.pool_dir)] = "/in/pool"
     spec = JobSpec(
         image=EXT_IMAGE,
-        command=["python", "/opt/pravrudhi/jobs/score_code.py"],
-        mounts_ro={str(sd / "in"): "/in", str(ctx.root / ".pravrudhi" / "ext_cache"): "/cache"},
+        command=["python", f"/opt/pravrudhi/jobs/{scorer.name}"],
+        mounts_ro=mounts,
         output_dir=str(sd / "out"),
         gpu=False,
         network=False,
@@ -147,7 +169,11 @@ def score_agent(ctx: HarnessContext, jd: Path, rot: Rotation) -> tuple[dict[str,
 
 def _hashes(ctx: HarnessContext, jd: Path, harness: HarnessRecipe) -> KernelHashes:
     h = kernel_hashes(
-        jd / "in" / "items.jsonl", ctx.pool_dir / "manifest.json", SCORER_SOURCE, ctx.root / "harness", ctx.snapshot
+        jd / "in" / "items.jsonl",
+        ctx.pool_dir / "manifest.json",
+        _scorer(ctx.pool_dir)[0],
+        ctx.root / "harness",
+        ctx.snapshot,
     )
     return h.model_copy(
         update={"harness": hashlib.sha256(json.dumps(harness.harness_json(), sort_keys=True).encode()).hexdigest()}

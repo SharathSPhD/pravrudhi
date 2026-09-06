@@ -261,3 +261,28 @@ The gate passes because it delivers an honest null: no LoRA recipe from two nigh
 3. **Fresh rotation not executed**: The design requirement was waived due to pool exhaustion (ADR-0007), narrowing the contract's scope.
 
 The null result (0 promoted, 0 confirmed, 14 pruned asiddha) is a valid closure at screen tier if the scope narrowing is explicitly ratified. Until the evidence is sourced and the one-night-to-two-nights change is ADR'd, the gate cannot be signed off.
+
+## Resolution map (2026-09-06, agent-for-operator)
+
+The gate was re-emitted after this review (gates/L4.evidence.yaml, deviations[6]); `pravrudhi gate check
+gates/gate_L4.json` passes at ledger head 2ded6170…. Each blocking row above now resolves to a file and key:
+
+| Claim in the re-derivation table | Where it re-derives now |
+|---|---|
+| make smoke green | code_gate.evidence[0]: the make target plus the test modules it runs (tests/targets/, tests/test_propose_deliberate.py) |
+| 29 candidate / 29 incumbent observe rows, all kernel, five hashes | docs/evidence/L4_summary.json keys candidate_observe_rows=29, incumbent_observe_rows=29, observe_rows_all_kernel_pratyaksha_container; the five hashes are the KernelHashes fields on each observe row |
+| predictions sealed 0600, hash-committed | code_gate.evidence: predict rows in research/ledger.jsonl carry the prediction sha256; file mode is asserted by tests/test_predict_seal (kernel) |
+| make reproduce byte-identical | docs/evidence/L4_night1.md, L4_night2.md, L4_summary.json regenerate from research/ledger.jsonl (run: make reproduce) |
+| make ledger-replay chain ok | research/state.json against `pravrudhi replay --verify`; ledger_head recorded in the gate |
+| decorative check cv_G / mi_bits | L4_summary.json decorative_cv_G_min, decorative_cv_G_max, decorative_mi_bits_max |
+| 29 proposed (15 sft_rejection, 14 grpo_verifiable) | L4_summary.json proposed, proposed_by_strategy |
+| paired delta mean/sd/range | L4_summary.json paired_delta_n, paired_delta_mean, paired_delta_sd, paired_delta_min, paired_delta_max |
+| boundary parameters | research/prereg/lora_night.yaml boundary block (sha256 in the night_start audit) and research/prereg/variance.json sigma_seed |
+| pre-registered minimum effect 0.042 | research/prereg/lora_night.yaml boundary.delta_min |
+| strategy-switch rate (ADR-0005) | L4_summary.json strategy_switch_rate_last {switches=24, n=54, wilson} |
+
+Findings: 1 and 8 (scope change; multi-round adapter re-use) are recorded as deviations with ADR-0008; 2, 4, 6, 7
+are closed by the table above; 3 (fresh-rotation confirmation) is WAIVED and stated so in domain_gate.evidence[2]
+with ADR-0007, because nothing was promoted and the pool was exhausted; 5 (planted nulls, shares.planted 0.0)
+remains OPEN — H3's planted-null test is scheduled for P1 and no L4 claim depends on it. The H7 result (c-0045,
++0.081 GSM8K, rows 717–718) is stated at the tier it passed: external, single seed, not confirm tier.
