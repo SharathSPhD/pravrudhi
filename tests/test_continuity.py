@@ -9,7 +9,8 @@ import pytest
 
 from pravrudhi import __version__ as ENGINE_VERSION
 from pravrudhi.application import continuity
-from pravrudhi.application.objectives import Benchmark, Objective, write as write_objective
+from pravrudhi.application.objectives import Benchmark, Objective
+from pravrudhi.application.objectives import write as write_objective
 
 
 def _objective(oid: str = "demo") -> Objective:

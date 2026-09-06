@@ -545,3 +545,29 @@ def test_apply_release_is_idempotent_when_current_is_already_that_version(tmp_pa
     second = apply(tmp_path, channel="release", fetch=fake_fetch(url_map), runner=runner)
     assert not second.applied and second.version == version and "already" in second.reason
     assert len(calls) == n, "a second apply must not reinstall"
+
+
+def test_scheduler_wrapper_falls_back_when_the_flag_is_unknown(tmp_path: Path) -> None:
+    """A scheduler must never depend on a flag newer than the engine it drives.
+
+    `--if-due` shipped in 0.2.3; both end-user installs were running 0.2.1, so every scheduled run died on
+    "No such option: --if-due" and neither machine could update itself again. The wrapper retries with the
+    invocation that has always existed.
+    """
+    import os
+    import subprocess as sp
+
+    wrapper = Path(__file__).resolve().parents[1] / "deploy" / "systemd" / "release-update.sh"
+    root = tmp_path / "install"
+    (root / ".venv" / "bin").mkdir(parents=True)
+    stub = root / ".venv" / "bin" / "pravrudhi"
+    stub.write_text(
+        "#!/usr/bin/env bash\n"
+        'for a in "$@"; do if [ "$a" = "--if-due" ]; then echo "Error: No such option: --if-due"; exit 2; fi; done\n'
+        'echo \'{"applied": false, "reason": "already at 0.2.1"}\'\n'
+    )
+    stub.chmod(0o755)
+    out = sp.run(["bash", str(wrapper), str(root)], capture_output=True, text=True, env={**os.environ})
+    assert out.returncode == 0
+    assert "already at 0.2.1" in out.stdout
+    assert "No such option" not in out.stdout.splitlines()[-1]

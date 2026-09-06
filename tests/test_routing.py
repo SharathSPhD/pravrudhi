@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from pravrudhi.application import availability
+from pravrudhi.application import availability, routing
 from pravrudhi.application.routing import (
     Outcome,
     RoutingError,
@@ -139,15 +139,22 @@ def test_the_shipped_table_reserves_the_dearest_model_for_the_hardest_work() -> 
         assert choose(t, [], tier).route.relative_cost <= dearest.relative_cost
 
 
-def test_the_hosted_qwen_coder_route_is_permitted_only_at_mechanical() -> None:
-    """The route was added for single-shot file-writing tasks; it must not be reachable at tiers that need a
-    tool-calling loop it cannot drive."""
-    t = load_table()
-    assert t.routes["qwen-coder"].agent == "hosted"
-    assert "qwen-coder" in [r.id for r in t.permitted("mechanical")]
-    for tier in ("standard", "design", "critical"):
-        assert "qwen-coder" not in [r.id for r in t.permitted(tier)]
+def test_the_hosted_sentinel_is_permitted_everywhere_but_always_last() -> None:
+    """The free-tier route is the sentinel: it takes over, it does not compete.
 
+    It was permitted only at the mechanical tier, which meant that when the paid accounts hit their usage limits
+    at the tiers where the real work happens there was nothing to fall back to and the loop simply stopped. The
+    operator's requirement of 2026-09-06 is that the system runs unattended when the paid models are spent, so
+    the route is now permitted at every tier — and declared last above mechanical, so the router reaches it only
+    when everything above it is cooling down.
+    """
+    t = routing.load_table()
+    assert t.routes["qwen-coder"].agent == "hosted"
+    for tier in ("mechanical", "standard", "design", "critical"):
+        ids = [r.id for r in t.permitted(tier)]
+        assert "qwen-coder" in ids, tier
+    for tier in ("standard", "design", "critical"):
+        assert [r.id for r in t.permitted(tier)][-1] == "qwen-coder", tier
 
 def test_choose_drops_a_cooling_route_and_says_so(tmp_path: Path) -> None:
     doc = {

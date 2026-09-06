@@ -1,4 +1,5 @@
 import type { SelfBuildRun, SubagentRun } from "@/lib/swarm";
+import { secs } from "@/lib/num";
 
 interface Dispatch {
   key: string;
@@ -71,7 +72,7 @@ export function DispatchesTable({
             <span className="ml-auto font-mono text-[11px] text-[var(--color-text-dim)]">{d.route}</span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-dim)]">
-            <span>{d.wall_s.toFixed(1)}s</span>
+            <span>{secs(d.wall_s)}</span>
             <span>{d.at}</span>
             {d.files.length > 0 && <span className="truncate font-mono">{d.files.join(", ")}</span>}
           </div>

@@ -88,7 +88,6 @@ def test_a_limited_outcome_does_not_move_the_success_rate(tmp_path: Path) -> Non
         "routes": [{"id": "cheap", "agent": "claude-code", "model": "m", "relative_cost": 1.0, "tiers": ["standard"]}],
         "declared": {"standard": ["cheap"]},
     }
-    import yaml
 
     p = tmp_path / "routing.yaml"
     p.write_text(yaml.safe_dump(doc))

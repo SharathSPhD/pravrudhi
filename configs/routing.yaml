@@ -23,11 +23,14 @@ routes:
     agent: hosted
     model: qwen3-coder-plus
     relative_cost: 0.2
-    tiers: [mechanical]
+    tiers: [mechanical, standard, design, critical]
     note: >-
       A hosted free-tier model with no CLI: it cannot drive a tool-calling loop, only answer once with a JSON
-      payload of whole-file contents. Wired in for single-shot file-writing tasks, not for anything that needs to
-      read its own output back, run a command, or iterate.
+      payload of whole-file contents. It is the SENTINEL. Permitted at every tier but declared last everywhere
+      above mechanical, so the router reaches it only when every paid route at that tier is cooling down from a
+      usage limit. A single-shot writer is a poor substitute for an agent loop and a far better one than a
+      stopped loop, which is what the operator asked for on 2026-09-06: the system must run unattended when the
+      paid accounts are spent.
 
   - id: haiku
     agent: claude-code
@@ -66,14 +69,17 @@ routes:
     agent: orca:local
     model: glm-4.7-flash
     relative_cost: 0.0
-    tiers: []
+    tiers: [mechanical]
     note: >-
-      Costs nothing and, on this evidence, does nothing: it produced no change at all on two tasks a hosted agent
-      completed in minutes. Serving text and driving an agentic tool-calling loop are different capabilities.
-      Permitted at no tier until that is disproved by a trial the router will never run on its own.
+      Costs nothing and, on the evidence so far, does little: it produced no change at all on two tasks a hosted
+      agent completed in minutes. Serving text and driving an agentic tool-calling loop are different
+      capabilities. Restored to the mechanical tier only, and declared behind the hosted sentinel, so it is
+      reached solely when both the paid routes and the hosted quota are spent. Last resort, not a peer.
 
+# Declared order decides before there is measured evidence, and it is also the tie-break the fallback path walks.
+# The sentinels sit last at every tier on purpose: they take over, they do not compete.
 declared:
-  mechanical: [qwen-coder, sonnet]
-  standard: [sonnet]
-  design: [sonnet, opus, astra]
-  critical: [opus, sonnet, astra]
+  mechanical: [qwen-coder, sonnet, local-glm]
+  standard: [sonnet, qwen-coder]
+  design: [sonnet, opus, astra, qwen-coder]
+  critical: [opus, sonnet, astra, qwen-coder]

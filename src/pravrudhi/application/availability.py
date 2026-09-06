@@ -25,9 +25,15 @@ DEFAULT_COOLDOWN_MINUTES = 60.0
 
 
 class RouteLike(Protocol):
-    """The one thing `usable_routes` needs from a route: which agent it dispatches through."""
+    """The one thing `usable_routes` needs from a route: which agent it dispatches through.
 
-    agent: str
+    Declared read-only. A bare `agent: str` member requires a settable attribute, which a frozen dataclass such
+    as `routing.Route` does not provide, so the real route type failed to satisfy the protocol at all.
+    """
+
+    @property
+    def agent(self) -> str: ...
+
 
 
 def _load_config(path: Path | None = None) -> dict[str, Any]:
@@ -125,8 +131,12 @@ def clear(root: Path, agent_id: str) -> None:
         _write(root, data)
 
 
-def usable_routes(root: Path, routes: list[RouteLike], now: datetime | None = None) -> list[RouteLike]:
-    """`routes` with every route whose agent is currently cooling down removed."""
+def usable_routes[R: RouteLike](root: Path, routes: list[R], now: datetime | None = None) -> list[R]:
+    """`routes` with every route whose agent is currently cooling down removed.
+
+    Generic in the route type rather than typed to the protocol: a `list` is invariant, so a caller holding
+    concrete routes could neither pass its list in nor read concrete attributes off what came back.
+    """
     cool = cooling(root, now)
     return [r for r in routes if r.agent not in cool]
 

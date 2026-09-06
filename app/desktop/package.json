@@ -1,0 +1,16 @@
+{
+  "name": "pravrudhi-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The native desktop shell for an installed Pravrudhi engine",
+  "author": "Pravrudhi",
+  "main": "main.js",
+  "scripts": { "start": "electron .", "dist": "electron-builder", "test": "node --test test/" },
+  "devDependencies": { "electron": "^40.0.0", "electron-builder": "^26.0.0" },
+  "build": {
+    "appId": "org.pravrudhi.desktop", "productName": "Pravrudhi",
+    "files": ["main.js", "preload.js", "lib/**", "renderer/**", "package.json"],
+    "linux": { "target": "AppImage", "category": "Development", "icon": "renderer/icon.png" },
+    "mac": { "target": "dmg", "identity": null, "icon": "renderer/icon.png", "category": "public.app-category.developer-tools" }
+  }
+}

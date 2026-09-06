@@ -6,7 +6,7 @@
         "name": "claude-code"
       },
       {
-        "available": false,
+        "available": true,
         "name": "codex"
       },
       {
@@ -105,7 +105,7 @@
     ]
   },
   "engine": {
-    "candidates": 186,
+    "candidates": 188,
     "version": "0.2.3"
   },
   "external": [
@@ -1903,6 +1903,101 @@
   },
   "heartbeat": [
     {
+      "at": "2026-09-06T19:28:15Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "candidate-evaluation"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:candidate-evaluation (accepted)",
+      "result": {
+        "accepted": true,
+        "files": [
+          "proposals/code-harness/candidate-evaluation/README.md",
+          "proposals/code-harness/candidate-evaluation/configs/benchmarks.example.json",
+          "proposals/code-harness/candidate-evaluation/configs/benchmarks_itemized.example.json",
+          "proposals/code-harness/candidate-evaluation/configs/objective.example.json",
+          "proposals/code-harness/candidate-evaluation/example_data/baseline_results.example.json",
+          "proposals/code-harness/candidate-evaluation/example_data/baseline_results_itemized.example.json",
+          "proposals/code-harness/candidate-evaluation/example_data/candidate_results.example.json",
+          "proposals/code-harness/candidate-evaluation/example_data/candidate_results_itemized.example.json",
+          "proposals/code-harness/candidate-evaluation/scripts/compare_candidates.py"
+        ],
+        "reasons": [],
+        "route": "claude-code"
+      }
+    },
+    {
+      "at": "2026-09-06T18:26:44Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "candidate-evaluation"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:candidate-evaluation (rejected)",
+      "result": {
+        "accepted": false,
+        "files": [],
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code"
+      }
+    },
+    {
+      "at": "2026-09-06T17:25:32Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "candidate-evaluation"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:candidate-evaluation (rejected)",
+      "result": {
+        "accepted": false,
+        "files": [],
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code"
+      }
+    },
+    {
+      "at": "2026-09-06T16:23:50Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "candidate-evaluation"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:candidate-evaluation (rejected)",
+      "result": {
+        "accepted": false,
+        "files": [],
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code"
+      }
+    },
+    {
       "at": "2026-09-06T15:19:38Z",
       "chose": {
         "objective": "code-harness",
@@ -2234,6 +2329,24 @@
       "pruned": 12,
       "selection_policy": "greedy",
       "spent_gpu_h": 1.002,
+      "track": "lora"
+    },
+    {
+      "candidates": 7,
+      "night": 14,
+      "promoted": [],
+      "pruned": 7,
+      "selection_policy": "gear",
+      "spent_gpu_h": 0.645,
+      "track": "lora"
+    },
+    {
+      "candidates": 2,
+      "night": 15,
+      "promoted": [],
+      "pruned": 2,
+      "selection_policy": "hgm",
+      "spent_gpu_h": 0.108,
       "track": "lora"
     }
   ],
@@ -3213,6 +3326,28 @@
   "recorded": true,
   "runs": [
     {
+      "candidates": 2,
+      "id": "n15-lora",
+      "night": 15,
+      "policy": "hgm",
+      "promoted": [],
+      "pruned": 2,
+      "spent_gpu_h": 0.108,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 7,
+      "id": "n14-lora",
+      "night": 14,
+      "policy": "gear",
+      "promoted": [],
+      "pruned": 7,
+      "spent_gpu_h": 0.645,
+      "status": "finished",
+      "target": "model"
+    },
+    {
       "candidates": 12,
       "id": "n13-lora",
       "night": 13,
@@ -3277,46 +3412,24 @@
       "spent_gpu_h": 0.685,
       "status": "finished",
       "target": "model"
-    },
-    {
-      "candidates": 8,
-      "id": "n7-lora",
-      "night": 7,
-      "policy": "efe",
-      "promoted": [],
-      "pruned": 8,
-      "spent_gpu_h": 0.637,
-      "status": "finished",
-      "target": "model"
-    },
-    {
-      "candidates": 5,
-      "id": "n6-harness",
-      "night": 6,
-      "policy": "efe",
-      "promoted": [],
-      "pruned": 0,
-      "spent_gpu_h": 0.0,
-      "status": "finished",
-      "target": "harness"
     }
   ],
   "status": {
     "badges": {
-      "amber": 14,
+      "amber": 13,
       "green": 2,
-      "grey": 23,
-      "red": 147
+      "grey": 19,
+      "red": 154
     },
-    "candidates": 186,
+    "candidates": 188,
     "chain_ok": true,
-    "events": 2382,
+    "events": 2450,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "d2df74317c108a139c69eac8a62df0fc680b95ace77acb6ded9af8929654bfd0",
+    "ledger_head": "ad7cf30dc87a26a20a6a609f4e3b9cdd78ebe4fb2a090f7635b9851cece5adcc",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -3492,6 +3605,27 @@
           "c-0178": "pruned"
         },
         "spent_gpu_h": 1.0020981569556493
+      },
+      "14": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0179": "pruned",
+          "c-0180": "pruned",
+          "c-0181": "pruned",
+          "c-0182": "pruned",
+          "c-0183": "pruned",
+          "c-0184": "pruned",
+          "c-0185": "pruned"
+        },
+        "spent_gpu_h": 0.6454928106828206
+      },
+      "15": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0186": "pruned",
+          "c-0187": "pruned"
+        },
+        "spent_gpu_h": 0.10819721577579104
       }
     },
     "promoted": {
@@ -3502,8 +3636,8 @@
         "c-0045"
       ]
     },
-    "pruned": 121,
-    "state_hash": "aa851fb203e2b81ae533b8bf0160b56467da16afc066810f663b8d2757cd54c7"
+    "pruned": 128,
+    "state_hash": "b80c3e82ac7d0ec9870a88101303ad57bd5cf79808cc3e8bb771bf8133a70c69"
   },
   "swarm": {
     "agents": [
@@ -3513,9 +3647,9 @@
         "reason": "ready"
       },
       {
-        "available": false,
+        "available": true,
         "name": "codex",
-        "reason": "codex CLI installed but not signed in (run `codex login`)"
+        "reason": "ready"
       },
       {
         "available": true,
@@ -3560,6 +3694,17 @@
             "successes": 0,
             "tier": "mechanical",
             "trials": 0
+          },
+          {
+            "hi": 0.7934567085261071,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 0.0,
+            "route_id": "local-glm",
+            "successes": 0,
+            "tier": "mechanical",
+            "trials": 1
           }
         ],
         "relative_cost": 0.2,
@@ -3567,41 +3712,52 @@
         "tier": "mechanical"
       },
       {
-        "agent": "claude-code",
-        "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (17/19) and nothing cheaper matches it",
+        "agent": "hosted",
+        "model": "qwen3-coder-plus",
+        "reason": "qwen-coder is cheaper than sonnet and has only 0 outcomes, too few to rule out; trying it",
         "records": [
           {
-            "hi": 0.9706420586049034,
-            "lo": 0.686054495051583,
-            "mean_wall_s": 210.79044872639994,
-            "rate": 0.8947368421052632,
+            "hi": 0.9075531089521192,
+            "lo": 0.5952915551476452,
+            "mean_wall_s": 185.23087293641098,
+            "rate": 0.7916666666666666,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 17,
+            "successes": 19,
             "tier": "standard",
-            "trials": 19
+            "trials": 24
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 0.2,
+            "route_id": "qwen-coder",
+            "successes": 0,
+            "tier": "standard",
+            "trials": 0
           }
         ],
-        "relative_cost": 2.9,
-        "route": "sonnet",
+        "relative_cost": 0.2,
+        "route": "qwen-coder",
         "tier": "standard"
       },
       {
-        "agent": "claude-code",
-        "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (20/23) and nothing cheaper matches it",
+        "agent": "hosted",
+        "model": "qwen3-coder-plus",
+        "reason": "qwen-coder is cheaper than sonnet and has only 0 outcomes, too few to rule out; trying it",
         "records": [
           {
-            "hi": 0.954624234856553,
-            "lo": 0.678721020269818,
-            "mean_wall_s": 264.00503913013506,
-            "rate": 0.8695652173913043,
+            "hi": 0.9565574496068442,
+            "lo": 0.6899571185214243,
+            "mean_wall_s": 273.0182601440465,
+            "rate": 0.875,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 20,
+            "successes": 21,
             "tier": "design",
-            "trials": 23
+            "trials": 24
           },
           {
             "hi": 1.0,
@@ -3624,16 +3780,27 @@
             "successes": 0,
             "tier": "design",
             "trials": 0
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 0.2,
+            "route_id": "qwen-coder",
+            "successes": 0,
+            "tier": "design",
+            "trials": 0
           }
         ],
-        "relative_cost": 2.9,
-        "route": "sonnet",
+        "relative_cost": 0.2,
+        "route": "qwen-coder",
         "tier": "design"
       },
       {
-        "agent": "claude-code",
-        "model": "sonnet",
-        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (9/10 against 5/5), so the extra spend is not yet justified",
+        "agent": "hosted",
+        "model": "qwen3-coder-plus",
+        "reason": "qwen-coder is cheaper than astra and has only 0 outcomes, too few to rule out; trying it",
         "records": [
           {
             "hi": 1.0,
@@ -3647,15 +3814,15 @@
             "trials": 0
           },
           {
-            "hi": 0.9821242504842788,
-            "lo": 0.5958436145024278,
-            "mean_wall_s": 354.9561286209617,
-            "rate": 0.9,
+            "hi": 0.882788120898909,
+            "lo": 0.45350458827515605,
+            "mean_wall_s": 375.3215002502381,
+            "rate": 0.7142857142857143,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 9,
+            "successes": 10,
             "tier": "critical",
-            "trials": 10
+            "trials": 14
           },
           {
             "hi": 1.0,
@@ -3667,15 +3834,89 @@
             "successes": 5,
             "tier": "critical",
             "trials": 5
+          },
+          {
+            "hi": 1.0,
+            "lo": 0.0,
+            "mean_wall_s": 0.0,
+            "rate": 0.0,
+            "relative_cost": 0.2,
+            "route_id": "qwen-coder",
+            "successes": 0,
+            "tier": "critical",
+            "trials": 0
           }
         ],
-        "relative_cost": 2.9,
-        "route": "sonnet",
+        "relative_cost": 0.2,
+        "route": "qwen-coder",
         "tier": "critical"
       }
     ],
     "selfbuild_runs": [],
     "subagent_runs": [
+      {
+        "accepted": true,
+        "at": "2026-09-06T19:31:51Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsbenchmarks.example.json",
+          "proposalsbenchmarks_itemized.example.json",
+          "proposalsobjective.example.json",
+          "proposalsbaseline_results.example.json",
+          "proposalsbaseline_results_itemized.example.json",
+          "proposalscandidate_results.example.json",
+          "proposalscandidate_results_itemized.example.json",
+          "proposalscompare_candidates.py"
+        ],
+        "objective": "code-harness",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "code-harness:candidate-evaluation",
+        "wall_s": 215.89826432289556
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T18:26:49Z",
+        "files": [],
+        "objective": "code-harness",
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "code-harness:candidate-evaluation",
+        "wall_s": 4.046242460142821
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T17:25:36Z",
+        "files": [],
+        "objective": "code-harness",
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "code-harness:candidate-evaluation",
+        "wall_s": 4.498898366931826
+      },
+      {
+        "accepted": false,
+        "at": "2026-09-06T16:23:55Z",
+        "files": [],
+        "objective": "code-harness",
+        "reasons": [
+          "agent exited non-zero: no detail",
+          "no change produced"
+        ],
+        "route": "claude-code",
+        "step": "candidate-evaluation",
+        "task_id": "code-harness:candidate-evaluation",
+        "wall_s": 4.97844339418225
+      },
       {
         "accepted": true,
         "at": "2026-09-06T15:21:51Z",
@@ -4029,88 +4270,13 @@
         "step": "corpus",
         "task_id": "prabhasa-nyaya:corpus",
         "wall_s": 221.48404820100404
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:26:17Z",
-        "files": [
-          "proposalsREADME.md",
-          "proposalseval_config.yaml",
-          "proposals.gitkeep",
-          "proposalscitation_grounding_eval.py",
-          "proposalscommon.py",
-          "proposalsildc_cjpe_eval.py",
-          "proposalsiltur_eval.py",
-          "proposalsrun_baseline.py"
-        ],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
-        ],
-        "route": "claude-code",
-        "step": "baseline-evaluation",
-        "task_id": "prabhasa-nyaya:baseline-evaluation",
-        "wall_s": 156.9219978870824
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:26:17Z",
-        "files": [
-          "proposalsREADME.md",
-          "proposalsbaseline_results.example.json",
-          "proposalsbenchmarks.example.json",
-          "proposalsobjective.example.json",
-          "proposalsretrieval_candidate.example.json",
-          "proposalsrun_example.sh",
-          "proposalsevaluate.py"
-        ],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcschemas.py, srcdelegate.py, srcexternal.py, srcloom.py"
-        ],
-        "route": "claude-code",
-        "step": "candidate-evaluation",
-        "task_id": "prabhasa-nyaya:candidate-evaluation",
-        "wall_s": 156.128034502035
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:26:17Z",
-        "files": [
-          "proposalsREADME.md",
-          "proposalssft_lora.yaml",
-          "proposalscheck_adapter_loads.py",
-          "proposalseval_compare.py",
-          "proposalstrain_sft_lora.py"
-        ],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "wrote outside its worktree, into the main checkout: apppage.tsx, appapi.ts, appdemo.ts, apptsconfig.tsbuildinfo, srcdelegate.py, supabase/, tests/test_delegate_escape.py, tests/test_supabase_schema.py"
-        ],
-        "route": "claude-code",
-        "step": "finetune",
-        "task_id": "prabhasa-nyaya:finetune",
-        "wall_s": 142.59893053304404
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:18:55Z",
-        "files": [],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:finetune')\nfatal: 'agent/prabhasa-nyaya:finetune' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
-        ],
-        "route": "claude-code",
-        "step": "finetune",
-        "task_id": "prabhasa-nyaya:finetune",
-        "wall_s": 0.0
       }
     ]
   },
   "version": {
-    "commit": "928b934",
+    "commit": "132d716",
     "engine": "0.2.3",
-    "exported_at": "2026-09-06T15:22:22.842Z",
+    "exported_at": "2026-09-06T19:35:42.706Z",
     "kernel": "0.1.0"
   }
 }

@@ -113,7 +113,7 @@ def _cooling(root: Path) -> dict[str, str]:
     """Which agents `application.availability` currently has cooling down, and until when. That module may not
     exist yet in a given checkout, so its absence degrades to "nothing is cooling" rather than failing the brief."""
     try:
-        from pravrudhi.application.availability import cooling  # type: ignore[import-untyped]
+        from pravrudhi.application.availability import cooling
     except ImportError:
         return {}
     return dict(cooling(root))

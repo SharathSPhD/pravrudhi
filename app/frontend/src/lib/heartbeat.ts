@@ -12,7 +12,7 @@ export interface HeartbeatChoice {
 export interface HeartbeatResult {
   accepted: boolean;
   agent: string;
-  wall_s: number;
+  wall_s: number | null | undefined;
   files: string[];
   reasons: string[];
 }

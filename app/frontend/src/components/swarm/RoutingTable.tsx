@@ -1,4 +1,5 @@
 import type { RoutingRow } from "@/lib/swarm";
+import { fixed, percent, secs } from "@/lib/num";
 
 // What the routing table shows for a tier is either a measured choice — backed by trials this engine actually
 // ran — or the reason it has none yet. Never a guess dressed up as one of those.
@@ -7,8 +8,7 @@ function describeWhy(row: RoutingRow): string {
   if (row.reason) return row.reason;
   const record = row.records.find((r) => r.route_id === row.route) ?? row.records[0];
   if (!record) return "measured";
-  const pct = (record.rate * 100).toFixed(0);
-  return `${pct}% success over ${record.trials} trials · mean ${record.mean_wall_s.toFixed(1)}s · cost ×${record.relative_cost.toFixed(2)}`;
+  return `${percent(record.rate)} success over ${record.trials} trials · mean ${secs(record.mean_wall_s)} · cost ×${fixed(record.relative_cost, 2)}`;
 }
 
 export function RoutingTable({ rows }: { rows: RoutingRow[] }) {

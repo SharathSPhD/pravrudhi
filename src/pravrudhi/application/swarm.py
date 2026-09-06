@@ -22,7 +22,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
-from pravrudhi.application import routing
+from pravrudhi.application import availability, continuity, routing
 from pravrudhi.application.delegate import TaskSpec, Verdict, dispatch, overlapping
 
 # tier -> (agent name, model). Cost rises with tier; so should difficulty.
@@ -107,6 +107,51 @@ def plan(tasks: list[SwarmTask]) -> tuple[list[list[SwarmTask]], list[tuple[str,
     return [w for w in waves if w], sorted(set(conflicts))
 
 
+def _verdict_text(verdict: Verdict) -> str:
+    return " ".join(verdict.reasons)
+
+
+def _hit_a_usage_limit(agent_id: str, verdict: Verdict) -> bool:
+    """Did this run fail because the account is rate limited rather than because the work was wrong?"""
+    if verdict.accepted:
+        return False
+    return availability.classify(agent_id, _verdict_text(verdict), 1) == "limited"
+
+
+def _retry_elsewhere(
+    build_agent: Any, t: SwarmTask, root: Path, table: Any, rows: list[Any],
+    chosen: dict[str, str], chosen_agent: dict[str, str], results: list[Verdict], *, log: Any,
+) -> Verdict:
+    """Cool the limited agent down, then run the same task on the best route that is not cooling.
+
+    This is what the operator means by a sentinel: when the paid accounts are spent, the free-tier and local
+    routes carry the work rather than the loop stopping until someone notices.
+    """
+    spent = chosen_agent.get(t.spec.task_id, "")
+    availability.mark_limited(root, spent)
+    continuity.note(root, kind="limited", summary=f"{spent} hit a usage limit on {t.spec.task_id}",
+                    agent=spent, detail=_verdict_text(results[-1] if results else Verdict(t.spec.task_id, spent, False)))
+    if table is None:
+        return Verdict(t.spec.task_id, spent, False, [f"{spent} is rate limited and no routing table is loaded"])
+    try:
+        choice = routing.choose(table, rows, t.tier, root=root)
+    except routing.RoutingError as e:
+        return Verdict(t.spec.task_id, spent, False, [f"{spent} is rate limited and no fallback route exists: {e}"])
+    agent_name, model = choice.route.pair()
+    if agent_name == spent:
+        return Verdict(t.spec.task_id, spent, False, [f"{spent} is rate limited and it is the only route at this tier"])
+    agent = build_agent(agent_name, model)
+    if agent is None:
+        return Verdict(t.spec.task_id, spent, False,
+                       [f"{spent} is rate limited and the fallback {agent_name} is not available here"])
+    log(f"fallback {t.spec.task_id}: {spent} is rate limited -> {choice.route.id} ({choice.reason})")
+    continuity.note(root, kind="fallback", summary=f"{t.spec.task_id} moved from {spent} to {choice.route.id}",
+                    agent=agent_name)
+    chosen[t.spec.task_id] = choice.route.id
+    chosen_agent[t.spec.task_id] = agent_name
+    return dispatch(agent, replace(t.spec, prompt=SCOPE_PREAMBLE + t.spec.prompt), log=log)
+
+
 def run_wave(
     build_agent: Any, wave: list[SwarmTask], *, log: Any = print, root: Path | None = None
 ) -> list[Verdict]:
@@ -156,8 +201,18 @@ def run_wave(
             t = futures[fut]
             try:
                 verdict = fut.result()
+                rid = chosen.get(t.spec.task_id)
+                limited = root is not None and _hit_a_usage_limit(chosen_agent.get(t.spec.task_id, ""), verdict)
+                if limited and root is not None:
+                    # A usage limit says nothing about the quality of the route, so it must not be recorded as a
+                    # loss; it says the account is spent for now. Cool that agent down and hand the task to the
+                    # cheapest route still standing, which is what keeps the loop running unattended.
+                    verdict = _retry_elsewhere(
+                        build_agent, t, root, table, rows, chosen, chosen_agent, results, log=log
+                    )
+                    rid = chosen.get(t.spec.task_id)
                 results.append(verdict)
-                if root is not None and (rid := chosen.get(t.spec.task_id)) is not None:
+                if root is not None and rid is not None and not limited:
                     routing.record_outcome(root, routing.Outcome(
                         tier=t.tier, route_id=rid, task_id=t.spec.task_id,
                         accepted=verdict.accepted, wall_s=verdict.wall_s,

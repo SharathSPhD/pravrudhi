@@ -51,6 +51,10 @@ def _run(cmd: list[str], cwd: Path, timeout_s: int, env: dict[str, str] | None =
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,
+        # The child inherits this process's stdin otherwise. When the parent is itself an agent, that is a pipe
+        # that never delivers, so the CLI warns "no stdin data received in 3s" and exits non-zero — three agents
+        # that had finished their work correctly were rejected for it.
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,

@@ -1,4 +1,5 @@
 import type { HeartbeatBeat } from "@/lib/heartbeat";
+import { secs } from "@/lib/num";
 
 function sortNewestFirst(beats: HeartbeatBeat[]): HeartbeatBeat[] {
   return [...beats].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
@@ -41,7 +42,7 @@ export function HeartbeatTimeline({ beats }: { beats: HeartbeatBeat[] }) {
           {beat.result && (
             <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-dim)]">
               <span className="font-mono">{beat.result.agent}</span>
-              <span>{beat.result.wall_s.toFixed(1)}s</span>
+              <span>{secs(beat.result.wall_s)}</span>
               {beat.result.files.length > 0 && (
                 <span className="truncate font-mono">{beat.result.files.join(", ")}</span>
               )}
