@@ -29,6 +29,10 @@ POLICY_OPT = typer.Option(
     None, "--policy", help="selection arm for H1: efe (default, from prereg) | greedy | thompson | random"
 )
 NIGHT_OPT = typer.Option(1, "--night")
+APPS_SOURCE_OPT = typer.Option(..., "--source", help="APPS split on disk (test.jsonl or parquet), fetched separately")
+APPS_COUNT_OPT = typer.Option(400, "--count")
+APPS_SEED_OPT = typer.Option(0, "--seed")
+APPS_BENCH_OPT = typer.Option("apps", "--bench")
 SEED_RECIPE_OPT = typer.Option(
     [], "--seed-recipe",
     help="harness recipe JSON to admit as a candidate through the kernel's own door, alongside the proposer's; repeatable",
@@ -128,6 +132,21 @@ def pool_seal(
 
     m = seal_gsm8k(root, parquet, bench, offset=offset, count=count)
     typer.echo(f"sealed {m['bench']}: {m['n_items']} items, pool_version {m['pool_version'][:16]}")
+
+
+@pool_app.command("seal-apps")
+def pool_seal_apps(
+    source: Path = APPS_SOURCE_OPT,
+    count: int = APPS_COUNT_OPT,
+    seed: int = APPS_SEED_OPT,
+    bench: str = APPS_BENCH_OPT,
+    root: Path = ROOT_OPT,
+) -> None:
+    """Seal a held-out APPS slice as the harness track's second internal code pool (ADR-0029)."""
+    from pravrudhi.application.pool_admin import seal_apps
+
+    m = seal_apps(root, source, bench, count=count, seed=seed)
+    typer.echo(json.dumps({k: v for k, v in m.items() if not isinstance(v, (list, dict))}, indent=2, sort_keys=True))
 
 
 @pool_app.command("seal-mbppplus")
