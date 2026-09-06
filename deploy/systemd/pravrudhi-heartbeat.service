@@ -1,0 +1,11 @@
+# One heartbeat: find the most neglected undone objective step and dispatch it. Bounded by the engine's own
+# config (.pravrudhi/heartbeat.yaml: interval, quiet hours, max dispatches, whether a GPU step may start).
+[Unit]
+Description=Pravrudhi heartbeat
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/.venv/bin/python -m pravrudhi heartbeat --root @ROOT@ --json
+TimeoutStartSec=3600

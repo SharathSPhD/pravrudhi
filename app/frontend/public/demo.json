@@ -105,8 +105,8 @@
     ]
   },
   "engine": {
-    "candidates": 179,
-    "version": "0.2.2"
+    "candidates": 186,
+    "version": "0.2.3"
   },
   "external": [
     {
@@ -1901,6 +1901,61 @@
     "night": 4,
     "track": "lora"
   },
+  "heartbeat": [
+    {
+      "at": "2026-09-06T15:19:38Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "agents"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:agents (accepted)",
+      "result": {
+        "accepted": true,
+        "files": [
+          "proposals/code-harness/agents/README.md",
+          "proposals/code-harness/agents/checks.py",
+          "proposals/code-harness/agents/config.example.json",
+          "proposals/code-harness/agents/harness.py",
+          "proposals/code-harness/agents/self_test.py"
+        ],
+        "reasons": [],
+        "route": "claude-code"
+      }
+    },
+    {
+      "at": "2026-09-06T15:15:54Z",
+      "chose": {
+        "objective": "code-harness",
+        "step": "baseline-evaluation"
+      },
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "dispatched code-harness:baseline-evaluation (accepted)",
+      "result": {
+        "accepted": true,
+        "files": [
+          "proposals/code-harness/baseline-evaluation/README.md",
+          "proposals/code-harness/baseline-evaluation/configs/benchmarks.yaml",
+          "proposals/code-harness/baseline-evaluation/configs/model.yaml",
+          "proposals/code-harness/baseline-evaluation/requirements.txt",
+          "proposals/code-harness/baseline-evaluation/scripts/generate_completions.py",
+          "proposals/code-harness/baseline-evaluation/scripts/run_baseline.sh",
+          "proposals/code-harness/baseline-evaluation/scripts/run_humaneval_eval.sh",
+          "proposals/code-harness/baseline-evaluation/scripts/run_mbpp_eval.sh"
+        ],
+        "reasons": [],
+        "route": "claude-code"
+      }
+    }
+  ],
   "models": [
     {
       "artefact": "/home/ss/projects/pravrudhi/.pravrudhi/kernel/jobs/n4-train-c-0045-95769407/out/adapter",
@@ -3248,20 +3303,20 @@
   ],
   "status": {
     "badges": {
-      "amber": 13,
+      "amber": 14,
       "green": 2,
-      "grey": 19,
-      "red": 145
+      "grey": 23,
+      "red": 147
     },
-    "candidates": 179,
+    "candidates": 186,
     "chain_ok": true,
-    "events": 2345,
+    "events": 2382,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "a7c03149f324b0fca150d414599c42ace9935456f4781963404217b483154a23",
+    "ledger_head": "d2df74317c108a139c69eac8a62df0fc680b95ace77acb6ded9af8929654bfd0",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -3447,8 +3502,8 @@
         "c-0045"
       ]
     },
-    "pruned": 119,
-    "state_hash": "73a8d5a521430ef3719a889bdb204bbc180ad28ac7ea2c71d1aa784ea8eb9f73"
+    "pruned": 121,
+    "state_hash": "aa851fb203e2b81ae533b8bf0160b56467da16afc066810f663b8d2757cd54c7"
   },
   "swarm": {
     "agents": [
@@ -3514,18 +3569,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (16/18) and nothing cheaper matches it",
+        "reason": "sonnet has the best measured success rate at this tier (17/19) and nothing cheaper matches it",
         "records": [
           {
-            "hi": 0.9689811315464172,
-            "lo": 0.6719975513339578,
-            "mean_wall_s": 214.3632595221926,
-            "rate": 0.8888888888888888,
+            "hi": 0.9706420586049034,
+            "lo": 0.686054495051583,
+            "mean_wall_s": 210.79044872639994,
+            "rate": 0.8947368421052632,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 16,
+            "successes": 17,
             "tier": "standard",
-            "trials": 18
+            "trials": 19
           }
         ],
         "relative_cost": 2.9,
@@ -3535,18 +3590,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (19/22) and nothing cheaper matches it",
+        "reason": "sonnet has the best measured success rate at this tier (20/23) and nothing cheaper matches it",
         "records": [
           {
-            "hi": 0.9525108273576373,
-            "lo": 0.6666458812053,
-            "mean_wall_s": 269.29634727518584,
-            "rate": 0.8636363636363636,
+            "hi": 0.954624234856553,
+            "lo": 0.678721020269818,
+            "mean_wall_s": 264.00503913013506,
+            "rate": 0.8695652173913043,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 19,
+            "successes": 20,
             "tier": "design",
-            "trials": 22
+            "trials": 23
           },
           {
             "hi": 1.0,
@@ -3578,7 +3633,7 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (7/8 against 5/5), so the extra spend is not yet justified",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (9/10 against 5/5), so the extra spend is not yet justified",
         "records": [
           {
             "hi": 1.0,
@@ -3592,15 +3647,15 @@
             "trials": 0
           },
           {
-            "hi": 0.9775830911367038,
-            "lo": 0.5291051942301386,
-            "mean_wall_s": 359.7542853343184,
-            "rate": 0.875,
+            "hi": 0.9821242504842788,
+            "lo": 0.5958436145024278,
+            "mean_wall_s": 354.9561286209617,
+            "rate": 0.9,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 7,
+            "successes": 9,
             "tier": "critical",
-            "trials": 8
+            "trials": 10
           },
           {
             "hi": 1.0,
@@ -3621,6 +3676,43 @@
     ],
     "selfbuild_runs": [],
     "subagent_runs": [
+      {
+        "accepted": true,
+        "at": "2026-09-06T15:21:51Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalschecks.py",
+          "proposalsconfig.example.json",
+          "proposalsharness.py",
+          "proposalsself_test.py"
+        ],
+        "objective": "code-harness",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "agents",
+        "task_id": "code-harness:agents",
+        "wall_s": 132.96410934301093
+      },
+      {
+        "accepted": true,
+        "at": "2026-09-06T15:18:20Z",
+        "files": [
+          "proposalsREADME.md",
+          "proposalsbenchmarks.yaml",
+          "proposalsmodel.yaml",
+          "proposalsrequirements.txt",
+          "proposalsgenerate_completions.py",
+          "proposalsrun_baseline.sh",
+          "proposalsrun_humaneval_eval.sh",
+          "proposalsrun_mbpp_eval.sh"
+        ],
+        "objective": "code-harness",
+        "reasons": [],
+        "route": "claude-code",
+        "step": "baseline-evaluation",
+        "task_id": "code-harness:baseline-evaluation",
+        "wall_s": 146.47985440213233
+      },
       {
         "accepted": true,
         "at": "2026-09-06T07:07:35Z",
@@ -4012,39 +4104,13 @@
         "step": "finetune",
         "task_id": "prabhasa-nyaya:finetune",
         "wall_s": 0.0
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:18:55Z",
-        "files": [],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:candidate-evaluation')\nfatal: 'agent/prabhasa-nyaya:candidate-evaluation' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
-        ],
-        "route": "claude-code",
-        "step": "candidate-evaluation",
-        "task_id": "prabhasa-nyaya:candidate-evaluation",
-        "wall_s": 0.0
-      },
-      {
-        "accepted": false,
-        "at": "2026-09-06T04:18:55Z",
-        "files": [],
-        "objective": "prabhasa-nyaya",
-        "reasons": [
-          "dispatch raised: git worktree add failed: Preparing worktree (new branch 'agent/prabhasa-nyaya:rl')\nfatal: 'agent/prabhasa-nyaya:rl' is not a valid branch name\nhint: See 'git help check-ref-format'\nhint: Disable this message with \"git config set advice.refSyntax false\""
-        ],
-        "route": "claude-code",
-        "step": "rl",
-        "task_id": "prabhasa-nyaya:rl",
-        "wall_s": 0.0
       }
     ]
   },
   "version": {
-    "commit": "737577d",
-    "engine": "0.2.2",
-    "exported_at": "2026-09-06T15:01:35.754Z",
+    "commit": "928b934",
+    "engine": "0.2.3",
+    "exported_at": "2026-09-06T15:22:22.842Z",
     "kernel": "0.1.0"
   }
 }

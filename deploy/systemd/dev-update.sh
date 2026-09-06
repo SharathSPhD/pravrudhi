@@ -4,7 +4,7 @@
 set -u
 ROOT="${1:?checkout root}"
 cd "$ROOT" || exit 1
-out="$("$ROOT/.venv/bin/python" -m pravrudhi update --apply --channel dev --json 2>&1)"
+out="$("$ROOT/.venv/bin/python" -m pravrudhi update --apply --if-due --channel dev --json 2>&1)"
 echo "$out"
 if printf '%s' "$out" | grep -q '"applied": true'; then
   systemctl --user try-restart pravrudhi-app.service

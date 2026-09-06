@@ -521,6 +521,7 @@ def update_cmd(
     apply_now: bool = typer.Option(False, "--apply", help="apply the update if every safeguard clears"),
     channel: str | None = typer.Option(None, "--channel", help="dev (git checkout) or release (GitHub Release)"),
     rollback_now: bool = typer.Option(False, "--rollback", help="switch back to the previous release install"),
+    if_due: bool = typer.Option(False, "--if-due", help="do nothing unless check_interval_min has elapsed"),
     as_json: bool = typer.Option(False, "--json"),
 ) -> None:
     """Is a newer release available; and with --apply, catch this install up under the safeguards."""
@@ -533,6 +534,15 @@ def update_cmd(
 
         if channel not in (None, "dev", "release"):
             raise typer.BadParameter("channel must be dev or release")
+        if if_due and not rollback_now and not update_apply.should_check(root):
+            # A scheduler that fires more often than the configured interval must not spend a check on every tick:
+            # the GitHub releases API allows 60 unauthenticated calls an hour per address, and two installs behind
+            # one address exhausted it, after which every install refused with a rate-limit reason.
+            if as_json:
+                typer.echo(json.dumps({"applied": False, "reason": "not due", "rolled_back": False, "version": None}))
+            else:
+                typer.echo("not due: the configured check interval has not elapsed")
+            raise typer.Exit(0)
         result = (
             update_apply.rollback(root)
             if rollback_now

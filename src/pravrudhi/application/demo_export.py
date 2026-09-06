@@ -144,6 +144,13 @@ def _strip_paths(value: Any, root: Path) -> Any:
     return value
 
 
+def _heartbeat(root: Path) -> list[dict[str, Any]]:
+    """The last beats, newest first. The public page shows the engine working on its own, not only when driven."""
+    from pravrudhi.application.heartbeat import history
+
+    return [b.to_dict() for b in reversed(history(root, 20))]
+
+
 def _swarm(root: Path) -> dict[str, Any]:
     """The same shapes the live `/api/swarm` route serves: agent availability, the routing table's live
     per-tier choice, and the last 20 runs of both the objective swarm and the self-build swarm, newest first."""
@@ -201,6 +208,7 @@ def build_demo(root: Path) -> dict[str, Any]:
         },
         "recipes": availability(),
         "swarm": _swarm(root),
+        "heartbeat": _heartbeat(root),
         "plans": {
             o.id: {
                 "objective": o.id,

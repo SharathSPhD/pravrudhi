@@ -97,3 +97,7 @@ def test_no_field_carries_a_token_secret_or_key_pattern(tmp_path: Path) -> None:
     for value in _leaf_strings(demo):
         assert not SECRET_PATTERN.search(value), value
     assert not SECRET_PATTERN.search(json.dumps(demo))
+
+
+def test_snapshot_carries_the_heartbeat(tmp_path):
+    assert _demo(tmp_path)["heartbeat"] == []
