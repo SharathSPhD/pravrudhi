@@ -52,7 +52,8 @@ class TestTheAgentCannotDeclareVictory:
 
 
 class TestTheSameBriefComesBack:
-    def test_a_failing_check_re_dispatches_the_identical_brief(self, tmp_path: Path) -> None:
+    def test_a_failing_check_re_dispatches_the_same_task(self, tmp_path: Path) -> None:
+        """The task must not drift between iterations; only the check's output is added to it."""
         seen: list[str] = []
         run_until_done(
             _dispatcher(seen), root=tmp_path, task_id="t", brief="build the desktop app",
@@ -60,8 +61,10 @@ class TestTheSameBriefComesBack:
             max_iterations=3, log=lambda _: None,
         )
         assert len(seen) == 3
-        assert len(set(seen)) == 1, "the brief must not drift between iterations"
-        assert "build the desktop app" in seen[0]
+        for brief in seen:
+            assert "build the desktop app" in brief
+            assert "node --test passes" in brief
+        assert seen[1].startswith(seen[0]), "the retry is the original brief plus what the check said"
 
     def test_the_promise_is_stated_in_the_brief_the_agent_receives(self, tmp_path: Path) -> None:
         seen: list[str] = []
@@ -145,3 +148,27 @@ def test_the_recorded_rows_are_json_one_per_line(tmp_path: Path) -> None:
     )
     lines = log_path(tmp_path).read_text().splitlines()
     assert len(lines) == 1 and json.loads(lines[0])["passed"] is True
+
+
+def test_the_check_output_goes_back_with_the_brief(tmp_path: Path) -> None:
+    """The first real loop failed on an environment fact the agent could not see, and would have retried blind.
+
+    Handing back what the check said does not soften the discipline: the agent still cannot decide it is
+    finished, it is simply told what is wrong.
+    """
+    seen: list[str] = []
+
+    def dispatch_once(brief: str) -> tuple[bool, str, float]:
+        seen.append(brief)
+        return True, "done", 1.0
+
+    run_until_done(
+        dispatch_once, root=tmp_path, task_id="t", brief="build it",
+        promise="it launches",
+        verify=lambda _: (False, "FATAL: The SUID sandbox helper binary is not configured correctly"),
+        max_iterations=3, log=lambda _: None,
+    )
+    assert "SUID sandbox helper" not in seen[0], "the first attempt has nothing to learn from yet"
+    assert "SUID sandbox helper" in seen[1], "the second attempt must be told what failed"
+    assert "WHAT THE CHECK SAID" in seen[1]
+    assert "build it" in seen[1], "the original brief is still there, unchanged"

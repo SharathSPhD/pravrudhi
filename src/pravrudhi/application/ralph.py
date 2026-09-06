@@ -16,6 +16,11 @@ The check is external. `verify` is a command whose exit status decides, or a cal
 in the agent's output can satisfy it, so an agent cannot escape by claiming success, and the phrase "completion
 promise" appearing in its summary means nothing here.
 
+The check's own output goes back with the brief. The first loop run here failed on an environment fact the agent
+could not have known and could not see — Electron's sandbox helper needs root — and it would have retried blind
+four times. Handing back what the check said is not a softening of the discipline: the agent still cannot decide
+it is finished, it is simply told what is wrong.
+
 Every attempt is recorded. `.pravrudhi/ralph.jsonl` keeps each iteration with what the check said, so a loop that
 ran five times and failed five times leaves five pieces of evidence rather than one cheerful summary.
 """
@@ -46,6 +51,15 @@ whatsoever on the check, so do not spend words on it.
 If you cannot finish, leave the work in the best state you can reach and say plainly in your final message what
 is still broken and what you tried. That is useful. A confident summary of work that does not pass the check is
 not, and it is the single most common way defects have reached this project's operator.
+"""
+
+LAST_CHECK = """
+
+--- WHAT THE CHECK SAID ON YOUR PREVIOUS ATTEMPT (iteration {iteration}) ---
+{detail}
+--- end of check output ---
+
+Read that before changing anything. It is the actual reason the work is not finished yet.
 """
 
 
@@ -141,18 +155,23 @@ def run_until_done(
     actually wrote in — because checking the main tree would pass on work that was never merged.
     """
     root = Path(root)
-    full = RALPH_PREAMBLE.format(promise=promise) + "\n" + brief
+    base = RALPH_PREAMBLE.format(promise=promise) + "\n" + brief
     log_attempts: list[Attempt] = []
+    last: str = ""
 
     for i in range(1, max(1, max_iterations) + 1):
+        full = base + (LAST_CHECK.format(iteration=i - 1, detail=last[:2000]) if last else "")
         accepted, detail, wall = dispatch_once(full)
         where = workspace or root
         passed, check_detail = verify(where)
         attempt = Attempt(i, accepted, passed, check_detail or detail, wall)
         log_attempts.append(attempt)
         _record(root, task_id, promise, attempt)
+        said = (check_detail or detail).strip()
+        why = "" if passed else f" -- {said.splitlines()[-1][:160] if said else 'no output'}"
         log(f"ralph {task_id} iteration {i}: agent {'accepted' if accepted else 'rejected'}, "
-            f"check {'PASSED' if passed else 'failed'}")
+            f"check {'PASSED' if passed else 'failed'}{why}")
+        last = check_detail or detail
         if passed:
             return LoopResult(task_id, True, i, f"the promise holds after {i} iteration(s)", log_attempts)
 
@@ -165,6 +184,6 @@ def run_until_done(
 
 
 __all__ = [
-    "MAX_ITERATIONS", "RALPH_PREAMBLE", "Attempt", "LoopResult", "VerifyFn",
+    "LAST_CHECK", "MAX_ITERATIONS", "RALPH_PREAMBLE", "Attempt", "LoopResult", "VerifyFn",
     "attempts", "command_verifier", "log_path", "run_until_done",
 ]
