@@ -112,6 +112,20 @@ def test_chat_thread_roundtrip(tmp_path: Path) -> None:
     assert {t.id for t in all_threads} == {"t-1", "t-2"}
 
 
+def test_chat_turn_meta_round_trips(tmp_path: Path) -> None:
+    meta = {
+        "citations": [{"seq": 12, "what": "objective_progress: law"}],
+        "refusals": [],
+        "tool_calls": [{"tool": "objective_progress", "args": {"id": "legal-intent"}, "result_summary": "ok"}],
+    }
+    append_turn(tmp_path, "t-1", "user", "how is the legal objective doing?")
+    append_turn(tmp_path, "t-1", "assistant", "it scores 0.5 [ledger row 12].", meta=meta)
+
+    t1 = thread(tmp_path, "t-1")
+    assert t1.turns[0].meta == {}
+    assert t1.turns[1].meta == meta
+
+
 def test_chat_turn_rejects_unknown_role(tmp_path: Path) -> None:
     with pytest.raises(MemoryError):
         append_turn(tmp_path, "t-1", "system", "not a role this store accepts")

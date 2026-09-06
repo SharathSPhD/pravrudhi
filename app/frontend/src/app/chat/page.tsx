@@ -193,7 +193,17 @@ function LiveChat() {
     setSendError(null);
     setTurnsLoading(true);
     chatThread(id)
-      .then((rows) => setTurns(rows.map((t) => ({ role: t.role, content: t.content }))))
+      .then((rows) =>
+        setTurns(
+          rows.map((t) => ({
+            role: t.role,
+            content: t.content,
+            citations: t.meta?.citations,
+            toolCalls: t.meta?.tool_calls,
+            refusals: t.meta?.refusals,
+          })),
+        ),
+      )
       .catch(() => setTurns([]))
       .finally(() => setTurnsLoading(false));
   };

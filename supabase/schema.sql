@@ -329,3 +329,11 @@ end;
 $$;
 
 grant execute on function public.admin_set_role_by_email(text, public.app_role) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- chat_turns.meta — a turn's citations, refusals and tool calls (the honesty
+-- pass's receipt from application/chat.py::converse), empty for a user's
+-- turn. Added after chat_turns already shipped, so it is additive: a row
+-- written before this column existed reads back as '{}'::jsonb, not null.
+-- ---------------------------------------------------------------------------
+alter table public.chat_turns add column if not exists meta jsonb not null default '{}'::jsonb;

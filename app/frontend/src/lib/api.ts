@@ -571,10 +571,19 @@ export async function chatThreads(): Promise<ChatThreadSummary[]> {
   return (await getJSON<{ threads: ChatThreadSummary[] }>("/api/chat/threads")).threads;
 }
 
+// Present on a stored turn once the engine started recording it alongside the reply; absent on turns written
+// before that, so a stored turn must render correctly with or without it.
+export interface ChatTurnMeta {
+  citations: ChatCitation[];
+  refusals: string[];
+  tool_calls: ChatToolCall[];
+}
+
 export interface ChatTurn {
   role: "user" | "assistant";
   content: string;
   created: string;
+  meta?: ChatTurnMeta;
 }
 
 export async function chatThread(id: string): Promise<ChatTurn[]> {

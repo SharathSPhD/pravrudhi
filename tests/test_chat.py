@@ -85,6 +85,24 @@ def test_a_number_a_tool_returned_survives_and_cites_its_ledger_row(tmp_path: Pa
     assert [c.tool for c in outcome.tool_calls] == ["objective_progress"]
 
 
+def test_a_chat_outcomes_citations_are_stored_on_the_assistant_turn(tmp_path: Path) -> None:
+    _measured_workspace(tmp_path)
+    model = FakeModel(
+        {"content": "", "tool_calls": [{"tool": "objective_progress", "args": {"id": OBJECTIVE.id}}]},
+        {"content": "The candidate scores 0.5 on law acc,none against a baseline of 0.4.", "tool_calls": []},
+    )
+
+    outcome = converse(tmp_path, "how is the legal objective doing?", complete=model)
+
+    stored = FileMemoryStore(tmp_path).thread(outcome.thread_id)
+    user_turn, assistant_turn = stored.turns
+    assert user_turn.meta == {}
+    assert assistant_turn.role == "assistant"
+    assert assistant_turn.meta["citations"] == [dict(c) for c in outcome.citations]
+    assert assistant_turn.meta["refusals"] == list(outcome.refusals)
+    assert assistant_turn.meta["tool_calls"] == [c.to_dict() for c in outcome.tool_calls]
+
+
 def test_an_invented_percentage_is_stripped_and_reported(tmp_path: Path) -> None:
     _measured_workspace(tmp_path)
     model = FakeModel(

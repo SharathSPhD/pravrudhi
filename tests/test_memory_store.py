@@ -67,6 +67,16 @@ def test_file_memory_store_round_trips(tmp_path: Path) -> None:
     assert store.threads()[0].id == "thread-1"
 
 
+def test_file_memory_store_append_turn_with_meta_round_trips(tmp_path: Path) -> None:
+    store = FileMemoryStore(tmp_path)
+    meta = {"citations": [{"seq": 1, "what": "objective_progress: law"}], "refusals": [], "tool_calls": []}
+
+    turn = store.append_turn("thread-1", "assistant", "it scores 0.5", meta=meta)
+
+    assert turn.meta == meta
+    assert store.thread("thread-1").turns[0].meta == meta
+
+
 # --- SupabaseMemoryStore: each method hits the right table, filtered by user_id -----------------------------
 
 
@@ -170,10 +180,27 @@ def test_append_turn_creates_thread_when_missing_then_inserts_turn_then_touches_
     create_method, create_path, create_json, _ = fetch.calls[1]
     assert create_json == {"id": "thread-1", "user_id": USER_ID}
     _, _, turn_json, _ = fetch.calls[2]
-    assert turn_json == {"thread_id": "thread-1", "role": "user", "content": "hi"}
+    assert turn_json == {"thread_id": "thread-1", "role": "user", "content": "hi", "meta": {}}
     _, _, patch_json, patch_params = fetch.calls[3]
     assert patch_json == {"updated_at": "2026-01-01T00:00:00Z"}
     assert patch_params == {"id": "eq.thread-1", "user_id": f"eq.{USER_ID}"}
+
+
+def test_append_turn_sends_meta(monkeypatch: pytest.MonkeyPatch) -> None:
+    fetch = FakeFetch()
+    fetch.queue("GET", "chat_threads", [{"id": "thread-1"}])
+    meta = {"citations": [{"seq": 1, "what": "objective_progress: law"}], "refusals": [], "tool_calls": []}
+    fetch.queue(
+        "POST",
+        "chat_turns",
+        [{"role": "assistant", "content": "it scores 0.5", "created_at": "2026-01-01T00:00:00Z", "meta": meta}],
+    )
+
+    turn = _store(fetch).append_turn("thread-1", "assistant", "it scores 0.5", meta=meta)
+
+    assert turn.meta == meta
+    _, _, turn_json, _ = fetch.calls[1]
+    assert turn_json == {"thread_id": "thread-1", "role": "assistant", "content": "it scores 0.5", "meta": meta}
 
 
 def test_append_turn_skips_creation_when_thread_already_exists(monkeypatch: pytest.MonkeyPatch) -> None:

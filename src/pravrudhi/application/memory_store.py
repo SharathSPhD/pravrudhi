@@ -55,7 +55,7 @@ class MemoryStore(Protocol):
 
     def preferences(self) -> dict[str, Preference]: ...
 
-    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn: ...
+    def append_turn(self, thread_id: str, role: str, content: str, meta: dict[str, Any] | None = None) -> ChatTurn: ...
 
     def thread(self, thread_id: str) -> ChatThread: ...
 
@@ -83,8 +83,8 @@ class FileMemoryStore:
     def preferences(self) -> dict[str, Preference]:
         return memory.preferences(self._root)
 
-    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn:
-        return memory.append_turn(self._root, thread_id, role, content)
+    def append_turn(self, thread_id: str, role: str, content: str, meta: dict[str, Any] | None = None) -> ChatTurn:
+        return memory.append_turn(self._root, thread_id, role, content, meta=meta)
 
     def thread(self, thread_id: str) -> ChatThread:
         return memory.thread(self._root, thread_id)
@@ -207,7 +207,7 @@ class SupabaseMemoryStore:
                 )
         return latest
 
-    def append_turn(self, thread_id: str, role: str, content: str) -> ChatTurn:
+    def append_turn(self, thread_id: str, role: str, content: str, meta: dict[str, Any] | None = None) -> ChatTurn:
         if role not in memory._ROLES:
             raise memory.MemoryError(f"chat turn role must be one of {memory._ROLES}, got {role!r}")
         existing = _as_list(
@@ -218,7 +218,11 @@ class SupabaseMemoryStore:
         if not existing:
             self._fetch("POST", "chat_threads", json={"id": thread_id, "user_id": self._user_id})
         row = _one(
-            self._fetch("POST", "chat_turns", json={"thread_id": thread_id, "role": role, "content": content})
+            self._fetch(
+                "POST",
+                "chat_turns",
+                json={"thread_id": thread_id, "role": role, "content": content, "meta": dict(meta or {})},
+            )
         )
         self._fetch(
             "PATCH",
@@ -226,7 +230,10 @@ class SupabaseMemoryStore:
             json={"updated_at": row["created_at"]},
             params={"id": f"eq.{thread_id}", "user_id": f"eq.{self._user_id}"},
         )
-        return ChatTurn(role=str(row["role"]), content=str(row["content"]), ts=str(row["created_at"]))
+        return ChatTurn(
+            role=str(row["role"]), content=str(row["content"]), ts=str(row["created_at"]),
+            meta=dict(row.get("meta") or {}),
+        )
 
     def thread(self, thread_id: str) -> ChatThread:
         threads_rows = _as_list(
@@ -260,7 +267,13 @@ class SupabaseMemoryStore:
         rows = _as_list(
             self._fetch("GET", "chat_turns", params={"thread_id": f"eq.{thread_id}", "order": "created_at.asc"})
         )
-        return tuple(ChatTurn(role=str(r["role"]), content=str(r["content"]), ts=str(r["created_at"])) for r in rows)
+        return tuple(
+            ChatTurn(
+                role=str(r["role"]), content=str(r["content"]), ts=str(r["created_at"]),
+                meta=dict(r.get("meta") or {}),
+            )
+            for r in rows
+        )
 
 
 def store_for(root: Path, user: User | None) -> MemoryStore:

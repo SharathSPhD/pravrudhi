@@ -460,11 +460,17 @@ def converse(
     made = tuple(calls)
     reply, refusals = enforce_honesty(draft, allowed_numbers(made))
     refusals = [c.refusal for c in made if c.refusal] + refusals
-    memory_store.append_turn(tid, "assistant", reply)
+    citations = citations_from(made)
+    turn_meta = {
+        "citations": [dict(c) for c in citations],
+        "refusals": list(refusals),
+        "tool_calls": [c.to_dict() for c in made],
+    }
+    memory_store.append_turn(tid, "assistant", reply, meta=turn_meta)
     return ChatOutcome(
         thread_id=tid,
         reply=reply,
-        citations=citations_from(made),
+        citations=citations,
         tool_calls=made,
         refusals=tuple(refusals),
     )

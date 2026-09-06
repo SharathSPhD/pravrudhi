@@ -25,7 +25,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -73,9 +73,19 @@ class MemoryNote:
 
 @dataclass(frozen=True)
 class ChatTurn:
+    """One turn of a conversation. `meta` is empty for a user's turn and, for the assistant's, carries the same
+    citations, refusals and tool calls the caller saw when the turn was made - so reopening a thread later shows
+    the honesty pass's receipt, not just the prose that survived it.
+
+    Before this field existed, a turn's citations, refusals and tool calls were handed to the caller once, by
+    `application/chat.py::converse`, and then gone: the thread only ever kept `role`/`content`/`ts`, so reopening
+    it showed an answer with no row behind it - the opposite of what the honesty boundary exists to guarantee.
+    """
+
     role: str
     content: str
     ts: str
+    meta: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -217,16 +227,20 @@ def preferences(root: Path) -> dict[str, Preference]:
     return latest
 
 
-def append_turn(root: Path, thread_id: str, role: str, content: str) -> ChatTurn:
+def append_turn(
+    root: Path, thread_id: str, role: str, content: str, meta: dict[str, Any] | None = None
+) -> ChatTurn:
     if role not in _ROLES:
         raise MemoryError(f"chat turn role must be one of {_ROLES}, got {role!r}")
-    turn = ChatTurn(role=role, content=content, ts=_now())
+    turn = ChatTurn(role=role, content=content, ts=_now(), meta=dict(meta or {}))
     _append_jsonl(_chat_path(root), {"thread_id": thread_id, **asdict(turn)})
     return turn
 
 
 def _thread_from_rows(thread_id: str, rows: list[dict[str, Any]]) -> ChatThread:
-    turns = tuple(ChatTurn(role=r["role"], content=r["content"], ts=r["ts"]) for r in rows)
+    turns = tuple(
+        ChatTurn(role=r["role"], content=r["content"], ts=r["ts"], meta=dict(r.get("meta") or {})) for r in rows
+    )
     return ChatThread(id=thread_id, turns=turns, created=turns[0].ts, updated=turns[-1].ts)
 
 

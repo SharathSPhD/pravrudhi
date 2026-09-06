@@ -601,11 +601,14 @@ class ChatThreadsResponse(BaseModel):
 
 class ChatTurnResponse(BaseModel):
     """One turn of a conversation. `created` is the storage layer's `ts` under the name the wire contract
-    uses, so a client is not made to learn two spellings for one field."""
+    uses, so a client is not made to learn two spellings for one field. `meta` is empty for a user's turn and,
+    for the assistant's, carries the citations, refusals and tool calls the honesty pass produced - the record
+    that used to vanish once the reply was rendered, leaving a reopened thread with an answer and no receipt."""
 
     role: Literal["user", "assistant"]
     content: str
     created: str
+    meta: dict[str, JsonValue] = Field(default_factory=dict)
 
 
 class ChatThreadDetailResponse(BaseModel):
