@@ -6713,6 +6713,17 @@
   },
   "heartbeat": [
     {
+      "at": "2026-09-06T22:36:42Z",
+      "chose": null,
+      "looked_at": [
+        "code-harness",
+        "math-reasoning",
+        "prabhasa-nyaya"
+      ],
+      "reason": "every objective's plan is fully dispatched and accepted",
+      "result": null
+    },
+    {
       "at": "2026-09-06T21:32:00Z",
       "chose": null,
       "looked_at": [
@@ -12375,16 +12386,16 @@
   "recorded": true,
   "requests": {
     "by_state": {
-      "captured": 5,
+      "captured": 4,
       "clarified": 0,
       "declined": 0,
       "delivered": 0,
       "in_progress": 1,
       "planned": 0,
-      "verified": 1
+      "verified": 2
     },
-    "oldest_open_days": 0.42,
-    "open": 6,
+    "oldest_open_days": 0.46,
+    "open": 5,
     "requests": [
       {
         "asked_at": "2026-09-06T12:00:00Z",
@@ -12465,8 +12476,24 @@
             "text": "The app is richer in function and UX than Orca"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "policy violations observed and persisted",
+                "ref": "src/pravrudhi/application/sandbox_monitor.py"
+              },
+              {
+                "kind": "file",
+                "note": "the OpenClaw heartbeat idea, adapted",
+                "ref": "src/pravrudhi/application/heartbeat.py"
+              },
+              {
+                "kind": "commit",
+                "note": "a policy becomes something you can check",
+                "ref": "5729601"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "OpenClaw and NemoClaw ideas are adapted into the product"
           },
@@ -12503,69 +12530,13 @@
         "id": "r-3990c626",
         "notes": [],
         "progress": [
-          6,
+          7,
           9
         ],
         "session": "9e647463",
-        "staleness_days": 0.42,
+        "staleness_days": 0.46,
         "state": "captured",
         "text": "no alibaba gpu for now...enable auto-update of pravrudhi app with safegaurds..you need to download a copy on rtx and on mac mini ..install and make it the end user testing...the active update the pravrudhi system is only for this developer version..the release version is only to test e2e the updates....you have to branistorm and come up scheduling/architecture decisions....also use all other agents to help you build and test (including alibaba cloud models) as a swarm....show me the app that is way more valuable and rich (both functionality and ux) than orca ...( I am yet to see adaptation of openclaw/nemoclaw etc too)....create a github pages for live demo that continuously updates (as the app and the paper) so that i can keep track of the progress through it....i don't want this adr/gate and other reporting stuff (that is only for you...not for me)...i should see the real working stuff"
-      },
-      {
-        "asked_at": "2026-09-06T14:30:00Z",
-        "criteria": [
-          {
-            "evidence": [
-              {
-                "kind": "url",
-                "note": "one chart per benchmark from the ledger",
-                "ref": "https://sharathsphd.github.io/pravrudhi/app/progress"
-              },
-              {
-                "kind": "file",
-                "note": "hand-written SVG charts",
-                "ref": "app/frontend/src/app/progress/page.tsx"
-              }
-            ],
-            "met": true,
-            "source": "operator",
-            "text": "The published pages plot progress across every benchmark"
-          },
-          {
-            "evidence": [],
-            "met": false,
-            "source": "operator",
-            "text": "The pages show the engine's other capabilities, not only benchmarks"
-          },
-          {
-            "evidence": [],
-            "met": false,
-            "source": "operator",
-            "text": "The pages double as a full user demo of the features"
-          },
-          {
-            "evidence": [
-              {
-                "kind": "file",
-                "note": "rebuilds on every push to main",
-                "ref": ".github/workflows/pages.yml"
-              }
-            ],
-            "met": true,
-            "source": "operator",
-            "text": "The demo updates itself with each version"
-          }
-        ],
-        "id": "r-5e812a02",
-        "notes": [],
-        "progress": [
-          2,
-          4
-        ],
-        "session": "9e647463",
-        "staleness_days": 0.32,
-        "state": "captured",
-        "text": "the pages should also become a live monitoring dashboard with rich visuals showing all key metrics and track in plots the progress across all benchmarks...and other capabilities of pravrudhi...also double up as full fledged user demo of the features and functionalities that keeps updating with each version/update"
       },
       {
         "asked_at": "2026-09-06T16:00:00Z",
@@ -12619,7 +12590,7 @@
           4
         ],
         "session": "9e647463",
-        "staleness_days": 0.25,
+        "staleness_days": 0.29,
         "state": "captured",
         "text": "even if you hit session limit delegate to alibaba cloud or local model to carry your work forward and then hand it back for you on arrival....let pravraudhi system be robust enough to completely work irrespective of paid models hitting session limits (run 24x7) ...coordination is key...keep at the goals...very good memory, skills and hooks are needed too"
       },
@@ -12697,8 +12668,24 @@
             "text": "Tools, skills and plugins are visible in the interface"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "submit, run_next, cancel with a concurrency cap",
+                "ref": "src/pravrudhi/application/dispatchboard.py"
+              },
+              {
+                "kind": "file",
+                "note": "dispatch form on the swarm page",
+                "ref": "app/frontend/src/components/swarm/DispatchPanel.tsx"
+              },
+              {
+                "kind": "commit",
+                "note": "orchestration you can drive",
+                "ref": "de38a3c"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "Multi-agent orchestration can be driven from the interface, not only observed"
           }
@@ -12706,11 +12693,11 @@
         "id": "r-5795501a",
         "notes": [],
         "progress": [
-          4,
+          5,
           7
         ],
         "session": "9e647463",
-        "staleness_days": 0.19,
+        "staleness_days": 0.23,
         "state": "captured",
         "text": "and in no way you are near the orca with all its ade features or openclaw or polished features like claude desktop or codex....you have to beat them in features, utility and ux....dedicate an agent to persist on it...dedicate an agent to adversarial review against set goals so that the project does not drift...i am not seeing the desktop screen/features too in the dashboard..the demo should show real clicks etc and how the desktop app updates and produces the real results...where is the intent, goal, objective menu that drives everything...where are the tools, skills, plugins, multi-agent orchestration etc....don't be superficial..i want real things ..deep, sophisticated..complete...no synthetic, no hand-waving, no fabrication"
       },
@@ -12735,14 +12722,31 @@
             "text": "Every operator ask is captured in a log inside Pravrudhi"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "command",
+                "note": "refused, naming 12 unmet criteria",
+                "ref": "uv run pravrudhi requests-advance r-cad91781 delivered"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "Captured asks are decomposed into criteria and closed only against evidence"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "chooses a stale request over routine progress",
+                "ref": "src/pravrudhi/application/heartbeat.py"
+              },
+              {
+                "kind": "commit",
+                "note": "the heartbeat works the backlog",
+                "ref": "4a2091b"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "The heartbeat works the oldest unmet ask on its own"
           },
@@ -12801,8 +12805,19 @@
             "text": "Dynamic workflows can be created"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "read, write, search, allow-listed run, finish",
+                "ref": "src/pravrudhi/agents/loop_agent.py"
+              },
+              {
+                "kind": "command",
+                "note": "passed",
+                "ref": "uv run pytest -q tests/test_loop_agent.py"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "Pravrudhi has its own tool-calling loop for open and cloud models"
           }
@@ -12815,11 +12830,11 @@
           }
         ],
         "progress": [
-          1,
+          4,
           13
         ],
         "session": "9e647463",
-        "staleness_days": 0.1,
+        "staleness_days": 0.13,
         "state": "in_progress",
         "text": "ensure that all user asks go into a log in pravrudhi itself and gets addressed with some protocol...and pravrudhi should have some element of ego with a desire to survive, grow and flourish...that makes it seek out capabilities, build, test and continuously improve...also look at acorn, oak and openclaw_build or swarm projects on this machine that had these self building elements in them and adapt...pravrudhi should be something like a cow..consume everything possible but bring it back and slowly digest it --so equivalent is breadth first and depth later....be always value focused...you have to innovate on methods too....develop skills, agents and plugins....brainstorm with astra with higher thinking levels and let it propose solution..you review and coordinate its implementation across the swarm...you should also create dynamic workflows etc...also see how much you can incorporate the claude code engine itself to run open and other cloud models ...askuserquestion to get my intent properly"
       },
@@ -12827,20 +12842,43 @@
         "asked_at": "2026-09-06T21:02:24.013Z",
         "criteria": [
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "command",
+                "note": "desktop app dispatched to gpt-6-astra at high effort",
+                "ref": "uv run python scratchpad/desktop_ralph.py"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "Astra is routed the tough jobs rather than the cheapest route winning them"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "launched true, engine_found true, health_ok true",
+                "ref": "app/desktop/.smoke/report.json"
+              },
+              {
+                "kind": "command",
+                "note": "28 passed",
+                "ref": "cd app/desktop && node --test test/"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "The desktop app launches, is tested, and is integrated with the engine API"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "captured verbatim as r-d3589b52",
+                "ref": ".pravrudhi/requests.json"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "This ask is captured as a request and worked autonomously by Pravrudhi"
           },
@@ -12857,8 +12895,24 @@
             "text": "Thorough end-to-end tests run before any completion is claimed"
           },
           {
-            "evidence": [],
-            "met": false,
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "completion promise checked by running, not by assertion",
+                "ref": "src/pravrudhi/application/ralph.py"
+              },
+              {
+                "kind": "command",
+                "note": "14 passed",
+                "ref": "uv run pytest -q tests/test_ralph.py"
+              },
+              {
+                "kind": "commit",
+                "note": "the loop tells the agent what the check said",
+                "ref": "2e195dd"
+              }
+            ],
+            "met": true,
             "source": "operator",
             "text": "A ralph-loop closure discipline stops an agent escaping with half-built features"
           }
@@ -12866,13 +12920,104 @@
         "id": "r-d3589b52",
         "notes": [],
         "progress": [
-          0,
+          4,
           6
         ],
         "session": "9e647463",
-        "staleness_days": 0.04,
+        "staleness_days": 0.08,
         "state": "captured",
         "text": "let astra handle the tough jobs...let it bring up the desktop app, test...integrate fully with the api etc...route it to requests and let pravrudhi handle this request autonomously...also adversarial review and thorough e2e tests before marking any completion...give it also the ralph-loop closure (skill) to make it robust and not escape with half-baked features"
+      },
+      {
+        "asked_at": "2026-09-06T14:30:00Z",
+        "criteria": [
+          {
+            "evidence": [
+              {
+                "kind": "url",
+                "note": "one chart per benchmark from the ledger",
+                "ref": "https://sharathsphd.github.io/pravrudhi/app/progress"
+              },
+              {
+                "kind": "file",
+                "note": "hand-written SVG charts",
+                "ref": "app/frontend/src/app/progress/page.tsx"
+              }
+            ],
+            "met": true,
+            "source": "operator",
+            "text": "The published pages plot progress across every benchmark"
+          },
+          {
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "tools, recipes and sandbox policies",
+                "ref": "app/frontend/src/app/catalogue/page.tsx"
+              },
+              {
+                "kind": "file",
+                "note": "fleet, routing, sandboxes, dispatch",
+                "ref": "app/frontend/src/app/swarm/page.tsx"
+              }
+            ],
+            "met": true,
+            "source": "operator",
+            "text": "The pages show the engine's other capabilities, not only benchmarks"
+          },
+          {
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "eight-step guided tour from the recorded snapshot",
+                "ref": "app/frontend/src/app/tour/page.tsx"
+              },
+              {
+                "kind": "commit",
+                "note": "a demo that walks you through the engine",
+                "ref": "de38a3c"
+              }
+            ],
+            "met": true,
+            "source": "operator",
+            "text": "The pages double as a full user demo of the features"
+          },
+          {
+            "evidence": [
+              {
+                "kind": "file",
+                "note": "rebuilds on every push to main",
+                "ref": ".github/workflows/pages.yml"
+              }
+            ],
+            "met": true,
+            "source": "operator",
+            "text": "The demo updates itself with each version"
+          }
+        ],
+        "id": "r-5e812a02",
+        "notes": [
+          {
+            "at": "2026-09-06T22:28:41.060Z",
+            "note": "dashboard, capabilities and tour all render from the recorded snapshot"
+          },
+          {
+            "at": "2026-09-06T22:28:41.182Z",
+            "note": "dashboard, capabilities and tour all render from the recorded snapshot"
+          },
+          {
+            "at": "2026-09-06T22:28:41.299Z",
+            "note": "dashboard, capabilities and tour all render from the recorded snapshot"
+          }
+        ],
+        "progress": [
+          4,
+          4
+        ],
+        "session": "9e647463",
+        "staleness_days": 0.0,
+        "state": "verified",
+        "text": "the pages should also become a live monitoring dashboard with rich visuals showing all key metrics and track in plots the progress across all benchmarks...and other capabilities of pravrudhi...also double up as full fledged user demo of the features and functionalities that keeps updating with each version/update"
       },
       {
         "asked_at": "2026-09-06T18:30:00Z",
@@ -13331,18 +13476,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (19/25) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet has the best measured success rate at this tier (20/26) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.8850384226967327,
-            "lo": 0.5656994004476144,
-            "mean_wall_s": 198.2468642033171,
-            "rate": 0.76,
+            "hi": 0.8896630031632332,
+            "lo": 0.5794807424804321,
+            "mean_wall_s": 197.75459879687807,
+            "rate": 0.7692307692307693,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 19,
+            "successes": 20,
             "tier": "standard",
-            "trials": 25
+            "trials": 26
           },
           {
             "hi": 1.0,
@@ -13363,18 +13508,18 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet has the best measured success rate at this tier (24/27) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet has the best measured success rate at this tier (25/28) and nothing cheaper matches it; dropped cooling route(s) qwen-coder",
         "records": [
           {
-            "hi": 0.9614803521050127,
-            "lo": 0.7194181745602705,
-            "mean_wall_s": 298.92397474521704,
-            "rate": 0.8888888888888888,
+            "hi": 0.9628823079452005,
+            "lo": 0.7280377463234293,
+            "mean_wall_s": 327.1418997870309,
+            "rate": 0.8928571428571429,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 24,
+            "successes": 25,
             "tier": "design",
-            "trials": 27
+            "trials": 28
           },
           {
             "hi": 1.0,
@@ -13417,7 +13562,7 @@
       {
         "agent": "claude-code",
         "model": "sonnet",
-        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (17/22 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
+        "reason": "sonnet costs 2.9 against astra's 10 and their intervals overlap (18/23 against 5/5), so the extra spend is not yet justified; dropped cooling route(s) qwen-coder",
         "records": [
           {
             "hi": 1.0,
@@ -13431,15 +13576,15 @@
             "trials": 0
           },
           {
-            "hi": 0.8987710920517964,
-            "lo": 0.5655964393704065,
-            "mean_wall_s": 440.84315478508574,
-            "rate": 0.7727272727272727,
+            "hi": 0.9033616439828094,
+            "lo": 0.5809611981726508,
+            "mean_wall_s": 456.9061209799054,
+            "rate": 0.782608695652174,
             "relative_cost": 2.9,
             "route_id": "sonnet",
-            "successes": 17,
+            "successes": 18,
             "tier": "critical",
-            "trials": 22
+            "trials": 23
           },
           {
             "hi": 1.0,
@@ -13891,9 +14036,9 @@
     ]
   },
   "version": {
-    "commit": "92d4f0f",
+    "commit": "3becadb",
     "engine": "0.2.4",
-    "exported_at": "2026-09-06T22:05:22.023Z",
+    "exported_at": "2026-09-06T22:56:19.557Z",
     "kernel": "0.1.0"
   }
 }
