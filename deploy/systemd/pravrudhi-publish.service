@@ -1,0 +1,12 @@
+# Refresh what the operator can see. Export the snapshot, build, verify the pages carry content, commit, push;
+# GitHub Pages and Vercel both rebuild on that push. Refuses at the first failing step rather than publishing a
+# page that answers 200 and renders an error.
+[Unit]
+Description=Pravrudhi publish
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/.venv/bin/python -m pravrudhi publish --root @ROOT@ --json
+TimeoutStartSec=2400

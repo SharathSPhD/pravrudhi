@@ -607,6 +607,36 @@ def heartbeat_cmd(
         _time.sleep(load_config(root).interval_min * 60)
 
 
+PUBLISH_MSG_OPT = typer.Option(
+    "Refresh the recorded snapshot so the published pages show what the engine has done",
+    "--message", "-m", help="commit message for the snapshot refresh",
+)
+
+
+@app.command("publish")
+def publish_cmd(
+    root: Path = ROOT_OPT,
+    message: str = PUBLISH_MSG_OPT,
+    no_push: bool = typer.Option(False, "--no-push", help="build and commit, but do not push"),
+    as_json: bool = typer.Option(False, "--json"),
+) -> None:
+    """Export the snapshot, build the interface, check the pages carry content, commit and push.
+
+    Refuses at the first step that fails rather than publishing a page that answers 200 and shows an error.
+    """
+    from pravrudhi.application.publish import publish
+
+    result = publish(root, message=message, do_push=not no_push)
+    if as_json:
+        typer.echo(json.dumps(result.to_dict(), sort_keys=True))
+    else:
+        for step in result.steps:
+            typer.echo(f"{'ok  ' if step.ok else 'FAIL'} {step.name:<8} {step.detail}")
+        typer.echo(result.reason)
+    if not result.published:
+        raise typer.Exit(1)
+
+
 @app.command("demo-export")
 def demo_export_cmd(
     root: Path = ROOT_OPT,

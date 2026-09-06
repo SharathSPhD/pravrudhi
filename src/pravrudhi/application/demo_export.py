@@ -144,6 +144,38 @@ def _strip_paths(value: Any, root: Path) -> Any:
     return value
 
 
+def _requests(root: Path) -> dict[str, Any]:
+    """The operator's own asks and how far each has got.
+
+    The pages shipped before the snapshot carried their data, so every one of them rendered "this recording
+    predates..." on the public site while working perfectly against a live engine. A page is not delivered until
+    the recording feeds it.
+    """
+    from pravrudhi.application.requests import backlog
+
+    return backlog(root)
+
+
+def _inbox(root: Path) -> list[dict[str, Any]]:
+    from pravrudhi.application.night import inbox_listing
+
+    return inbox_listing(root)
+
+
+def _candidates(root: Path, st: Any) -> list[dict[str, Any]]:
+    return [{"id": cid, "badge": st.badges[cid], **c.model_dump()} for cid, c in st.candidates.items()]
+
+
+def _observations(ledger: Path) -> list[dict[str, Any]]:
+    """The `observe` rows the candidates page places on a night axis. Capped, newest kept."""
+    rows = [
+        {"seq": ev.seq, "night": ev.night, "candidate_id": ev.candidate_id,
+         "payload": {"delta_in": (ev.payload or {}).get("delta_in")}}
+        for ev in iter_events(ledger) if ev.kind == "observe"
+    ]
+    return rows[-2000:]
+
+
 def _heartbeat(root: Path) -> list[dict[str, Any]]:
     """The last beats, newest first. The public page shows the engine working on its own, not only when driven."""
     from pravrudhi.application.heartbeat import history
@@ -209,6 +241,10 @@ def build_demo(root: Path) -> dict[str, Any]:
         "recipes": availability(),
         "swarm": _swarm(root),
         "heartbeat": _heartbeat(root),
+        "requests": _requests(root),
+        "inbox": _inbox(root),
+        "candidates": _candidates(root, st),
+        "observations": _observations(ledger),
         "plans": {
             o.id: {
                 "objective": o.id,
