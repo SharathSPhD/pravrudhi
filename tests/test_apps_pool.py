@@ -137,3 +137,14 @@ def test_scorer_is_selected_by_the_pools_bench_name(tmp_path: Path) -> None:
     assert scorer.exists()
     assert needs_pool is True
     assert SCORERS["mbppplus"] == ("score_code.py", False)
+
+
+def test_the_jsonl_export_keys_its_id_as_id_not_problem_id(tmp_path: Path) -> None:
+    """The parquet conversion names it `problem_id`; the JSONL the dataset ships names it `id`, and sealing read
+    only the first, so the real download failed with a KeyError."""
+    from pravrudhi.application.pool_admin import _apps_task_id
+
+    assert _apps_task_id({"problem_id": 7}) == "7"
+    assert _apps_task_id({"id": 9}) == "9"
+    assert _apps_task_id({"problem_id": 1, "id": 2}) == "1", "the parquet name wins when both are present"
+    assert _apps_task_id({"question": "no id at all"}) is None

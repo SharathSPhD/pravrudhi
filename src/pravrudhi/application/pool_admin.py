@@ -105,6 +105,16 @@ def _apps_rows(source: Path) -> list[dict[str, Any]]:
     return [json.loads(line) for line in source.read_text().splitlines() if line.strip()]
 
 
+def _apps_task_id(row: dict[str, Any]) -> str | None:
+    """APPS identifies a problem as `problem_id` in the parquet conversion and as `id` in the JSONL export the
+    dataset actually ships. Sealing read only the first and died on the file a fetch produces."""
+    for key in ("problem_id", "id"):
+        value = row.get(key)
+        if value is not None:
+            return str(value)
+    return None
+
+
 def _apps_io(problem: Mapping[str, Any]) -> tuple[list[str], list[str]] | None:
     """The stdin/stdout pairs of one APPS problem, or None when it cannot be posed as `solve(stdin) -> str`.
 
@@ -163,7 +173,10 @@ def seal_apps(
         io = _apps_io(pr)
         if io is None:
             continue
-        eligible.append((idx, str(pr["problem_id"]), str(pr["question"]), io[0], io[1]))
+        task_id = _apps_task_id(pr)
+        if task_id is None:
+            continue
+        eligible.append((idx, task_id, str(pr["question"]), io[0], io[1]))
     if len(eligible) < count:
         raise ValueError(f"{source}: {len(eligible)} eligible APPS problems < requested count {count}")
     drawn = sorted(sorted(eligible, key=lambda e: _draw_key(seed, e[1]))[:count])
