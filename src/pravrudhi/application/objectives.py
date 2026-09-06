@@ -25,7 +25,9 @@ from typing import Any
 
 import yaml
 
+from pravrudhi.application.discordance import discordance
 from pravrudhi.application.external import _headline, external_rows
+from pravrudhi_kernel.stats import wilson_ci
 
 PACKAGED_OBJECTIVES = Path(__file__).resolve().parents[1] / "assets" / "objectives"
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
@@ -100,11 +102,16 @@ class Progress:
     delta_hi: float | None = None
     target_delta: float | None = None
     met: bool | None = None
+    paired: bool = False
+    wins: int | None = None
+    losses: int | None = None
+    p_mcnemar: float | None = None
 
     @property
     def significant(self) -> bool:
         """True only when the interval excludes zero. A delta whose interval spans zero is not an improvement and
-        this module never calls it one."""
+        this module never calls it one. When `paired` is True, `delta_lo`/`delta_hi` already hold the paired
+        interval, so this check needs no branch of its own for the paired case."""
         if self.delta_lo is None or self.delta_hi is None:
             return False
         return self.delta_lo > 0.0 or self.delta_hi < 0.0
@@ -224,16 +231,36 @@ def _measure(row: dict[str, Any]) -> tuple[str, Measurement]:
     )
 
 
+def _paired_stats(
+    base_items: dict[str, int], latest_items: dict[str, int]
+) -> tuple[float, float, float, int, int, float]:
+    """A Wilson-style interval for the paired delta, derived from wins/losses over the discordant pairs alone.
+
+    `discordance()` gives wins, losses and delta = (wins-losses)/n over the *full* shared set, plus an exact
+    McNemar p-value — but no interval for delta itself. Model each discordant pair as an independent Bernoulli
+    trial that lands a win with probability p; `wilson_ci` gives the interval for p from wins/(wins+losses). Since
+    delta = (wins+losses)/n * (2p - 1) is monotone increasing in p, the endpoints of the p-interval carry straight
+    over to delta by that same transform.
+    """
+    d = discordance(base_items, latest_items)
+    total = d.wins + d.losses
+    if total == 0 or d.n == 0:
+        return 0.0, 0.0, 0.0, d.wins, d.losses, d.p_mcnemar
+    lo_p, hi_p = wilson_ci(d.wins, total)
+    scale = total / d.n
+    return d.delta, scale * (2 * lo_p - 1), scale * (2 * hi_p - 1), d.wins, d.losses, d.p_mcnemar
+
+
 def progress(obj: Objective, ledger: Path) -> list[Progress]:
     """Recompute this objective's standing from the ledger. Nothing here is cached or stored."""
     rows = [r for r in external_rows(ledger) if r.get("track") == obj.track]
-    measured: dict[str, dict[str, list[Measurement]]] = {}
+    measured: dict[str, dict[str, list[tuple[Measurement, dict[str, Any]]]]] = {}
     for r in rows:
         try:
             name, m = _measure(r)
         except (KeyError, StopIteration, ZeroDivisionError):
             continue
-        measured.setdefault(name, {}).setdefault(str(r.get("condition") or ""), []).append(m)
+        measured.setdefault(name, {}).setdefault(str(r.get("condition") or ""), []).append((m, r))
 
     out: list[Progress] = []
     for b in obj.benchmarks:
@@ -252,7 +279,7 @@ def progress(obj: Objective, ledger: Path) -> list[Progress]:
         # re-measurement of the baseline, not a candidate. Counting a replication as a candidate would report the
         # noise floor as an effect, which is exactly the error the noise-floor study exists to prevent.
         bases = conds.get("base") or []
-        others = [m for c, ms in conds.items() if not (c == "base" or c.startswith("base-")) for m in ms]
+        others = [mr for c, ms in conds.items() if not (c == "base" or c.startswith("base-")) for mr in ms]
         if not bases:
             out.append(
                 Progress(
@@ -264,7 +291,7 @@ def progress(obj: Objective, ledger: Path) -> list[Progress]:
                 )
             )
             continue
-        base = max(bases, key=lambda m: m.seq)
+        base, base_row = max(bases, key=lambda mr: mr[0].seq)
         if not others:
             out.append(
                 Progress(
@@ -276,10 +303,19 @@ def progress(obj: Objective, ledger: Path) -> list[Progress]:
                 )
             )
             continue
-        latest = max(others, key=lambda m: m.seq)
-        delta = latest.value - base.value
-        half = 1.96 * ((latest.stderr**2 + base.stderr**2) ** 0.5)
-        lo, hi = delta - half, delta + half
+        latest, latest_row = max(others, key=lambda mr: mr[0].seq)
+        base_items: dict[str, int] = base_row.get("items") or {}
+        latest_items: dict[str, int] = latest_row.get("items") or {}
+        paired = bool(set(base_items) & set(latest_items))
+        wins: int | None = None
+        losses: int | None = None
+        p_mcnemar: float | None = None
+        if paired:
+            delta, lo, hi, wins, losses, p_mcnemar = _paired_stats(base_items, latest_items)
+        else:
+            delta = latest.value - base.value
+            half = 1.96 * ((latest.stderr**2 + base.stderr**2) ** 0.5)
+            lo, hi = delta - half, delta + half
         met: bool | None = None
         if obj.target_delta is not None:
             reached = delta >= obj.target_delta if b.direction == "up" else delta <= obj.target_delta
@@ -296,6 +332,10 @@ def progress(obj: Objective, ledger: Path) -> list[Progress]:
                 delta_hi=hi,
                 target_delta=obj.target_delta,
                 met=met,
+                paired=paired,
+                wins=wins,
+                losses=losses,
+                p_mcnemar=p_mcnemar,
             )
         )
     return out

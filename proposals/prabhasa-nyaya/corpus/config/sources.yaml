@@ -1,0 +1,71 @@
+# Source provenance configuration for the Prabhasa-Nyaya corpus proposal.
+#
+# Every value under target_counts is a PROPOSED quantity for the first corpus
+# slice, not a measured or committed number. See README.md "Corpus size" for
+# the reasoning behind each figure.
+
+target_counts:
+  central_acts: 300
+  supreme_court_judgments: 3000
+  high_court_judgments: 3000
+  law_commission_reports: 50
+  # Sum ~= 6350, inside the proposed 6,000-8,000 document range.
+
+sources:
+  india_code:
+    description: "Official Central Acts repository, Legislative Dept, Ministry of Law and Justice"
+    base_url: "https://www.indiacode.nic.in"
+    authority_kind: statute
+    license_note: "Government of India public work; reproduction permitted with source acknowledgement"
+    fetch_method: http_html
+    rate_limit_per_minute: 20
+
+  supreme_court_of_india:
+    description: "Supreme Court of India official judgment archive"
+    base_url: "https://main.sci.gov.in"
+    authority_kind: judgment
+    court_level: supreme_court
+    license_note: "Government of India public work; judgments are public record"
+    fetch_method: http_html
+    rate_limit_per_minute: 10
+
+  ecourts_high_courts:
+    description: "eCourts India per-state High Court judgment portals"
+    base_url: "https://judgments.ecourts.gov.in"
+    authority_kind: judgment
+    court_level: high_court
+    license_note: "Government of India public work; judgments are public record"
+    fetch_method: http_html
+    rate_limit_per_minute: 10
+    # One entry per state HC would be added here as curation scope expands;
+    # left as a single aggregate entry for this first-slice proposal.
+
+  law_commission_of_india:
+    description: "Law Commission of India official reports archive"
+    base_url: "https://lawcommissionofindia.nic.in"
+    authority_kind: report
+    license_note: "Government of India public work"
+    fetch_method: http_pdf
+    rate_limit_per_minute: 10
+
+  indian_kanoon:
+    description: "Fallback mirror ONLY - never the recorded authority for a document"
+    base_url: "https://indiakanoon.org"
+    authority_kind: mirror
+    license_note: "Bulk scraping restricted by site terms; use only as single-document fallback"
+    fetch_method: http_html
+    rate_limit_per_minute: 3
+    rate_limit_notice: >
+      Indian Kanoon's terms of use prohibit systematic bulk scraping. This
+      source must only be used to re-fetch an individual document that the
+      official portal (india_code / supreme_court_of_india / ecourts_high_courts)
+      failed to serve, capped at a small fraction of total documents, and every
+      such use is flagged mirror_used: true in the manifest with the official
+      source still named as court_or_authority.
+
+holdout:
+  # Proposed cutoff: 18 months before corpus build date. Recomputed at build
+  # time by split_holdout.py from --build-date (defaults to today).
+  temporal_cutoff_months_before_build: 18
+  stratified_holdout_fraction: 0.10
+  stratified_seed: 20260906

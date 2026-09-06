@@ -1,0 +1,9 @@
+{
+  "_note": "FABRICATED EXAMPLE — only for exercising scripts/evaluate.py. Not a real objective record.",
+  "objective_id": "prabhasa-nyaya",
+  "uncertainty_rule": {
+    "hard_constraint_metrics": ["false_citation_rate"],
+    "confidence_level": 0.95,
+    "min_sample_count": 200
+  }
+}

@@ -1,0 +1,37 @@
+# Proposed defaults for the `retrieval` recipe. Nothing in this file is a
+# measured result; every value is a starting point to tune against a real
+# held-out set (see ../README.md, section "Unspecified quantity: retrieval_count").
+
+# Total number of graph nodes returned per query in a retrieval_candidate,
+# before the abstention check. Proposed: 8 (see README rationale).
+retrieval_count: 8
+
+# Split of retrieval_count between the two signals that get fused.
+dense_top_k: 5
+graph_expansion_top_k: 3
+
+# Typed graph traversal: how many edge hops beyond the dense hits to expand,
+# and which edge types are allowed to be followed during expansion.
+max_hops: 2
+expansion_edge_types:
+  - cites
+  - supports
+  - applies_to
+
+# Reciprocal rank fusion constant (standard default from the RRF literature,
+# chosen here because it needs no score calibration between dense cosine
+# similarity and graph hop-distance).
+rrf_k: 60
+
+# If the top fused score for a query is below this, retrieval emits
+# abstain: true with an empty citation list instead of padding to
+# retrieval_count with weak matches. Proposed starting point, not measured.
+min_support_score: 0.35
+
+# Node types eligible to be cited as a final source identifier. Reasoning-step
+# nodes (Pratijna/Hetu/Udaharana/Upanaya/Nigamana) can be *used* during
+# traversal but a retrieval_candidate's citations should resolve to an actual
+# source, not an intermediate inference step.
+citable_node_types:
+  - Statute
+  - Precedent

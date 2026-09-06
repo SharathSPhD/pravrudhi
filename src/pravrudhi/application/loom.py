@@ -12,6 +12,7 @@ the kernel; it is pure text in, typed tree out, and typed tree in, text out.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from pravrudhi.application.intent import IntentPlanProposal, IntentStepProposal
@@ -259,7 +260,9 @@ class LoomProgram:
 # Parser -- recursive descent over GRAMMAR.md's EBNF, no more.
 # ---------------------------------------------------------------------------
 
-_TYPE_KEYWORDS = frozenset({"target", "corpus", "tokenizer", "model", "evalset", "unit"})
+_TYPE_KEYWORDS = frozenset(
+    {"target", "corpus", "tokenizer", "model", "evalset", "unit", "feature", "circuit", "monitor", "control"}
+)
 _CMP_OPS = frozenset({"<", ">", "<=", ">=", "=="})
 
 
@@ -594,3 +597,174 @@ def to_plan_steps(program: LoomProgram) -> tuple[str, ...]:
             continue
         capabilities.append(capability)
     return tuple(capabilities)
+
+
+# ---------------------------------------------------------------------------
+# Interpretation terms -- feature/monitor/control decls (LANGUAGE.md's interpretability layer) and their gates.
+# Nothing here executes a probe or a steering vector; it only reads and writes the terms as Loom source.
+# ---------------------------------------------------------------------------
+
+_CONTROL_VERBS = frozenset({"install", "amplify", "suppress"})
+_MONITOR_PROBE_MEMBER = "probe_r2"
+
+
+@dataclass(frozen=True)
+class FeatureSpec:
+    """A named direction in activation space -- declared once, referenced by monitors and controls."""
+
+    name: str
+
+
+@dataclass(frozen=True)
+class GateSpec:
+    """One `assert metric(subject) op threshold;` constraining a control, recovered or about to be rendered."""
+
+    metric: str
+    op: str
+    threshold: float | None
+
+
+@dataclass(frozen=True)
+class MonitorSpec:
+    """A `read` on `feature`, gated by a single threshold on its `.probe_r2` member -- or left unspecified."""
+
+    name: str
+    feature: str
+    threshold: float | None
+
+
+@dataclass(frozen=True)
+class ControlSpec:
+    """An install/amplify/suppress applied to `feature` at `strength`, gated by zero or more metric asserts."""
+
+    name: str
+    feature: str
+    kind: str
+    strength: float | None
+    gates: tuple[GateSpec, ...]
+
+
+InterpretationSpec = FeatureSpec | MonitorSpec | ControlSpec
+
+
+def _chain_tail(expr: Expr) -> str:
+    """A feature reference used to be assumed a bare ident; `std.features.x` silently produced the wrong name."""
+    if isinstance(expr, Ident):
+        return expr.name
+    if isinstance(expr, Member):
+        return expr.name
+    raise ParseError("expected a feature reference (identifier or member path)", expr.line, expr.col)
+
+
+def _monitor_threshold(program: LoomProgram, monitor_name: str) -> float | None:
+    for stmt in program.stmts:
+        if not isinstance(stmt, Assert):
+            continue
+        left = stmt.left
+        if (
+            isinstance(left, Member)
+            and left.name == _MONITOR_PROBE_MEMBER
+            and isinstance(left.target, Ident)
+            and left.target.name == monitor_name
+            and isinstance(stmt.right, NumberLit)
+        ):
+            return stmt.right.value
+    return None
+
+
+def _control_gates(program: LoomProgram, control_name: str) -> tuple[GateSpec, ...]:
+    gates: list[GateSpec] = []
+    for stmt in program.stmts:
+        if not isinstance(stmt, Assert):
+            continue
+        left = stmt.left
+        if not (isinstance(left, Call) and isinstance(left.callee, Ident)):
+            continue
+        if not any(isinstance(arg.value, Ident) and arg.value.name == control_name for arg in left.args):
+            continue
+        threshold = stmt.right.value if isinstance(stmt.right, NumberLit) else None
+        gates.append(GateSpec(left.callee.name, stmt.op, threshold))
+    return tuple(gates)
+
+
+def interpretation_terms(program: LoomProgram) -> tuple[InterpretationSpec, ...]:
+    """The declared `feature`/`monitor`/`control` terms in `program`, each with the gates that constrain it.
+
+    A `monitor`'s gate is the single `assert <name>.probe_r2 op threshold;` that follows it, or unspecified if
+    none was written. A `control`'s gates are every `assert <metric>(<name>) op threshold;` naming it. Neither
+    search invents a number: a term with no matching assert carries `threshold=None` or `gates=()`.
+    """
+    terms: list[InterpretationSpec] = []
+    for stmt in program.stmts:
+        if not isinstance(stmt, Decl):
+            continue
+        if stmt.type_ == "feature":
+            terms.append(FeatureSpec(stmt.name))
+        elif stmt.type_ == "monitor":
+            if not (isinstance(stmt.value, Call) and isinstance(stmt.value.callee, Ident) and stmt.value.args):
+                raise ParseError(f"monitor {stmt.name!r} must read a feature", stmt.line, stmt.col)
+            if stmt.value.callee.name != "read":
+                raise ParseError(f"monitor {stmt.name!r} must be defined by read(...)", stmt.line, stmt.col)
+            feature = _chain_tail(stmt.value.args[0].value)
+            terms.append(MonitorSpec(stmt.name, feature, _monitor_threshold(program, stmt.name)))
+        elif stmt.type_ == "control":
+            if not (isinstance(stmt.value, Call) and isinstance(stmt.value.callee, Ident) and stmt.value.args):
+                raise ParseError(f"control {stmt.name!r} must apply a verb to a feature", stmt.line, stmt.col)
+            kind = stmt.value.callee.name
+            if kind not in _CONTROL_VERBS:
+                raise ParseError(f"unknown control verb {kind!r}", stmt.line, stmt.col)
+            feature = _chain_tail(stmt.value.args[0].value)
+            strength: float | None = None
+            if stmt.value.block is not None:
+                for assign in stmt.value.block.assigns:
+                    if assign.name == "strength" and isinstance(assign.value, NumberLit):
+                        strength = assign.value.value
+            terms.append(ControlSpec(stmt.name, feature, kind, strength, _control_gates(program, stmt.name)))
+    return tuple(terms)
+
+
+def _lower_feature(spec: FeatureSpec) -> list[str]:
+    return [f"feature {spec.name} = std.features.{spec.name};"]
+
+
+def _lower_monitor(spec: MonitorSpec) -> list[str]:
+    lines = [f"monitor {spec.name} = read(std.features.{spec.feature});"]
+    if spec.threshold is None:
+        lines.append(f"// {spec.name}.{_MONITOR_PROBE_MEMBER} threshold unspecified")
+    else:
+        lines.append(f"assert {spec.name}.{_MONITOR_PROBE_MEMBER} > {spec.threshold};")
+    return lines
+
+
+def _lower_control(spec: ControlSpec) -> list[str]:
+    lines = [f"control {spec.name} = {spec.kind}(std.features.{spec.feature}) {{"]
+    if spec.strength is None:
+        lines.append("    // strength unspecified")
+    else:
+        lines.append(f"    strength = {spec.strength};")
+    lines.append("};")
+    for gate in spec.gates:
+        if gate.threshold is None:
+            lines.append(f"// {gate.metric}({spec.name}) {gate.op} threshold unspecified")
+        else:
+            lines.append(f"assert {gate.metric}({spec.name}) {gate.op} {gate.threshold};")
+    return lines
+
+
+def lower_interpretation(specs: Sequence[InterpretationSpec]) -> str:
+    """Render declared interpretation terms as Loom source. Nothing here executes: no probe or steer ever runs.
+
+    A `FeatureSpec` becomes a `feature` decl; a `MonitorSpec` a `monitor` decl plus its threshold assert; a
+    `ControlSpec` a `control` decl plus one assert per gate. Every threshold or strength a spec leaves as `None`
+    renders as a comment, matching `lower`'s rule that an unresolved number is never guessed at.
+    """
+    lines: list[str] = []
+    for spec in specs:
+        if isinstance(spec, FeatureSpec):
+            lines.extend(_lower_feature(spec))
+        elif isinstance(spec, MonitorSpec):
+            lines.extend(_lower_monitor(spec))
+        else:
+            lines.extend(_lower_control(spec))
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"

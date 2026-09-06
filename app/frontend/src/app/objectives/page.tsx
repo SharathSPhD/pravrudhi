@@ -18,12 +18,19 @@ import {
   Package,
   ChevronRight,
   ChevronDown,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   objectives as fetchObjectives,
   objectivePlan,
+  objectiveLoom,
+  objectiveSubagents,
+  dispatchSubagents,
   recipeLibrary,
   type Plan,
+  type LoomResponse,
+  type SubagentsResponse,
   type BenchmarkProgress,
   type Objective,
   type Recipe,
@@ -235,6 +242,199 @@ function PlanView({ id }: { id: string }) {
   );
 }
 
+function LoomView({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const [loom, setLoom] = useState<LoomResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open || loom) return;
+    objectiveLoom(id)
+      .then(setLoom)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [open, loom, id]);
+
+  const copy = () => {
+    if (!loom || !navigator.clipboard) return;
+    navigator.clipboard.writeText(loom.source).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text)]"
+      >
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        The plan as Loom
+      </button>
+
+      {open && (
+        <div className="mt-3">
+          <p className="mb-3 text-[11px] leading-4 text-[var(--color-text-dim)]">
+            A proposed program, compiled from the plan above. Nothing below has run.
+          </p>
+          {error && <p className="text-xs text-[var(--color-danger)]">{error}</p>}
+          {!loom && !error && <p className="text-xs text-[var(--color-text-dim)]">Loading…</p>}
+          {loom && (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-[var(--color-text-dim)]">source</span>
+                <button
+                  onClick={copy}
+                  disabled={!loom.source}
+                  className="flex items-center gap-1 text-[11px] text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {copied ? <Check size={12} /> : <Copy size={12} />}
+                  {copied ? "copied" : "copy"}
+                </button>
+              </div>
+              <pre className="mt-1 overflow-x-auto rounded border border-[var(--color-border)] bg-[var(--color-bg)] p-3 font-mono text-[11px] leading-5 text-[var(--color-text)]">
+                {loom.source || "(no Loom source for this objective yet)"}
+              </pre>
+              {loom.steps.length > 0 && (
+                <ol className="mt-3 space-y-1.5">
+                  {loom.steps.map((s, i) => (
+                    <li key={s.id} className="flex gap-2 text-[11px] leading-4 text-[var(--color-text-dim)]">
+                      <span className="w-4 shrink-0 text-right font-mono">{i + 1}</span>
+                      <span className="shrink-0 font-mono text-[var(--color-text)]">{s.id}</span>
+                      <span>{s.text}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubagentsView({ id }: { id: string }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<SubagentsResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dispatching, setDispatching] = useState(false);
+
+  useEffect(() => {
+    if (!open || data) return;
+    objectiveSubagents(id)
+      .then(setData)
+      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  }, [open, data, id]);
+
+  const dispatch = async () => {
+    setDispatching(true);
+    setError(null);
+    try {
+      setData(await dispatchSubagents(id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDispatching(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-[var(--color-text-dim)] transition-colors hover:text-[var(--color-text)]"
+      >
+        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        Subagent routing
+      </button>
+
+      {open && (
+        <div className="mt-3">
+          <p className="mb-3 text-[11px] leading-4 text-[var(--color-text-dim)]">
+            A proposed routing of steps to subagents. Nothing below has run until Dispatch is used, and dispatch is
+            recorded as a run like any other.
+          </p>
+          {error && <p className="text-xs text-[var(--color-danger)]">{error}</p>}
+          {!data && !error && <p className="text-xs text-[var(--color-text-dim)]">Loading…</p>}
+          {data && (
+            <>
+              {data.preview.length === 0 && (
+                <p className="text-xs text-[var(--color-text-dim)]">No subagent routing proposed for this objective.</p>
+              )}
+              {data.preview.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[11px]">
+                    <thead>
+                      <tr className="text-[var(--color-text-dim)]">
+                        <th className="pb-1 pr-3 font-normal">step</th>
+                        <th className="pb-1 pr-3 font-normal">tier</th>
+                        <th className="pb-1 pr-3 font-normal">agent / model</th>
+                        <th className="pb-1 font-normal">allowed path</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.preview.map((r, i) => (
+                        <tr key={`${r.step}-${i}`} className="border-t border-[var(--color-border)]">
+                          <td className="py-1 pr-3 font-mono text-[var(--color-text)]">{r.step}</td>
+                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.tier}</td>
+                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.agent}</td>
+                          <td className="py-1 font-mono text-[var(--color-text-dim)]">{r.allowed_path}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="mt-3">
+                <button
+                  onClick={dispatch}
+                  disabled={IS_DEMO || dispatching || data.preview.length === 0}
+                  title={
+                    IS_DEMO
+                      ? "This is a recording. Run the engine on your own machine to dispatch subagents."
+                      : undefined
+                  }
+                  className="rounded-md border border-[var(--color-border)] px-3 py-1.5 text-xs text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {dispatching ? "Dispatching…" : "Dispatch"}
+                </button>
+              </div>
+
+              {data.runs.length > 0 && (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left text-[11px]">
+                    <thead>
+                      <tr className="text-[var(--color-text-dim)]">
+                        <th className="pb-1 pr-3 font-normal">step</th>
+                        <th className="pb-1 pr-3 font-normal">route</th>
+                        <th className="pb-1 pr-3 font-normal">accepted</th>
+                        <th className="pb-1 font-normal">wall</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.runs.map((r, i) => (
+                        <tr key={`${r.step}-${i}`} className="border-t border-[var(--color-border)]">
+                          <td className="py-1 pr-3 font-mono text-[var(--color-text)]">{r.step}</td>
+                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.route}</td>
+                          <td className="py-1 pr-3 text-[var(--color-text-dim)]">{r.accepted ? "yes" : "no"}</td>
+                          <td className="py-1 tabular-nums text-[var(--color-text-dim)]">{r.wall}s</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ObjectiveCard({ o }: { o: Objective }) {
   return (
     <article className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
@@ -264,6 +464,8 @@ function ObjectiveCard({ o }: { o: Objective }) {
       )}
 
       <PlanView id={o.id} />
+      <LoomView id={o.id} />
+      <SubagentsView id={o.id} />
 
       {o.recipes.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-1.5">

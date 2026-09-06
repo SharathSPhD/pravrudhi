@@ -114,7 +114,11 @@ def dispatch(agent: Any, task: TaskSpec, *, log: Any = print) -> Verdict:
     run = agent.run(brief, ws, timeout_s=task.timeout_s)
     diff = agent.collect_changes(ws)
     reasons: list[str] = []
-    escaped = sorted(_tree_state(root) - before) if root != ws else []
+    appeared = sorted(_tree_state(root) - before) if root != ws else []
+    # Only a path the task itself owns counts as an escape: that is the observed failure mode (an agent writing
+    # its deliverable into the main checkout). The operator edits main while waves run, and the first form of this
+    # check blamed two agents for files the operator had changed in unrelated modules.
+    escaped = [f for f in appeared if task.owns(f)]
     if escaped:
         # Two agents once wrote their whole deliverable into the main checkout instead of their worktree, because
         # the task quoted absolute paths under it. Their worktrees were empty, so they were recorded as having

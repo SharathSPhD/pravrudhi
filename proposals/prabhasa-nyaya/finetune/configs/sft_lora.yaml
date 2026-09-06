@@ -1,0 +1,63 @@
+# Proposed sft-lora recipe config for the prabhasa-nyaya finetune step.
+# All values here are proposed starting points, not measured or tuned.
+# See ../README.md for the reasoning behind training_steps / compute_budget.
+
+recipe: sft-lora
+
+model:
+  # base_model is supplied by the pipeline; this field documents the expected
+  # shape (a local path or hub id resolvable by transformers.from_pretrained).
+  base_model: "${base_model}"
+  torch_dtype: bfloat16
+  load_in_4bit: false   # flip to true if base_model does not fit at bf16
+                         # on the target GPU; keep dtype bf16 for compute
+
+lora:
+  r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  bias: "none"
+  task_type: "CAUSAL_LM"
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+
+data:
+  prepared_corpus: "${prepared_corpus}"
+  # Each example is a (prompt, completion) pair where prompt embeds a
+  # linearized Nyaya subgraph and completion either cites node ids present
+  # in that subgraph or emits the abstention string. Loss is masked to the
+  # completion span only.
+  max_seq_length: 4096
+  packing: false          # packing would blur graph-context/citation
+                           # boundaries across examples; not worth the
+                           # throughput gain here
+  prompt_loss_weight: 0.0 # mask the prompt (graph context + question) out
+                           # of the loss; train only on the completion
+
+training:
+  # Proposed ceiling, see README "Proposed quantities" for the reasoning.
+  # Treat num_epochs as the primary knob; max_steps is a hard stop so a
+  # much larger prepared_corpus doesn't silently balloon the run.
+  num_epochs: 3
+  max_steps: 1200
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 4   # effective batch size 16
+  learning_rate: 2.0e-4
+  lr_scheduler_type: cosine
+  warmup_ratio: 0.03
+  weight_decay: 0.0
+  save_steps: 200
+  eval_steps: 200
+  logging_steps: 10
+  seed: 42
+
+output:
+  # finetune_candidate: the produced adapter directory
+  output_dir: "${output_dir}"
+  save_adapter_only: true

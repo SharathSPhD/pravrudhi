@@ -1,0 +1,26 @@
+{
+  "_note": "FABRICATED EXAMPLE — only for exercising scripts/evaluate.py. Not a real benchmark declaration.",
+  "benchmarks": [
+    {
+      "name": "statute_lookup",
+      "metrics": [
+        {"name": "citation_accuracy", "direction": "maximize", "target": 0.85},
+        {"name": "false_citation_rate", "direction": "minimize", "target": 0.02}
+      ]
+    },
+    {
+      "name": "precedent_lookup",
+      "metrics": [
+        {"name": "citation_accuracy", "direction": "maximize", "target": 0.80},
+        {"name": "false_citation_rate", "direction": "minimize", "target": 0.02}
+      ]
+    },
+    {
+      "name": "abstention_trap",
+      "metrics": [
+        {"name": "correct_abstention_rate", "direction": "maximize", "target": 0.90},
+        {"name": "false_citation_rate", "direction": "minimize", "target": 0.02}
+      ]
+    }
+  ]
+}

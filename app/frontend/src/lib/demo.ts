@@ -7,6 +7,7 @@
 
 import type {
   AgentStatus,
+  LoomResponse,
   ObjectivesResponse,
   Plan,
   Recipe,
@@ -18,6 +19,7 @@ import type {
   RunEvent,
   RunHandle,
   StatusResponse,
+  SubagentsResponse,
 } from "./api";
 
 export interface DemoRun extends RunHandle {
@@ -40,6 +42,8 @@ export interface DemoBundle {
   objectives?: ObjectivesResponse;
   recipes?: Recipe[];
   plans?: Record<string, Plan>;
+  loom?: Record<string, LoomResponse>;
+  subagents?: Record<string, SubagentsResponse>;
 }
 
 export { IS_DEMO as DEMO } from "./api";

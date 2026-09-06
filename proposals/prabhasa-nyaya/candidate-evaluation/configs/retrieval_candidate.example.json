@@ -1,0 +1,17 @@
+{
+  "_note": "FABRICATED EXAMPLE — invented numbers, only for exercising scripts/evaluate.py. Not a measured result.",
+  "benchmark_results": {
+    "statute_lookup": {
+      "citation_accuracy": {"value": 0.87, "n": 200},
+      "false_citation_rate": {"value": 0.03, "n": 200}
+    },
+    "precedent_lookup": {
+      "citation_accuracy": {"value": 0.80, "n": 200},
+      "false_citation_rate": {"value": 0.05, "n": 200}
+    },
+    "abstention_trap": {
+      "correct_abstention_rate": {"value": 0.91, "n": 200},
+      "false_citation_rate": {"value": 0.02, "n": 200}
+    }
+  }
+}

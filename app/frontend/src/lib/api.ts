@@ -475,3 +475,59 @@ export async function objectivePlan(id: string): Promise<Plan> {
   }
   return getJSON<Plan>(`/api/objectives/${encodeURIComponent(id)}/plan`);
 }
+
+// The plan compiled to Loom source: what the engine would actually run, not just the step outline above.
+
+export interface LoomStep {
+  id: string;
+  text: string;
+}
+
+export interface LoomResponse {
+  objective: string;
+  source: string;
+  steps: LoomStep[];
+}
+
+export async function objectiveLoom(id: string): Promise<LoomResponse> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    return (d.loom ?? {})[id] ?? { objective: id, source: "", steps: [] };
+  }
+  return getJSON<LoomResponse>(`/api/objectives/${encodeURIComponent(id)}/loom`);
+}
+
+// Subagent routing: which step would go to which agent/model at what tier, and inside what worktree path,
+// plus whatever runs have actually been dispatched so far.
+
+export interface SubagentPreviewRow {
+  step: string;
+  tier: string;
+  agent: string;
+  allowed_path: string;
+}
+
+export interface SubagentRunRow {
+  step: string;
+  route: string;
+  accepted: boolean;
+  wall: number;
+}
+
+export interface SubagentsResponse {
+  preview: SubagentPreviewRow[];
+  runs: SubagentRunRow[];
+}
+
+export async function objectiveSubagents(id: string): Promise<SubagentsResponse> {
+  if (IS_DEMO) {
+    const d = await (await import("./demo")).demo();
+    return (d.subagents ?? {})[id] ?? { preview: [], runs: [] };
+  }
+  return getJSON<SubagentsResponse>(`/api/objectives/${encodeURIComponent(id)}/subagents`);
+}
+
+export async function dispatchSubagents(id: string): Promise<SubagentsResponse> {
+  if (IS_DEMO) throw new ApiError(501, `/api/objectives/${id}/subagents/dispatch`);
+  return postJSON<SubagentsResponse>(`/api/objectives/${encodeURIComponent(id)}/subagents/dispatch`, {});
+}

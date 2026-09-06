@@ -1,0 +1,55 @@
+# Proposed RL post-training config -- recipe id: rl-post-training.
+# Every numeric value below is a PROPOSAL, not a measured or tuned result.
+# See README.md "Proposed quantities" for the reasoning behind each one.
+
+model:
+  # Filled in from the `finetune_candidate` artifact at run time; placeholders here.
+  base_model: "${FINETUNE_CANDIDATE_BASE_MODEL}"
+  adapter_path: "${FINETUNE_CANDIDATE_ADAPTER_PATH}"
+  tokenizer_path: "${FINETUNE_CANDIDATE_TOKENIZER_PATH}"
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: ["q_proj", "k_proj", "v_proj", "o_proj"]
+
+algorithm:
+  name: grpo               # group-relative policy optimization (TRL GRPOTrainer)
+  group_size: 8             # rollouts per prompt, i.e. rollout_count per step = group_size * prompts_per_step
+  prompts_per_step: 32
+  rollout_count_per_step: 256   # = group_size * prompts_per_step
+  total_steps: 500          # proposed ceiling; gate actual stop on held_out_eval, not this number
+  learning_rate: 1.0e-5
+  kl_beta: 0.02             # KL penalty toward finetune_candidate, to bound drift from the SFT policy
+  max_new_tokens: 768       # graph trace + citations + answer, per rollout
+
+reward:
+  module: "reward_function"
+  weights:
+    grounding: 1.0
+    trace_validity: 1.0
+    abstention: 1.0
+    task_correctness: 1.0
+    hallucination_penalty: 2.0
+
+data:
+  prepared_corpus_path: "${PREPARED_CORPUS_PATH}"
+  train_split: "train"
+  held_out_split: "held_out"   # must be disjoint from train_split; used only by held_out_eval.py
+
+eval:
+  every_n_steps: 50
+  script: "scripts/held_out_eval.py"
+
+compute_budget:
+  # See README.md for rationale. This is a proposed ceiling, not a
+  # scheduled/reserved allocation.
+  gpu_type: "single RTX 5090 (24h local box)"
+  gpu_hours: 24
+  checkpointing: "save adapter every eval (every_n_steps), keep best-by-held-out"
+
+output:
+  rl_candidate_adapter_dir: "outputs/prabhasa-nyaya-rl/adapter"
+  audit_report_path: "outputs/prabhasa-nyaya-rl/reward_audit.json"
+  held_out_report_path: "outputs/prabhasa-nyaya-rl/held_out_eval.json"

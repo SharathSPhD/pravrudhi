@@ -1,0 +1,40 @@
+# Baseline-evaluation config (proposal).
+#
+# Every value here is a proposed default, not a measured quantity. Fill in
+# base_model and dataset_cache_dir before running; sample_count may be
+# overridden per task.
+
+base_model: "<HF_MODEL_ID_OR_LOCAL_PATH>"  # the base_model this step consumes
+dataset_cache_dir: "<PATH_WITH_ROOM_FOR_DATASETS>"
+seed: 42
+sample_count: 200  # proposed default; see README "Sample count" section for rationale
+
+tools:
+  - name: il_tur
+    enabled: true
+    package: "il-tur"
+    package_version: "<PIN_ME>"
+    tasks:
+      - statute_identification
+      - legal_reasoning_qa
+      - summarization
+
+  - name: ildc_cjpe
+    enabled: true
+    package: "ildc-cjpe-eval"
+    package_version: "<PIN_ME>"
+    tasks:
+      - court_judgment_prediction
+      - explanation_quality
+
+  - name: citation_grounding
+    enabled: true
+    # No external package: this is the first-party scorer in
+    # scripts/citation_grounding_eval.py. Source of questions + reference
+    # citations must be real judgments, never generated.
+    reference_citations_path: "<PATH_TO_REAL_JUDGMENT_CITATION_TABLE>"
+    questions_path: "<PATH_TO_REAL_QUESTION_SET>"
+    abstain_phrases:
+      - "I don't know"
+      - "I cannot find"
+      - "no reliable citation"

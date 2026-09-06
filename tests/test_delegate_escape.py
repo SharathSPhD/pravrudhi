@@ -77,3 +77,20 @@ def test_the_brief_tells_the_agent_to_write_relative_paths(tmp_path: Path) -> No
 
     dispatch(Recorder(root, ws), TaskSpec("t", "do it", ("x",), validate="true"), log=lambda *a: None)
     assert "never write to an absolute path in the main checkout" in seen["prompt"]
+
+
+def test_the_operators_own_concurrent_edits_in_main_are_not_blamed_on_the_agent(tmp_path: Path) -> None:
+    """While a wave runs the operator keeps editing main. Two agents were once rejected for files the operator had
+    changed in unrelated modules; only a change inside the task's own allowed paths is an escape."""
+    root = _repo(tmp_path / "main")
+    ws = tmp_path / "ws"
+    ws.mkdir()
+
+    class OperatorEditsMeanwhile(EscapingAgent):
+        def run(self, prompt: str, workspace: Path, timeout_s: int = 0) -> AgentRun:
+            (self.root / "unrelated_module.py").write_text("# the operator's edit, not the agent's\n")
+            return AgentRun(agent=self.name, ok=True, exit_code=0, wall_s=0.1, text="", workspace=workspace)
+
+    v = dispatch(OperatorEditsMeanwhile(root, ws), TaskSpec("t", "do it", ("deliverable.py",), validate="true"),
+                 log=lambda *a: None)
+    assert not any("outside its worktree" in r for r in v.reasons), v.reasons

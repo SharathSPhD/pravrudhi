@@ -1,0 +1,60 @@
+# Domain coverage floors for the Prabhasa-Nyaya corpus proposal.
+#
+# min_share is the minimum proportion of the FINAL curated corpus (by document
+# count) that must come from each area, so high-docket-volume areas (criminal
+# bail/cheque-bounce matters in particular) cannot crowd out low-volume but
+# doctrinally important areas by default. Shares are proposed, not measured;
+# validate_corpus.py reports the realized share against each floor.
+
+domains:
+  - key: constitutional_law
+    description: "Fundamental rights, writ jurisdiction (Art. 32/226), federalism"
+    min_share: 0.10
+
+  - key: criminal_law
+    description: "IPC/BNS, CrPC/BNSS, Evidence Act/BSA"
+    min_share: 0.20
+
+  - key: contract_and_civil_obligations
+    description: "Indian Contract Act, tort, civil procedure"
+    min_share: 0.10
+
+  - key: property_law
+    description: "Transfer of Property Act, real property, easements"
+    min_share: 0.05
+
+  - key: family_law
+    description: "Marriage, succession, maintenance across personal-law systems"
+    min_share: 0.05
+
+  - key: tax_law
+    description: "Direct tax (Income Tax Act) and indirect tax (GST, customs)"
+    min_share: 0.05
+
+  - key: corporate_and_insolvency
+    description: "Companies Act, IBC"
+    min_share: 0.05
+
+  - key: labour_and_industrial_law
+    description: "Industrial Disputes Act and successor labour codes"
+    min_share: 0.05
+
+  - key: intellectual_property
+    description: "Patents, trademarks, copyright"
+    min_share: 0.03
+
+  - key: environmental_law
+    description: "Environment Protection Act, NGT jurisprudence"
+    min_share: 0.03
+
+  - key: consumer_protection
+    description: "Consumer Protection Act"
+    min_share: 0.03
+
+  - key: arbitration
+    description: "Arbitration and Conciliation Act"
+    min_share: 0.03
+
+# Floors sum to 0.77, leaving headroom for natural docket distribution
+# (chiefly additional criminal and civil volume) to fill the remainder
+# without being forced into an artificial ceiling.

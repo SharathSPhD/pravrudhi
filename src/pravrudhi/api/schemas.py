@@ -275,6 +275,10 @@ class ProgressResponse(BaseModel):
     target_delta: float | None
     met: bool | None
     significant: bool
+    paired: bool
+    wins: int | None
+    losses: int | None
+    p_mcnemar: float | None
 
 
 class ObjectiveResponse(BaseModel):

@@ -18,12 +18,32 @@ from pravrudhi_kernel.sandbox.observe import sha256_file
 from pravrudhi_kernel.stats import wilson_ci
 
 
+def _lm_eval_items(r: dict[str, Any]) -> dict[str, int]:
+    """Per-doc pass/fail for the first task's `exact_match`, when `--log_samples` wrote them.
+
+    lm-eval only writes a `samples` section when invoked with `--log_samples`; most result files carry none, and
+    `parse_lm_eval` must omit the `items` key entirely for those rather than store an empty dict.
+    """
+    samples = r.get("samples") or {}
+    task = next(iter(r.get("results") or {}), None)
+    if task is None:
+        return {}
+    out: dict[str, int] = {}
+    for row in samples.get(task) or []:
+        doc_id = row.get("doc_id")
+        val = row.get("exact_match")
+        if doc_id is None or val is None:
+            continue
+        out[str(doc_id)] = int(round(float(val)))
+    return out
+
+
 def parse_lm_eval(path: Path) -> dict[str, Any]:
     r = json.loads(path.read_text())
     metrics: dict[str, dict[str, float]] = {}
     for task, m in r["results"].items():
         metrics[task] = {k: float(v) for k, v in m.items() if isinstance(v, (int, float))}
-    return {
+    parsed: dict[str, Any] = {
         "tool": "lm-eval",
         "tool_version": r.get("lm_eval_version"),
         "transformers_version": r.get("transformers_version"),
@@ -32,6 +52,10 @@ def parse_lm_eval(path: Path) -> dict[str, Any]:
         "model_args": (r.get("config") or {}).get("model_args"),
         "metrics": metrics,
     }
+    items = _lm_eval_items(r)
+    if items:
+        parsed["items"] = items
+    return parsed
 
 
 def parse_evalplus(path: Path, dataset: str) -> dict[str, Any]:
@@ -40,6 +64,9 @@ def parse_evalplus(path: Path, dataset: str) -> dict[str, Any]:
     n = len(rows)
     base = sum(1 for v in rows.values() if v[0]["base_status"] == "pass")
     plus = sum(1 for v in rows.values() if v[0]["base_status"] == "pass" and v[0]["plus_status"] == "pass")
+    items = {
+        task_id: int(v[0]["base_status"] == "pass" and v[0]["plus_status"] == "pass") for task_id, v in rows.items()
+    }
     return {
         "tool": "evalplus",
         "tool_version": "0.3.1",
@@ -49,6 +76,7 @@ def parse_evalplus(path: Path, dataset: str) -> dict[str, Any]:
             dataset: {"pass@1_base": base / n, "pass@1_plus": plus / n},
             f"{dataset}_counts": {"n": n, "base_pass": base, "plus_pass": plus},
         },
+        "items": items,
     }
 
 
