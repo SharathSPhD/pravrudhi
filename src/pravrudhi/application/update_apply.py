@@ -239,6 +239,18 @@ def doctor_passes(release_dir: Path, runner: RunnerFn) -> tuple[bool, str]:
     return True, version_line
 
 
+def _current_version(root: Path) -> str | None:
+    """The version `current` points at, or None.
+
+    Without this, every scheduled check re-downloaded and re-installed the release it was already running: the
+    end-user installs on both machines reported "switched to 0.2.1" every thirty minutes.
+    """
+    link = _current_symlink(root)
+    if not link.is_symlink():
+        return None
+    return Path(os.readlink(link)).name
+
+
 def switch_current(root: Path, version: str) -> None:
     """Safeguard 5: an atomic symlink swap, so `current` never points at a half-written directory."""
     releases_dir = _releases_dir(root)
@@ -297,6 +309,8 @@ def _apply_release(root: Path, config: UpdateConfig, fetch: FetchFn, runner: Run
     if not isinstance(tag, str) or not tag:
         return ApplyResult(False, None, "release payload is missing tag_name", False)
     version = _version_from_tag(tag)
+    if _current_version(root) == version:
+        return ApplyResult(False, version, f"already at {version}", False)
 
     wheel_assets, sums_asset = _pick_assets(payload)
     if not wheel_assets or sums_asset is None:

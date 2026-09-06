@@ -515,3 +515,33 @@ def test_apply_release_hands_the_installer_absolute_wheel_paths(tmp_path: Path, 
     assert result.applied, result.reason
     install = next(c for c in seen if c[:3] == ["uv", "pip", "install"])
     assert all(Path(a).is_absolute() for a in install[4:]), install
+
+
+def test_apply_release_is_idempotent_when_current_is_already_that_version(tmp_path: Path) -> None:
+    version = "0.2.1"
+    wheel_name = f"pravrudhi-{version}-py3-none-any.whl"
+    data = b"wheel-bytes"
+    digest = hashlib.sha256(data).hexdigest()
+    url_map = {
+        RELEASES_URL: json.dumps({
+            "tag_name": f"v{version}",
+            "assets": [
+                {"name": wheel_name, "browser_download_url": "https://x/w"},
+                {"name": "SHA256SUMS", "browser_download_url": "https://x/s"},
+            ],
+        }).encode(),
+        "https://x/w": data,
+        "https://x/s": f"{digest}  {wheel_name}\n".encode(),
+    }
+    calls: list[list[str]] = []
+
+    def runner(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout="pravrudhi 0.2.1", stderr="")
+
+    first = apply(tmp_path, channel="release", fetch=fake_fetch(url_map), runner=runner)
+    assert first.applied
+    n = len(calls)
+    second = apply(tmp_path, channel="release", fetch=fake_fetch(url_map), runner=runner)
+    assert not second.applied and second.version == version and "already" in second.reason
+    assert len(calls) == n, "a second apply must not reinstall"
