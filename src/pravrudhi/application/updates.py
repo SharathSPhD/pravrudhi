@@ -1,0 +1,133 @@
+"""Whether this checkout is behind the newest tagged release, and the exact command that would catch it up.
+
+The library, the web interface, and the desktop shell had no way to tell an operator a newer version exists.
+This module answers that question over the network (never raising, since the operator may be offline or
+rate-limited) but performs no update itself: an engine that can start GPU work must not replace its own code
+without the operator saying so.
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import urllib.request
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from pravrudhi import KERNEL_VERSION, __version__
+
+PACKAGE_NAME = "pravrudhi"
+REPO = "SharathSPhD/pravrudhi"
+RELEASES_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+FETCH_TIMEOUT_S = 5.0
+
+FetchFn = Callable[[str, float], Any]
+
+
+def _package_dir() -> Path:
+    return Path(__file__).resolve().parent
+
+
+def _run_git(*args: str) -> subprocess.CompletedProcess[str] | None:
+    try:
+        return subprocess.run(
+            ["git", *args], cwd=_package_dir(), capture_output=True, text=True, timeout=FETCH_TIMEOUT_S
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def _git_describe() -> str | None:
+    result = _run_git("describe", "--tags", "--always", "--dirty")
+    if result is None or result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _is_git_checkout() -> bool:
+    result = _run_git("rev-parse", "--is-inside-work-tree")
+    return result is not None and result.returncode == 0 and result.stdout.strip() == "true"
+
+
+def current() -> dict[str, Any]:
+    """The version this checkout is actually running, plus its git describe when the checkout is a work tree."""
+    out: dict[str, Any] = {"version": __version__, "kernel_version": KERNEL_VERSION}
+    describe = _git_describe()
+    if describe is not None:
+        out["git_describe"] = describe
+    return out
+
+
+def _default_fetch(url: str, timeout: float) -> Any:
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 (fixed GitHub API host)
+        return json.loads(response.read().decode("utf-8"))
+
+
+def latest(fetch: FetchFn | None = None) -> dict[str, Any] | None:
+    """The newest tagged GitHub release, or None if the request fails for any reason - offline is not an error.
+
+    `fetch` is injectable so tests never touch the network; the default calls the GitHub releases API with a
+    5s timeout. The broad except is deliberate: an injected fetch, a rate-limited API, or a malformed payload
+    must all degrade to None, never propagate.
+    """
+    fetch = fetch or _default_fetch
+    try:
+        payload = fetch(RELEASES_URL, FETCH_TIMEOUT_S)
+    except Exception:  # noqa: BLE001 (any failure here means "couldn't check", not a crash)
+        return None
+    if not isinstance(payload, dict):
+        return None
+    tag = payload.get("tag_name")
+    if not isinstance(tag, str) or not tag:
+        return None
+    url = payload.get("html_url")
+    return {"tag": tag, "url": url if isinstance(url, str) else ""}
+
+
+def _parse_version(text: str) -> tuple[int, ...] | None:
+    stripped = text[1:] if text.startswith("v") else text
+    parts = stripped.split(".")
+    try:
+        return tuple(int(part) for part in parts)
+    except ValueError:
+        return None
+
+
+def _normalize(text: str) -> str:
+    return text[1:] if text.startswith("v") else text
+
+
+def _is_newer(latest_tag: str, current_version: str) -> bool:
+    latest_parsed = _parse_version(latest_tag)
+    current_parsed = _parse_version(current_version)
+    if latest_parsed is not None and current_parsed is not None:
+        return latest_parsed > current_parsed
+    return _normalize(latest_tag) != _normalize(current_version)
+
+
+def _how() -> str:
+    if _is_git_checkout():
+        return "git pull && uv sync"
+    return f"pip install --upgrade {PACKAGE_NAME}"
+
+
+def status(fetch: FetchFn | None = None) -> dict[str, Any]:
+    """current, latest, whether an update is available, and the command to run for this install's shape."""
+    cur = current()
+    lat = latest(fetch)
+    update_available = lat is not None and _is_newer(lat["tag"], cur["version"])
+    return {"current": cur, "latest": lat, "update_available": update_available, "how": _how()}
+
+
+def doctor_check() -> dict[str, Any]:
+    """A doctor entry for update status. Never fails the run: a stale checkout is worth flagging, not a fault."""
+    st = status()
+    if st["latest"] is None:
+        detail = f"Running {st['current']['version']}; could not reach GitHub to check for a newer release."
+    elif st["update_available"]:
+        detail = f"A newer release is available ({st['latest']['tag']}). Run: {st['how']}"
+    else:
+        detail = f"Running the latest release ({st['current']['version']})."
+    return {"name": "update_check", "ok": True, "detail": detail}

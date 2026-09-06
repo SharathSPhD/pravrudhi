@@ -1,0 +1,26 @@
+# Example self-build plan: `application.selfbuild.load_plan` reads a file shaped like this.
+#
+# Every task's allowed_paths must stay clear of pravrudhi_kernel/, research/, gates/ and .pravrudhi/ -- a
+# self-build task may improve the engine's own surface, never the kernel or the evidence it is judged against.
+# Both tasks below are harmless: one edits a doc, the other edits its own test file's docstring.
+tasks:
+  - id: selfbuild-example-readme-note
+    prompt: >
+      Add a short "Self-building" paragraph to README.md explaining that the swarm can be pointed at the
+      engine's own source tree through `pravrudhi.application.selfbuild`, the same way it is pointed at an
+      objective's plan through `application.subagents`.
+    allowed_paths:
+      - README.md
+    validate: "uv run pytest -q tests/test_selfbuild.py"
+    tier: standard
+    why: documents this module for anyone reading the README before the source
+
+  - id: selfbuild-example-test-docstring
+    prompt: >
+      Read tests/test_selfbuild.py and, if its module docstring could be clearer about what the test file
+      covers, rewrite that one docstring; if it is already clear, make no change.
+    allowed_paths:
+      - tests/test_selfbuild.py
+    validate: "uv run pytest -q tests/test_selfbuild.py"
+    tier: mechanical
+    why: a harmless example of a self-build task actually touching the engine's own tree
