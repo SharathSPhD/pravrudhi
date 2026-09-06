@@ -1,13 +1,14 @@
 """`pravrudhi serve`: FastAPI over the ledger. Everything shown is replayed; nothing is hand-set.
 
-Endpoints: /health, /status, /candidates, /candidates/{id}, /observations, /inbox, /evidence/{name},
-POST /inbox/sign (operator identity required; refused for agent identities)."""
+Endpoints: /health, /status, /candidates, /candidates/{id}, /observations, /inbox, /evidence/{name}, /swarm,
+/swarm/live, POST /inbox/sign (operator identity required; refused for agent identities)."""
 
 from __future__ import annotations
 
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +32,7 @@ from pravrudhi.api.schemas import (
     FleetResponse,
     HealthResponse,
     InboxListingResponse,
+    LiveAgentsResponse,
     LoomResponse,
     MarkdownResponse,
     MemoryNoteResponse,
@@ -49,6 +51,7 @@ from pravrudhi.api.schemas import (
     SignResponse,
     StatusResponse,
     SubagentsResponse,
+    SwarmResponse,
     TokenResponse,
     ToolsResponse,
     WorkspaceResponse,
@@ -64,6 +67,46 @@ from pravrudhi_kernel.ledger import LedgerWriter, replay
 from pravrudhi_kernel.ledger.verify import iter_events
 
 AGENT_IDENTITIES = frozenset({"pravrudhi-agent", "agent", "claude"})
+
+# The three ways this engine launches a coding agent as a subprocess. Matched against a process's argv so a live
+# dispatch can be told apart from a stalled one; see `_scan_live_agents`.
+_LIVE_AGENT_PATTERNS: dict[str, str] = {"claude -p": "claude", "codex exec": "codex", "agent_code": "agent_code"}
+
+
+def _scan_live_agents() -> list[dict[str, Any]]:
+    """The API had no way to show which agent processes were actually running on this machine: the routing log
+    and the subagent/self-build run logs record what was dispatched and what came back, but nothing in between,
+    so an operator watching a long dispatch could not tell a live worker from a stalled one. This reads the
+    process table once and keeps only pid, elapsed time, which launch pattern matched, and (if the process's
+    cwd is a `.worktrees/` checkout) that path -- never the full command line, which could carry a secret."""
+    try:
+        out = subprocess.run(
+            ["ps", "-eo", "pid,etimes,args"], capture_output=True, text=True, timeout=5, check=False
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in out.splitlines()[1:]:
+        parts = line.strip().split(None, 2)
+        if len(parts) < 3:
+            continue
+        pid_s, etimes_s, args = parts
+        kind = next((k for pattern, k in _LIVE_AGENT_PATTERNS.items() if pattern in args), None)
+        if kind is None:
+            continue
+        try:
+            pid, elapsed_s = int(pid_s), int(etimes_s)
+        except ValueError:
+            continue
+        worktree: str | None = None
+        try:
+            cwd = os.readlink(f"/proc/{pid}/cwd")
+            if "/.worktrees/" in cwd:
+                worktree = cwd
+        except OSError:
+            pass
+        rows.append({"pid": pid, "elapsed_s": elapsed_s, "kind": kind, "worktree": worktree})
+    return rows
 
 
 class BenchmarkRequest(BaseModel):
@@ -142,6 +185,27 @@ def create_app(root: Path) -> FastAPI:
         return AgentsResponse.model_validate(
             [{"name": agent.name, "available": agent.available, "reason": agent.reason} for agent in survey(root)]
         )
+
+    @api.get("/swarm", response_model=SwarmResponse)
+    def swarm_ep() -> dict[str, Any]:
+        """Nothing in the API showed the swarm itself: which agents are routed where, what has been dispatched,
+        what was accepted. Agent availability, the routing table's live per-tier choice, and the last 100 runs
+        of both the objective swarm and the self-build swarm, newest first."""
+        from dataclasses import asdict
+
+        from pravrudhi.application import routing, selfbuild, subagents
+
+        return {
+            "agents": [{"name": a.name, "available": a.available, "reason": a.reason} for a in survey(root)],
+            "routing": routing.report(root),
+            "subagent_runs": [asdict(r) for r in reversed(subagents.runs(root)[-100:])],
+            "selfbuild_runs": [asdict(r) for r in reversed(selfbuild.runs(root)[-100:])],
+        }
+
+    @api.get("/swarm/live", response_model=LiveAgentsResponse)
+    def swarm_live_ep() -> list[dict[str, Any]]:
+        """The agent processes actually running on this machine right now, not what the run logs say happened."""
+        return _scan_live_agents()
 
     @api.get("/external", response_model_exclude_unset=True)
     def external() -> ExternalResultsResponse:

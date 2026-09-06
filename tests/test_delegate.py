@@ -77,3 +77,12 @@ def test_validation_really_runs_in_the_worktree(tmp_path):
     assert ok and "FOUND" in out
     bad, _ = validate_in(tmp_path, "test -f absent.txt")
     assert not bad
+
+
+def test_owns_treats_trailing_slash_as_directory() -> None:
+    from pravrudhi.application.delegate import TaskSpec
+
+    spec = TaskSpec("t", "p", ("app/frontend/src/app/progress/", "src/x.py"), "true", 10)
+    assert spec.owns("app/frontend/src/app/progress/page.tsx")
+    assert spec.owns("src/x.py")
+    assert not spec.owns("app/frontend/src/app/progressive.tsx")

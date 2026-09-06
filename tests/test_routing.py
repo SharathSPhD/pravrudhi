@@ -138,6 +138,16 @@ def test_the_shipped_table_reserves_the_dearest_model_for_the_hardest_work() -> 
         assert choose(t, [], tier).route.relative_cost <= dearest.relative_cost
 
 
+def test_the_hosted_qwen_coder_route_is_permitted_only_at_mechanical() -> None:
+    """The route was added for single-shot file-writing tasks; it must not be reachable at tiers that need a
+    tool-calling loop it cannot drive."""
+    t = load_table()
+    assert t.routes["qwen-coder"].agent == "hosted"
+    assert "qwen-coder" in [r.id for r in t.permitted("mechanical")]
+    for tier in ("standard", "design", "critical"):
+        assert "qwen-coder" not in [r.id for r in t.permitted(tier)]
+
+
 def test_report_covers_every_tier(tmp_path: Path) -> None:
     rows = report(tmp_path, _table(tmp_path))
     assert {r["tier"] for r in rows} == {"mechanical", "standard", "critical"}

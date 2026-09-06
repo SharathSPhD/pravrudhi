@@ -37,7 +37,18 @@ class TaskSpec:
     timeout_s: int = 1800
 
     def owns(self, path: str) -> bool:
-        return any(fnmatch.fnmatch(path, pat) for pat in self.allowed_paths)
+        """A declared path is a glob, or a directory when it ends in `/`.
+
+        `fnmatch` alone treated `app/frontend/src/app/progress/` as a literal name, so a task handed a directory
+        wrote every file inside it and was rejected for escaping its own scope; the work was correct and the
+        detector was wrong.
+        """
+        for pat in self.allowed_paths:
+            if pat.endswith("/") and path.startswith(pat):
+                return True
+            if fnmatch.fnmatch(path, pat):
+                return True
+        return False
 
     def out_of_scope(self, diff: Diff) -> list[str]:
         return sorted(f for f in diff.files if not self.owns(f))

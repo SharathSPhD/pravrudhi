@@ -13,24 +13,55 @@ sequence of a real run as it happened.
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pravrudhi import __version__
+from pravrudhi import KERNEL_VERSION
+from pravrudhi import __version__ as ENGINE_VERSION
+from pravrudhi.agents.registry import survey as agent_survey
 from pravrudhi.api.runs import models_listing
 from pravrudhi.application.external import external_rows
 from pravrudhi.application.intent import compile_intent
 from pravrudhi.application.objectives import load_all
 from pravrudhi.application.objectives import problems as objective_problems
 from pravrudhi.application.objectives import summary as objective_summary
+from pravrudhi.application.policies import POLICIES
 from pravrudhi.application.recipes import availability, library
 from pravrudhi.application.recipes import installed as installed_skills
 from pravrudhi.application.status import status
+from pravrudhi.application.tools import availability as tool_availability
 from pravrudhi_kernel.ledger import replay
 from pravrudhi_kernel.ledger.verify import iter_events
 
 MAX_EVENTS = 400
+
+
+# The public site's page list, mirrored from app/frontend/src/components/Sidebar.tsx NAV (a TypeScript constant this
+# Python module cannot import). Keep the two in sync by hand when a route is added or renamed there.
+PAGES = ("/", "/objectives", "/chat", "/runs", "/models", "/machines", "/settings", "/install")
+
+
+def _commit() -> str | None:
+    """The engine's own short commit hash, or None when this tree is not a git checkout (e.g. a packaged install)."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=Path(__file__).resolve().parent,
+            capture_output=True, text=True, timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip() or None
+
+
+def _exported_at() -> str:
+    now = datetime.now(UTC)
+    return now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
 
 
 def _nights(ledger: Path) -> list[dict[str, Any]]:
@@ -108,7 +139,20 @@ def build_demo(root: Path) -> dict[str, Any]:
         })
     return {
         "recorded": True,
-        "engine": {"version": __version__, "candidates": len(st.candidates)},
+        "version": {
+            "engine": ENGINE_VERSION,
+            "kernel": KERNEL_VERSION,
+            "commit": _commit(),
+            "exported_at": _exported_at(),
+        },
+        "capabilities": {
+            "tools": [{"id": t["id"], "kind": t["category"], "available": t["available"]} for t in tool_availability()],
+            "agents": [{"name": a.name, "available": a.available} for a in agent_survey(root)],
+            "policies": list(POLICIES),
+            "recipes": len(library()),
+            "pages": list(PAGES),
+        },
+        "engine": {"version": ENGINE_VERSION, "candidates": len(st.candidates)},
         "status": status(root),
         "models": models_listing(root),
         "external": external_rows(ledger),

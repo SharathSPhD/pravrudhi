@@ -516,11 +516,38 @@ def build_cmd(plan: Path = BUILD_PLAN_ARG, run: bool = BUILD_RUN_OPT, root: Path
 
 
 @app.command("update")
-def update_cmd() -> None:
-    """Is a newer release available, and the exact command that would catch this checkout up."""
+def update_cmd(
+    root: Path = ROOT_OPT,
+    apply_now: bool = typer.Option(False, "--apply", help="apply the update if every safeguard clears"),
+    channel: str | None = typer.Option(None, "--channel", help="dev (git checkout) or release (GitHub Release)"),
+    rollback_now: bool = typer.Option(False, "--rollback", help="switch back to the previous release install"),
+    as_json: bool = typer.Option(False, "--json"),
+) -> None:
+    """Is a newer release available; and with --apply, catch this install up under the safeguards."""
+    from dataclasses import asdict
+
     from pravrudhi.application.updates import status
 
+    if rollback_now or apply_now:
+        from pravrudhi.application import update_apply
+
+        if channel not in (None, "dev", "release"):
+            raise typer.BadParameter("channel must be dev or release")
+        result = (
+            update_apply.rollback(root)
+            if rollback_now
+            else update_apply.apply(root, channel=channel)  # type: ignore[arg-type]
+        )
+        if as_json:
+            typer.echo(json.dumps(asdict(result), sort_keys=True))
+        else:
+            typer.echo(("applied " if result.applied else "not applied: ") + result.reason)
+        raise typer.Exit(0)
+
     st = status()
+    if as_json:
+        typer.echo(json.dumps(st, indent=2, sort_keys=True))
+        return
     cur = st["current"]
     typer.echo(f"running {cur['version']} (kernel {cur['kernel_version']})" + (
         f", git {cur['git_describe']}" if "git_describe" in cur else ""
@@ -532,6 +559,21 @@ def update_cmd() -> None:
         typer.echo(f"  {st['how']}")
     else:
         typer.echo(f"up to date with the latest release ({st['latest']['tag']})")
+
+
+DEMO_DEST_OPT = typer.Option(Path("app/frontend/public/demo.json"), "--dest", help="where the snapshot is written")
+
+
+@app.command("demo-export")
+def demo_export_cmd(
+    root: Path = ROOT_OPT,
+    dest: Path = DEMO_DEST_OPT,
+) -> None:
+    """Record this engine's results and capabilities as the snapshot the public site and dashboard render."""
+    from pravrudhi.application.demo_export import write_demo
+
+    out = write_demo(root, dest)
+    typer.echo(f"wrote {out}")
 
 
 @app.command("routing")

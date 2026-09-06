@@ -534,6 +534,72 @@ class DispatchResponse(BaseModel):
     started: int
 
 
+class SelfBuildRunResponse(BaseModel):
+    """A dispatched self-build task's outcome had no declared response contract."""
+
+    task_id: str
+    route: str
+    accepted: bool
+    wall_s: float
+    files: list[str]
+    reasons: list[str]
+    at: str
+
+
+class RoutingRecordResponse(BaseModel):
+    """What the routing log says about one route at one tier had no declared response contract."""
+
+    route_id: str
+    tier: str
+    trials: int
+    successes: int
+    rate: float
+    lo: float
+    hi: float
+    mean_wall_s: float
+    relative_cost: float
+
+
+class RoutingReportRowResponse(BaseModel):
+    """A tier's current routing choice, or the reason it has none, had no declared response contract."""
+
+    tier: str
+    route: str | None = None
+    agent: str | None = None
+    model: str | None = None
+    relative_cost: float | None = None
+    reason: str | None = None
+    records: list[RoutingRecordResponse] = []
+    error: str | None = None
+
+
+class SwarmResponse(BaseModel):
+    """Nothing in the API showed the swarm itself: which agents are routed where, what has been dispatched, and
+    what was accepted. This brings the agent survey, the routing table's live choices, and the last runs of both
+    the objective swarm and the self-build swarm together in one place."""
+
+    agents: list[AgentResponse]
+    routing: list[RoutingReportRowResponse]
+    subagent_runs: list[SubagentRunResponse]
+    selfbuild_runs: list[SelfBuildRunResponse]
+
+
+class LiveAgentResponse(BaseModel):
+    """A dispatched task's worker process was invisible between "started" and "recorded": the run logs show what
+    was dispatched and what came back, but nothing running in between, so an operator watching a long dispatch
+    could not tell a live worker from a stalled one. `worktree` is null when the process's cwd is not a
+    `.worktrees/` checkout, since not every agent process runs one."""
+
+    pid: int
+    elapsed_s: int
+    kind: str
+    worktree: str | None = None
+
+
+class LiveAgentsResponse(RootModel[list[LiveAgentResponse]]):
+    """The live agent-process collection previously left its entries untyped."""
+
+
 class MeResponse(BaseModel):
     """Who is asking, as far as this engine can tell. Identity, not evidence and not authorisation."""
 

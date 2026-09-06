@@ -1,0 +1,34 @@
+# What a sandboxed agent may touch and call, declared instead of assembled by hand.
+#
+# `proposal` is the shape tasks_from_plan (application/subagents.py) already builds one call at a time: a scratch
+# directory under proposals/ and a compileall validate command. `selfbuild` and `review` are declared here so a
+# future caller can ask for them by name instead of writing the same allowed_paths/validate pairs again.
+#
+# denied_paths below are additive only: sandbox_policy.Policy always merges in pravrudhi_kernel/, research/,
+# gates/ and .pravrudhi/ regardless of what is written here, so a missing or mistyped entry in this file can
+# never reopen them.
+
+policies:
+  proposal:
+    allowed_paths: ["proposals/**"]
+    denied_paths: []
+    network: none
+    tools: ["agent-claude-code", "agent-codex", "agent-orca", "runtime-uv"]
+    max_wall_s: 1800
+    validate: "uv run python -m compileall -q ."
+
+  selfbuild:
+    allowed_paths: ["src/pravrudhi/**", "tests/**"]
+    denied_paths: []
+    network: provider-only
+    tools: ["agent-claude-code", "runtime-uv", "mcp-git"]
+    max_wall_s: 3600
+    validate: "uv run pytest -q"
+
+  review:
+    allowed_paths: []
+    denied_paths: []
+    network: none
+    tools: ["mcp-git"]
+    max_wall_s: 900
+    validate: "true"

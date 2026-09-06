@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pravrudhi.agents.cli_agents import ClaudeCodeAgent, CodexAgent
+from pravrudhi.agents.hosted_agent import HostedAgent
 from pravrudhi.agents.orca_agent import OrcaAgent
 
 
@@ -70,6 +71,9 @@ def build_agent(root: Path, name: str, model: str | None = None) -> Any | None:
         return a if a.available() else None
     if name.startswith("orca:"):
         a = OrcaAgent(root, agent_id=name.split(":", 1)[1], model=model)
+        return a if a.available() else None
+    if name == "hosted":
+        a = HostedAgent(root, model=model) if model else HostedAgent(root)
         return a if a.available() else None
     return None
 

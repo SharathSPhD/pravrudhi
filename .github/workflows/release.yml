@@ -1,0 +1,43 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "24" }
+
+      - uses: astral-sh/setup-uv@v6
+        with: { python-version: "3.13" }
+
+      - name: build frontend
+        working-directory: app/frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: build wheels (engine and kernel; the engine wheel alone does not resolve)
+        run: |
+          uv build --wheel
+          uv build --wheel --package pravrudhi-kernel
+
+      - name: checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.whl
+            dist/SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

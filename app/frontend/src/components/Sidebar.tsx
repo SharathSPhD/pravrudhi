@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, History, Package, Server, Settings, Download, Target, MessageSquare } from "lucide-react";
+import { Sparkles, History, Package, Server, Settings, Download, Target, MessageSquare, LineChart } from "lucide-react";
 import type { ComponentType } from "react";
 
 interface NavItem {
@@ -14,6 +14,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/", label: "Improve", icon: Sparkles },
   { href: "/objectives", label: "Objectives", icon: Target },
+  { href: "/progress", label: "Progress", icon: LineChart },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/runs", label: "Runs", icon: History },
   { href: "/models", label: "Models", icon: Package },

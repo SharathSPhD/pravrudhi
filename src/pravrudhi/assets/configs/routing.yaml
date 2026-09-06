@@ -19,6 +19,16 @@ minimum_trials: 3
 confidence: 0.95
 
 routes:
+  - id: qwen-coder
+    agent: hosted
+    model: qwen3-coder-plus
+    relative_cost: 0.2
+    tiers: [mechanical]
+    note: >-
+      A hosted free-tier model with no CLI: it cannot drive a tool-calling loop, only answer once with a JSON
+      payload of whole-file contents. Wired in for single-shot file-writing tasks, not for anything that needs to
+      read its own output back, run a command, or iterate.
+
   - id: haiku
     agent: claude-code
     model: haiku
@@ -63,7 +73,7 @@ routes:
       Permitted at no tier until that is disproved by a trial the router will never run on its own.
 
 declared:
-  mechanical: [sonnet]
+  mechanical: [qwen-coder, sonnet]
   standard: [sonnet]
   design: [sonnet, opus, astra]
   critical: [opus, sonnet, astra]

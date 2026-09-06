@@ -1,7 +1,112 @@
 {
+  "capabilities": {
+    "agents": [
+      {
+        "available": true,
+        "name": "claude-code"
+      },
+      {
+        "available": false,
+        "name": "codex"
+      },
+      {
+        "available": true,
+        "name": "orca:claude"
+      },
+      {
+        "available": true,
+        "name": "orca:codex"
+      },
+      {
+        "available": true,
+        "name": "orca:local"
+      }
+    ],
+    "pages": [
+      "/",
+      "/objectives",
+      "/chat",
+      "/runs",
+      "/models",
+      "/machines",
+      "/settings",
+      "/install"
+    ],
+    "policies": [
+      "efe",
+      "greedy",
+      "thompson",
+      "random",
+      "gear",
+      "hgm"
+    ],
+    "recipes": 17,
+    "tools": [
+      {
+        "available": true,
+        "id": "agent-claude-code",
+        "kind": "agent"
+      },
+      {
+        "available": true,
+        "id": "agent-codex",
+        "kind": "agent"
+      },
+      {
+        "available": true,
+        "id": "agent-orca",
+        "kind": "agent"
+      },
+      {
+        "available": false,
+        "id": "model-llamacpp",
+        "kind": "model-server"
+      },
+      {
+        "available": true,
+        "id": "runtime-docker",
+        "kind": "connector"
+      },
+      {
+        "available": true,
+        "id": "runtime-uv",
+        "kind": "connector"
+      },
+      {
+        "available": true,
+        "id": "runtime-gpu",
+        "kind": "connector"
+      },
+      {
+        "available": true,
+        "id": "mcp-playwright",
+        "kind": "mcp"
+      },
+      {
+        "available": false,
+        "id": "mcp-supabase",
+        "kind": "mcp"
+      },
+      {
+        "available": false,
+        "id": "mcp-vercel",
+        "kind": "mcp"
+      },
+      {
+        "available": false,
+        "id": "mcp-huggingface",
+        "kind": "mcp"
+      },
+      {
+        "available": true,
+        "id": "mcp-git",
+        "kind": "mcp"
+      }
+    ]
+  },
   "engine": {
-    "candidates": 141,
-    "version": "0.1.0"
+    "candidates": 179,
+    "version": "0.2.0"
   },
   "external": [
     {
@@ -2048,6 +2153,24 @@
       "selection_policy": "greedy",
       "spent_gpu_h": 0.559,
       "track": "lora"
+    },
+    {
+      "candidates": 6,
+      "night": 4,
+      "promoted": [],
+      "pruned": 0,
+      "selection_policy": "efe",
+      "spent_gpu_h": 0.0,
+      "track": "harness"
+    },
+    {
+      "candidates": 20,
+      "night": 12,
+      "promoted": [],
+      "pruned": 20,
+      "selection_policy": "efe",
+      "spent_gpu_h": 1.43,
+      "track": "lora"
     }
   ],
   "objectives": {
@@ -3026,6 +3149,28 @@
   "recorded": true,
   "runs": [
     {
+      "candidates": 20,
+      "id": "n12-lora",
+      "night": 12,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 20,
+      "spent_gpu_h": 1.43,
+      "status": "finished",
+      "target": "model"
+    },
+    {
+      "candidates": 6,
+      "id": "n4-harness",
+      "night": 4,
+      "policy": "efe",
+      "promoted": [],
+      "pruned": 0,
+      "spent_gpu_h": 0.0,
+      "status": "finished",
+      "target": "harness"
+    },
+    {
       "candidates": 8,
       "id": "n10-lora",
       "night": 10,
@@ -3090,48 +3235,24 @@
       "spent_gpu_h": 0.0,
       "status": "finished",
       "target": "harness"
-    },
-    {
-      "candidates": 5,
-      "id": "n4-harness",
-      "night": 4,
-      "policy": "efe",
-      "promoted": [],
-      "pruned": 0,
-      "spent_gpu_h": 0.0,
-      "status": "finished",
-      "target": "harness"
-    },
-    {
-      "candidates": 13,
-      "id": "n3-harness",
-      "night": 3,
-      "policy": "greedy",
-      "promoted": [
-        "c-0078"
-      ],
-      "pruned": 3,
-      "spent_gpu_h": 0.317,
-      "status": "finished",
-      "target": "harness"
     }
   ],
   "status": {
     "badges": {
-      "amber": 13,
+      "amber": 20,
       "green": 2,
-      "grey": 22,
-      "red": 104
+      "grey": 19,
+      "red": 138
     },
-    "candidates": 141,
+    "candidates": 179,
     "chain_ok": true,
-    "events": 1849,
+    "events": 2308,
     "inbox_pending": [
       "/home/ss/projects/pravrudhi/research/inbox/night4/c-0045",
       "research/inbox/harness-night3/c-0078"
     ],
     "initialised": true,
-    "ledger_head": "8c674bcd7cd498e38a83168566eb9b313c9eda7926321c2aee69a1b935608dd8",
+    "ledger_head": "1307531bf6f6dd6fb0efc05fa884100a1f35904515a72fdf2517f200e1cd0d34",
     "locks": {
       "frozen_surfaces": [],
       "paused": false,
@@ -3176,11 +3297,12 @@
       "4": {
         "incumbent": "c-0000",
         "outcomes": {
+          "c-0059": "skipped:bad_recipe",
           "c-0060": "skipped:bad_recipe",
-          "c-0085": "skipped:pool_exhausted",
-          "c-0086": "skipped:pool_exhausted",
-          "c-0089": "skipped:pool_exhausted",
-          "c-0090": "skipped:pool_exhausted"
+          "c-0101": "skipped:pool_exhausted",
+          "c-0103": "skipped:pool_exhausted",
+          "c-0106": "skipped:pool_exhausted",
+          "c-0141": "skipped:pool_exhausted"
         },
         "spent_gpu_h": 0.0
       },
@@ -3262,6 +3384,32 @@
           "c-0140": "pruned"
         },
         "spent_gpu_h": 0.5588597927651264
+      },
+      "12": {
+        "incumbent": "c-0045",
+        "outcomes": {
+          "c-0146": "pruned",
+          "c-0147": "pruned",
+          "c-0148": "pruned",
+          "c-0149": "pruned",
+          "c-0150": "pruned",
+          "c-0151": "pruned",
+          "c-0152": "pruned",
+          "c-0153": "pruned",
+          "c-0155": "pruned",
+          "c-0156": "pruned",
+          "c-0157": "pruned",
+          "c-0158": "pruned",
+          "c-0159": "pruned",
+          "c-0160": "pruned",
+          "c-0161": "pruned",
+          "c-0162": "pruned",
+          "c-0163": "pruned",
+          "c-0164": "pruned",
+          "c-0165": "pruned",
+          "c-0166": "pruned"
+        },
+        "spent_gpu_h": 1.4301853332975103
       }
     },
     "promoted": {
@@ -3272,7 +3420,13 @@
         "c-0045"
       ]
     },
-    "pruned": 82,
-    "state_hash": "e5064c3fa630511955c88069e649dc86d7135c54cef3d32860f69daaeb211bd7"
+    "pruned": 112,
+    "state_hash": "933e103b1aa76a2788684de63177f25b476846be4c2f10d680fbfe804e1e3a72"
+  },
+  "version": {
+    "commit": "7c340ce",
+    "engine": "0.2.0",
+    "exported_at": "2026-09-06T14:42:28.628Z",
+    "kernel": "0.1.0"
   }
 }
