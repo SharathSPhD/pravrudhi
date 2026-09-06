@@ -151,6 +151,40 @@ def test_an_unknown_tool_name_is_refused_not_approximated(tmp_path: Path) -> Non
     assert "ledger" not in TOOL_NAMES
 
 
+def test_grounding_pre_pass_lets_a_tool_averse_model_answer_the_baseline_question(tmp_path: Path) -> None:
+    """A model too small to reliably emit the JSON tool-call envelope never asks for a tool itself here - the
+    grounding pre-pass must have already put the ledger row in front of it for the numbers to appear at all."""
+    ledger = _measured_workspace(tmp_path)
+    model = FakeModel(
+        {"content": "The candidate scores 0.5 on law acc,none against a baseline of 0.4.", "tool_calls": []},
+    )
+
+    outcome = converse(tmp_path, "What is the baseline for the legal-intent objective? Cite rows.", complete=model)
+
+    assert len(model.seen) == 1  # the model was asked exactly once; the pre-pass never needed a second round
+    assert "0.5" in outcome.reply and "0.4" in outcome.reply
+    (standing,) = progress(OBJECTIVE, ledger)
+    cited = {c["seq"] for c in outcome.citations}
+    assert standing.baseline.seq in cited and standing.latest.seq in cited
+    assert [c.tool for c in outcome.tool_calls] == ["objective_progress"]
+    assert outcome.tool_calls[0].grounding is True
+
+
+def test_a_matched_question_whose_ledger_lookup_finds_nothing_gets_the_fixed_sentence(tmp_path: Path) -> None:
+    """The objective exists but nothing has ever been measured against it, so the grounding call that the
+    question's own wording justifies comes back with no citable row - the model's confident non-answer, which
+    contains no numeral for the honesty pass to strip, must still not reach the caller."""
+    write(tmp_path, OBJECTIVE)
+    model = FakeModel({"content": "The baseline is the initial state of the system.", "tool_calls": []})
+
+    outcome = converse(tmp_path, "What is the baseline for the legal-intent objective? Cite rows.", complete=model)
+
+    assert outcome.reply == "I could not consult the ledger for that; try naming the objective."
+    assert outcome.citations == ()
+    assert [c.tool for c in outcome.tool_calls] == ["objective_progress"]
+    assert outcome.tool_calls[0].grounding is True
+
+
 def test_a_thread_round_trips_through_the_api(tmp_path: Path) -> None:
     _measured_workspace(tmp_path)
     model = FakeModel(

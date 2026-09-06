@@ -33,7 +33,7 @@ import os
 import re
 import uuid
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +92,22 @@ TOOL_SCHEMA: tuple[dict[str, Any], ...] = (
 
 TOOL_NAMES = frozenset(str(t["name"]) for t in TOOL_SCHEMA)
 
+# What a message's own wording is enough to justify calling, before the model has said anything. A model too
+# small to reliably emit the JSON tool-call envelope still gets the ledger consulted on its behalf: keyed by
+# the tool the keywords license, not scattered as magic strings through `_grounding_calls`.
+_GROUNDING_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "objectives": ("baseline", "progress", "improv", "benchmark", "score", "result"),
+    "objective_plan": ("plan", "loom", "steps"),
+    "recipes": ("recipe",),
+    "tools": ("tool",),
+    "routing_report": ("routing",),
+}
+
+# What the reply becomes when the message plainly asked a ledger question but the turn's tools - the ones the
+# wording itself justified - came back with nothing to cite. Anything the model wrote instead is a guess this
+# turn cannot verify, numeral-free or not, so the guess is what gets replaced, not just its numbers.
+_GROUNDING_FALLBACK_REPLY = "I could not consult the ledger for that; try naming the objective."
+
 # A numeral, but not one embedded in an identifier: "GSM8K" and "Qwen3-4B" are names, not claims, and a rule
 # that treated their digits as measurements would delete every sentence that named a model.
 _NUMBER_RE = re.compile(r"(?<![A-Za-z0-9.])\d+(?:\.\d+)?%?(?![A-Za-z0-9])")
@@ -121,9 +137,11 @@ class ToolInvocation:
     result: dict[str, Any]
     result_summary: str
     refusal: str = ""
+    grounding: bool = False
 
     def to_dict(self) -> dict[str, Any]:
-        return {"tool": self.tool, "args": dict(self.args), "result_summary": self.result_summary}
+        return {"tool": self.tool, "args": dict(self.args), "result_summary": self.result_summary,
+                "grounding": self.grounding}
 
 
 @dataclass(frozen=True)
@@ -415,6 +433,41 @@ def _tool_results_message(calls: list[ToolInvocation], limit: int = 8000) -> dic
     return {"role": "user", "content": "tool results:\n" + body[:limit]}
 
 
+def _mentioned_objective_ids(root: Path, message: str) -> list[str]:
+    """Objective ids the message names outright, matched whole-word against the workspace's own catalogue.
+
+    A substring match would let "nyaya" inside some longer track name silently stand in for an objective id
+    nobody typed; the word boundary keeps the match to what the user actually wrote.
+    """
+    from pravrudhi.application.objectives import load_all
+
+    return [o.id for o in load_all(root) if re.search(rf"\b{re.escape(o.id)}\b", message, re.IGNORECASE)]
+
+
+def _mentions(message: str, keywords: tuple[str, ...]) -> bool:
+    lowered = message.lower()
+    return any(keyword in lowered for keyword in keywords)
+
+
+def _grounding_calls(root: Path, store: MemoryStore, message: str) -> list[ToolInvocation]:
+    """Tool calls the message's own wording already justifies, run before the model is asked anything.
+
+    This is what turns a model's silence into an answer rather than a guess: the results reach the model as
+    an ordinary tool-results message, so even a model that never emits a tool call itself has the ledger row
+    in front of it when it writes its reply.
+    """
+    named = _mentioned_objective_ids(root, message)
+    wanted: list[tuple[str, dict[str, Any]]] = [("objective_progress", {"id": oid}) for oid in named]
+    if not named and _mentions(message, _GROUNDING_KEYWORDS["objectives"]):
+        wanted.append(("objectives", {}))
+    if named and _mentions(message, _GROUNDING_KEYWORDS["objective_plan"]):
+        wanted += [("objective_plan", {"id": oid}) for oid in named]
+    for tool in ("recipes", "tools", "routing_report"):
+        if _mentions(message, _GROUNDING_KEYWORDS[tool]):
+            wanted.append((tool, {}))
+    return [replace(dispatch(root, store, tool, args), grounding=True) for tool, args in wanted]
+
+
 def converse(
     root: Path,
     message: str,
@@ -439,7 +492,11 @@ def converse(
     messages.append({"role": "user", "content": message})
     memory_store.append_turn(tid, "user", message)
 
-    calls: list[ToolInvocation] = []
+    grounded = _grounding_calls(root, memory_store, message)
+    calls: list[ToolInvocation] = list(grounded)
+    if grounded:
+        messages.append(_tool_results_message(grounded))
+
     draft = ""
     for _round in range(MAX_TOOL_ROUNDS):
         answer = model(list(messages), list(TOOL_SCHEMA))
@@ -461,6 +518,11 @@ def converse(
     reply, refusals = enforce_honesty(draft, allowed_numbers(made))
     refusals = [c.refusal for c in made if c.refusal] + refusals
     citations = citations_from(made)
+    if grounded and not citations:
+        # The message's own wording justified a ledger lookup and one ran, but nothing in it was citable -
+        # whatever the model wrote instead cannot be verified this turn, so it is replaced outright rather
+        # than trusted just because it happens to contain no numeral for the honesty pass to catch.
+        reply = _GROUNDING_FALLBACK_REPLY
     turn_meta = {
         "citations": [dict(c) for c in citations],
         "refusals": list(refusals),

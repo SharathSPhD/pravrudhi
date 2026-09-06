@@ -66,8 +66,14 @@ class ChatClient:
         if self.api_key:
             req.add_header("Authorization", f"Bearer {self.api_key}")
         t0 = time.monotonic()
-        with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
-            data = json.loads(resp.read().decode())
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
+                data = json.loads(resp.read().decode())
+        except urllib.error.HTTPError as exc:
+            # A night once died on "HTTP Error 400: Bad Request" and nothing more: the server's explanation was in
+            # the body the exception discards. Surface it, with the endpoint, so the cause is readable in the log.
+            detail = exc.read().decode(errors="replace")[:600] if exc.fp else ""
+            raise RuntimeError(f"{self.base_url}/chat/completions answered {exc.code}: {detail or exc.reason}") from exc
         usage = data.get("usage") or {}
         return ChatResult(
             text=data["choices"][0]["message"]["content"],
